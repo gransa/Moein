@@ -30,8 +30,8 @@ def get_tls_fingerprint(host, port, sni=None):
 
 def process_vmess_line(line):
     """
-    Decodes VMess payload, updates v2rayNG supported cert pinning parameters
-    while leaving fp=chrome completely untouched.
+    Decodes VMess payload, overwrites 'fp' with the hex hash if TLS is live,
+    otherwise leaves 'fp' as its original value (e.g., 'chrome').
     """
     try:
         b64_data = line[8:].strip()
@@ -56,9 +56,9 @@ def process_vmess_line(line):
         new_cert_hash = get_tls_fingerprint(host, port, sni)
         
         if new_cert_hash:
-            # v2rayNG / Xray core support array format or string format for pinned chain inside JSON
-            config_json["pinnedPeerCertificateChainSha256"] = [new_cert_hash]
-            print(f"✅ Cert Fingerprint pinned for {host}:{port} (VMESS) -> {new_cert_hash[:32]}...")
+            # For VMess TLS over v2rayNG, the hex hash goes directly into the fp field
+            config_json["fp"] = new_cert_hash
+            print(f"✅ Fingerprint hash set in fp for {host}:{port} (VMESS) -> {new_cert_hash[:32]}...")
             
             updated_json_bytes = json.dumps(config_json, ensure_ascii=False).encode('utf-8')
             encoded_str = base64.b64encode(updated_json_bytes).decode('utf-8')
@@ -70,14 +70,15 @@ def process_vmess_line(line):
 
 def update_standard_line(line):
     """
-    Parses VLESS/Trojan nodes. Keeps 'fp=chrome' intact and uses the native
-    v2rayNG parameter 'pinnedPeerCertificateChainSha256' for the hash.
+    Parses VLESS/Trojan nodes. Overwrites 'fp' with the certificate SHA-256 hex hash
+    if the handshake succeeds. Preserves the original 'fp' parameter if the host is offline.
     """
     try:
         fragment = ""
         if "#" in line:
             line, fragment = line.split("#", 1)
 
+        # Uses safe regex splits to preserve path encoding strings completely
         match = re.match(r'^([^:]+://)([^@]+@)?([^/?]+)([^?]*)\?(.*)$', line)
         if not match:
             return line + (f"#{fragment}" if fragment else "")
@@ -100,7 +101,7 @@ def update_standard_line(line):
             else:
                 params[pair] = ""
 
-        # Skip non-encrypted profiles
+        # Skip non-encrypted profiles entirely
         security = params.get("security", "").lower()
         if security not in ["tls", "xtls", "reality"]:
             return line + (f"#{fragment}" if fragment else "")
@@ -109,9 +110,9 @@ def update_standard_line(line):
         new_cert_hash = get_tls_fingerprint(host, port, sni)
         
         if new_cert_hash:
-            # Inject the official v2rayNG parameter name for pinned fingerprints
-            params["pinnedPeerCertificateChainSha256"] = new_cert_hash
-            print(f"✅ Cert Fingerprint pinned for {host}:{port} ({scheme[:-3].upper()}) -> {new_cert_hash[:32]}...")
+            # Overwrite fp directly with the uppercase 64-character SHA-256 hash
+            params["fp"] = new_cert_hash
+            print(f"✅ Fingerprint hash set in fp for {host}:{port} ({scheme[:-3].upper()}) -> {new_cert_hash[:32]}...")
             
             rebuilt_query = "&".join([f"{k}={v}" if v else k for k, v in params.items()])
             rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{rebuilt_query}"
@@ -125,7 +126,7 @@ def update_standard_line(line):
     return line + (f"#{fragment}" if 'fragment' in locals() and fragment else "")
 
 def main():
-    print("🚀 Starting Dedicated Certificate Fingerprint Injector for v2rayNG...")
+    print("🚀 Starting v2rayNG Standard Fingerprint Injector...")
     
     sub_urls_env = os.getenv("EXTERNAL_SUB_URL", "")
     if not sub_urls_env:
@@ -142,7 +143,7 @@ def main():
                 lines = res.text.splitlines()
                 all_raw_configs.extend([l.strip() for l in lines if l.strip()])
         except Exception as e:
-            print(f"⚠️ Connection drop fetching target subscription: {e}")
+            print(f"⚠️ Connection dropped fetching target subscription: {e}")
 
     updated_configs = []
     for config in all_raw_configs:
