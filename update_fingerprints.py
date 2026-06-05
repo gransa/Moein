@@ -1,11 +1,9 @@
 import requests
 import base64
-import re
 import hashlib
 import socket
 import ssl
-from urllib.parse import urlparse, parse_qs, urlencode, unquote
-import os
+from urllib.parse import urlparse, parse_qs, urlencode
 
 def get_cert_fingerprint(host, port=443, sni=None):
     if sni is None:
@@ -19,12 +17,12 @@ def get_cert_fingerprint(host, port=443, sni=None):
                 print(f"✅ Fingerprint for {host}: {fp[:32]}...")
                 return fp
     except Exception as e:
-        print(f"❌ Failed to get fingerprint for {host}: {e}")
+        print(f"❌ Failed to get fingerprint: {e}")
         return None
 
-def parse_and_update_vless(line):
+def update_vless_config(line):
     try:
-        if not line.startswith('vless://'):
+        if not line or not line.startswith('vless://'):
             return line
 
         if '#' in line:
@@ -40,24 +38,26 @@ def parse_and_update_vless(line):
         sni = query.get('sni', [None])[0] or query.get('host', [None])[0] or host
 
         fp = get_cert_fingerprint(host, port, sni)
+        if not fp:
+            return line
 
-        if fp:
-            new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
-            new_query['pcs'] = [fp]
-            new_query_string = urlencode(new_query, doseq=True)
-            new_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}?{new_query_string}"
-            if remark:
-                new_url += f"#{remark}"
-            return new_url
-        return line
+        # Update pcs parameter
+        new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
+        new_query['pcs'] = [fp]
+
+        new_query_str = urlencode(new_query, doseq=True)
+        new_url = f"vless://{parsed.netloc}{parsed.path}?{new_query_str}"
+        if remark:
+            new_url += f"#{remark}"
+
+        return new_url
     except Exception as e:
-        print(f"Error processing line: {e}")
+        print(f"⚠️ Error processing config: {e}")
         return line
 
 def main():
     print("🚀 Starting Fingerprint Updater...")
 
-    # دانلود Configs.txt
     url = "https://raw.githubusercontent.com/gransa/Moein/main/Configs.txt"
     print(f"📥 Downloading: {url}")
 
@@ -65,30 +65,29 @@ def main():
     resp.raise_for_status()
     content = resp.text.strip()
 
-    # اگر base64 بود، decode کن
-    lines = []
+    # Decode if it's base64
     try:
         decoded = base64.b64decode(content + '===').decode('utf-8')
         lines = [line.strip() for line in decoded.splitlines() if line.strip()]
-        print("🔓 Decoded base64 content")
+        print("🔓 Decoded base64 subscription")
     except:
         lines = [line.strip() for line in content.splitlines() if line.strip()]
 
-    print(f"✅ Loaded {len(lines)} VLESS configs")
+    print(f"✅ Loaded {len(lines)} lines")
 
-    # آپدیت fingerprintها
+    # Update configs
     updated = []
     for line in lines:
         if line.startswith('vless://'):
-            updated.append(parse_and_update_vless(line))
+            updated.append(update_vless_config(line))
         else:
             updated.append(line)
 
     final_content = '\n'.join(updated)
 
-    # ذخیره در Configs.txt (به صورت base64 مثل قبل)
+    # Save as base64 (same format as before)
     final_base64 = base64.b64encode(final_content.encode('utf-8')).decode('utf-8')
-    
+
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_base64)
 
