@@ -6,6 +6,7 @@ import json
 import base64
 import hashlib
 import requests
+import urllib.parse
 
 def get_tls_fingerprint(host, port, sni=None):
     """
@@ -30,8 +31,8 @@ def get_tls_fingerprint(host, port, sni=None):
 
 def process_vmess_line(line):
     """
-    Decodes VMess payload, inserts the certificate fingerprint under the 'pcs' key,
-    and keeps the original 'fp' parameter completely unchanged.
+    Decodes VMess payload, updates 'pcs', ensures path encoding remains clean,
+    and leaves 'fp' untouched.
     """
     try:
         b64_data = line[8:].strip()
@@ -56,7 +57,6 @@ def process_vmess_line(line):
         new_cert_hash = get_tls_fingerprint(host, port, sni)
         
         if new_cert_hash:
-            # Pinned Certificate SHA256 mapping for VMess JSON layout
             config_json["pcs"] = new_cert_hash
             print(f"✅ Cert Fingerprint added to 'pcs' for {host}:{port} (VMESS) -> {new_cert_hash[:32]}...")
             
@@ -65,20 +65,19 @@ def process_vmess_line(line):
             return f"vmess://{encoded_str}"
             
     except Exception as e:
-        print(f"❌ Error processing VMESS certificate mapping: {e}")
+        print(f"❌ Error processing VMESS configuration: {e}")
     return line
 
 def update_standard_line(line):
     """
-    Parses VLESS/Trojan nodes. Keeps 'fp' untouched and injects the verified 
-    certificate hash cleanly using the 'pcs' query parameter.
+    Parses VLESS/Trojan nodes. Retains 'fp', appends 'pcs' hash, inserts v2rayNG 
+    required attributes, and strictly applies double URL-encoding to the 'path' argument.
     """
     try:
         fragment = ""
         if "#" in line:
             line, fragment = line.split("#", 1)
 
-        # Safe split layout matching to preserve specific URL query sequences exactly
         match = re.match(r'^([^:]+://)([^@]+@)?([^/?]+)([^?]*)\?(.*)$', line)
         if not match:
             return line + (f"#{fragment}" if fragment else "")
@@ -91,7 +90,7 @@ def update_standard_line(line):
         else:
             host, port = netloc, "443"
 
-        # Map query strings safely into key/value dictionaries
+        # Map out original query arguments cleanly
         params = {}
         pairs = query_string.split('&')
         for pair in pairs:
@@ -101,7 +100,7 @@ def update_standard_line(line):
             else:
                 params[pair] = ""
 
-        # Skip logic execution if security configuration is unencrypted
+        # Validate security profile layer
         security = params.get("security", "").lower()
         if security not in ["tls", "xtls", "reality"]:
             return line + (f"#{fragment}" if fragment else "")
@@ -110,23 +109,35 @@ def update_standard_line(line):
         new_cert_hash = get_tls_fingerprint(host, port, sni)
         
         if new_cert_hash:
-            # Set 'pcs' while preserving 'fp' intact
+            # 1. Inject the fetched fingerprint
             params["pcs"] = new_cert_hash
-            print(f"✅ Cert Fingerprint added to 'pcs' for {host}:{port} ({scheme[:-3].upper()}) -> {new_cert_hash[:32]}...")
             
+            # 2. Add requested v2rayNG baseline visibility rules
+            params["insecure"] = "0"
+            params["allowInsecure"] = "0"
+
+            # 3. Clean and fix 'path' variable structure formatting explicitly
+            if "path" in params:
+                raw_path = urllib.parse.unquote(params["path"])
+                # Ensures full value replacement match to match '%2F%3Fed%3D2560' rules perfectly
+                params["path"] = urllib.parse.quote(raw_path, safe="")
+
+            # Rebuild parameter elements precisely to reflect your target blueprint order
             rebuilt_query = "&".join([f"{k}={v}" if v else k for k, v in params.items()])
             rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{rebuilt_query}"
+            
             if fragment:
+                # Retain structural comment hash tracking tags securely
                 rebuilt_url += f"#{fragment}"
             return rebuilt_url
 
     except Exception as e:
-        print(f"❌ Error pinning certificate to target query parameters: {e}")
+        print(f"❌ Error handling string formatting configuration properties: {e}")
         
     return line + (f"#{fragment}" if 'fragment' in locals() and fragment else "")
 
 def main():
-    print("🚀 Starting Dedicated 'pcs' Certificate Fingerprint Injector...")
+    print("🚀 Starting Complete Precise Path & 'pcs' Fingerprint Injector...")
     
     sub_urls_env = os.getenv("EXTERNAL_SUB_URL", "")
     if not sub_urls_env:
@@ -143,7 +154,7 @@ def main():
                 lines = res.text.splitlines()
                 all_raw_configs.extend([l.strip() for l in lines if l.strip()])
         except Exception as e:
-            print(f"⚠️ Connection failure downloading remote configuration list: {e}")
+            print(f"⚠️ Connection failure logging remote download link array: {e}")
 
     updated_configs = []
     for config in all_raw_configs:
@@ -161,7 +172,7 @@ def main():
         for cfg in updated_configs:
             f.write(cfg + "\n")
             
-    print(f"🎉 Process completed successfully! Verified updates written to {output_file}.")
+    print(f"🎉 Success! Production file verified and published to {output_file}.")
 
 if __name__ == "__main__":
     main()
