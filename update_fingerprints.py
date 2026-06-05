@@ -6,7 +6,6 @@ import json
 import base64
 import hashlib
 import requests
-from urllib.parse import urlparse, parse_qs, urlencode
 
 def get_tls_fingerprint(host, port, sni=None):
     """
@@ -20,25 +19,22 @@ def get_tls_fingerprint(host, port, sni=None):
     server_hostname = sni if sni else host
     
     try:
-        with socket.create_connection((host, int(port)), timeout=5) as sock:
+        with socket.create_connection((host, int(port)), timeout=8) as sock:
             with context.wrap_socket(sock, server_hostname=server_hostname) as ssock:
                 cert_der = ssock.getpeercert(binary_form=True)
                 if cert_der:
                     return hashlib.sha256(cert_der).hexdigest().upper()
-    except Exception as e:
-        print(f"⚠️  Failed to connect to {host}:{port} -> {e}")
+    except Exception:
+        pass
     return None
 
 def process_vmess_line(line):
     """
     Decodes a VMess configuration payload string, extracts connection fields,
-    fetches the TLS fingerprint if applicable, and updates the inner parameters.
+    fetches the TLS fingerprint, and preserves existing values if a timeout occurs.
     """
     try:
-        # Strip the protocol header prefix
         b64_data = line[8:].strip()
-        
-        # Correct padding if the Base64 block lacks trailing '=' symbols
         missing_padding = len(b64_data) % 4
         if missing_padding:
             b64_data += '=' * (4 - missing_padding)
@@ -46,10 +42,9 @@ def process_vmess_line(line):
         decoded_bytes = base64.b64decode(b64_data)
         config_json = json.loads(decoded_bytes.decode('utf-8'))
         
-        # Check if TLS/security flag is configured
         tls_status = str(config_json.get("tls", "")).lower()
         if tls_status not in ["tls", "xtls", "1"]:
-            return line  # Return as-is if TLS isn't leveraged
+            return line
 
         host = config_json.get("add")
         port = config_json.get("port")
@@ -59,71 +54,93 @@ def process_vmess_line(line):
             return line
 
         new_fp = get_tls_fingerprint(host, port, sni)
+        
         if new_fp:
-            # Update the fingerprint property in VMess configuration structure
             config_json["fp"] = new_fp
             print(f"✅ Fingerprint updated for {host}:{port} (VMESS) -> {new_fp[:32]}...")
-            
-            # Re-encode back to safe JSON structure and wrap inside base64 string format
-            updated_json_bytes = json.dumps(config_json, ensure_ascii=False).encode('utf-8')
-            encoded_str = base64.b64encode(updated_json_bytes).decode('utf-8')
-            return f"vmess://{encoded_str}"
+        else:
+            if "fp" in config_json and config_json["fp"]:
+                print(f"ℹ️  Keeping existing fingerprint for offline host {host}:{port}")
+            else:
+                print(f"⚠️  No fingerprint found or retrieved for offline host {host}:{port}")
+
+        updated_json_bytes = json.dumps(config_json, ensure_ascii=False).encode('utf-8')
+        encoded_str = base64.b64encode(updated_json_bytes).decode('utf-8')
+        return f"vmess://{encoded_str}"
             
     except Exception as e:
         print(f"❌ Error parsing VMESS configuration structure: {e}")
-        
     return line
 
 def update_standard_line(line):
     """
-    Parses standard URI configurations (VLESS/Trojan), fetches live fingerprints,
-    and returns updated connection configuration lines.
+    Parses VLESS/Trojan nodes using regular expressions rather than urllib.parse
+    to avoid breaking mixed characters and raw strings like path=/?ed=2560.
     """
     try:
+        # Step 1: Isolate user comment fragment if present
         fragment = ""
         if "#" in line:
             line, fragment = line.split("#", 1)
-            
-        parsed = urlparse(line)
-        protocol = parsed.scheme
+
+        # Step 2: Separate core schema and main string components
+        match = re.match(r'^([^:]+://)([^@]+@)?([^/?]+)([^?]*)\?(.*)$', line)
+        if not match:
+            # If there's no query parameter configuration string block at all
+            return line + (f"#{fragment}" if fragment else "")
+
+        scheme, auth, netloc, path_part, query_string = match.groups()
+        auth = auth if auth else ""
         
-        netloc = parsed.netloc
-        if "@" in netloc:
-            auth, netloc = netloc.split("@", 1)
-        else:
-            auth = None
-            
+        # Parse Host and Port precisely
         if ":" in netloc:
             host, port = netloc.split(":", 1)
         else:
             host, port = netloc, "443"
 
-        query_params = parse_qs(parsed.query)
-        params = {k: v[0] for k, v in query_params.items()}
-        
+        # Step 3: Turn string params cleanly into a mutable dictionary block
+        params = {}
+        # Splitting using native '&' boundaries cleanly
+        pairs = query_string.split('&')
+        for pair in pairs:
+            if '=' in pair:
+                k, v = pair.split('=', 1)
+                params[k] = v
+            else:
+                params[pair] = ""
+
+        # Step 4: Validate TLS status before reaching out
         security = params.get("security", "").lower()
         if security not in ["tls", "xtls", "reality"]:
-            return line
-            
+            # Reconstruct completely untouched to prevent path modifications
+            rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{query_string}"
+            if fragment:
+                rebuilt_url += f"#{fragment}"
+            return rebuilt_url
+
         sni = params.get("sni", host)
         new_fp = get_tls_fingerprint(host, port, sni)
         
         if new_fp:
             params["fp"] = new_fp
-            print(f"✅ Fingerprint updated for {host}:{port} ({protocol.upper()}) -> {new_fp[:32]}...")
-            
-            new_query = urlencode(params)
-            netloc_rebuilt = f"{auth}@{host}:{port}" if auth else f"{host}:{port}"
-            
-            rebuilt_url = f"{protocol}://{netloc_rebuilt}{parsed.path}?{new_query}"
-            if fragment:
-                rebuilt_url += f"#{fragment}"
-            return rebuilt_url
-            
+            print(f"✅ Fingerprint updated for {host}:{port} ({scheme[:-3].upper()}) -> {new_fp[:32]}...")
+        else:
+            if "fp" in params:
+                print(f"ℹ️  Keeping existing fingerprint for offline host {host}:{port}")
+            else:
+                print(f"⚠️  No fingerprint found or retrieved for offline host {host}:{port}")
+
+        # Step 5: Assemble parameters strictly keeping original string structures intact
+        rebuilt_query = "&".join([f"{k}={v}" if v else k for k, v in params.items()])
+        rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{rebuilt_query}"
+        if fragment:
+            rebuilt_url += f"#{fragment}"
+        return rebuilt_url
+
     except Exception as e:
-        print(f"❌ Error processing line parsing: {e}")
+        print(f"❌ Error processing standard line parsing: {e}")
         
-    return line
+    return line + (f"#{fragment}" if 'fragment' in locals() and fragment else "")
 
 def main():
     print("🚀 Starting Multi-Protocol Fingerprint Updater...")
@@ -163,10 +180,8 @@ def main():
             updated_line = update_standard_line(config)
             updated_configs.append(updated_line)
         else:
-            # Pass through any other content (comments, ss://, shadowsocks configurations, etc.)
             updated_configs.append(config)
 
-    # Save exactly back to output file
     output_file = "Configs.txt"
     with open(output_file, "w", encoding="utf-8") as f:
         for cfg in updated_configs:
