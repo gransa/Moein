@@ -4,23 +4,26 @@ import hashlib
 import socket
 import ssl
 from urllib.parse import urlparse, parse_qs, urlencode
+import sys
 
 def get_cert_fingerprint(host, port=443, sni=None):
     if sni is None:
         sni = host
     context = ssl.create_default_context()
     try:
-        with socket.create_connection((host, port), timeout=12) as sock:
+        with socket.create_connection((host, port), timeout=10) as sock:
             with context.wrap_socket(sock, server_hostname=sni) as ssock:
                 cert = ssock.getpeercert(binary_form=True)
                 fp = hashlib.sha256(cert).hexdigest().upper()
-                print(f"✅ Fingerprint for {host}: {fp[:32]}...")
+                print(f"✅ Success: {host} → {fp[:32]}...")
                 return fp
     except Exception as e:
-        print(f"❌ Failed for {host}: {e}")
+        print(f"❌ Failed: {host} - {e}")
         return None
 
 def main():
+    print("Starting fingerprint updater...")
+    
     input_urls = [
         "https://github.com/gransa/Moein/raw/main/Configs.txt",
     ]
@@ -29,11 +32,12 @@ def main():
     
     for url in input_urls:
         try:
-            print(f"Fetching: {url}")
+            print(f"Downloading: {url}")
             r = requests.get(url, timeout=20)
             r.raise_for_status()
             content = r.text.strip()
             
+            # Try to decode base64
             if not content.startswith('vless://'):
                 try:
                     content = base64.b64decode(content + '==').decode('utf-8')
@@ -42,9 +46,11 @@ def main():
             
             lines = [line.strip() for line in content.splitlines() if line.strip() and line.startswith('vless://')]
             all_configs.extend(lines)
-            print(f"Found {len(lines)} VLESS configs")
+            print(f"Loaded {len(lines)} VLESS configs")
         except Exception as e:
-            print(f"Error fetching {url}: {e}")
+            print(f"Failed to download {url}: {e}")
+    
+    print(f"Total configs to process: {len(all_configs)}")
     
     updated = []
     for line in all_configs:
@@ -73,7 +79,8 @@ def main():
                 updated.append(new_url)
             else:
                 updated.append(line)
-        except:
+        except Exception as e:
+            print(f"Skipped one config due to error: {e}")
             updated.append(line)
     
     final_text = "\n".join(updated)
@@ -82,8 +89,8 @@ def main():
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_base64)
     
-    print(f"🎉 Successfully updated {len(updated)} configs!")
-    print("File 'Configs.txt' has been updated.")
+    print(f"🎉 Finished! Updated {len(updated)} configs.")
+    print("Configs.txt has been updated successfully.")
 
 if __name__ == "__main__":
     main()
