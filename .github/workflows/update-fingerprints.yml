@@ -5,6 +5,9 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write     # ← این خط خیلی مهم است
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -12,8 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.PAT }}     # ← خیلی مهم
 
       - name: Set up Python
         uses: actions/setup-python@v5
