@@ -8,12 +8,10 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
   update:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,6 +28,8 @@ jobs:
 
       - name: Update Certificate Fingerprints
         run: python update_fingerprints.py
+        env:
+          EXTERNAL_SUB_URL: ${{ vars.EXTERNAL_SUB_URL }}
 
       - name: Commit and Push changes
         run: |
