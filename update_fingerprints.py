@@ -17,12 +17,12 @@ def get_cert_fingerprint(host, port=443, sni=None):
                 print(f"✅ Fingerprint for {host}: {fp[:32]}...")
                 return fp
     except Exception as e:
-        print(f"❌ Failed to get fingerprint: {e}")
+        print(f"❌ Failed to get fingerprint for {host}: {e}")
         return None
 
 def update_vless_config(line):
     try:
-        if not line or not line.startswith('vless://'):
+        if not line.startswith('vless://'):
             return line
 
         if '#' in line:
@@ -41,7 +41,6 @@ def update_vless_config(line):
         if not fp:
             return line
 
-        # Update pcs parameter
         new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
         new_query['pcs'] = [fp]
 
@@ -49,10 +48,9 @@ def update_vless_config(line):
         new_url = f"vless://{parsed.netloc}{parsed.path}?{new_query_str}"
         if remark:
             new_url += f"#{remark}"
-
         return new_url
     except Exception as e:
-        print(f"⚠️ Error processing config: {e}")
+        print(f"⚠️ Error processing: {e}")
         return line
 
 def main():
@@ -65,33 +63,36 @@ def main():
     resp.raise_for_status()
     content = resp.text.strip()
 
-    # Decode if it's base64
+    # Decode base64 if needed
     try:
         decoded = base64.b64decode(content + '===').decode('utf-8')
         lines = [line.strip() for line in decoded.splitlines() if line.strip()]
-        print("🔓 Decoded base64 subscription")
+        print(f"🔓 Decoded base64 - Found {len(lines)} lines")
     except:
         lines = [line.strip() for line in content.splitlines() if line.strip()]
+        print(f"📄 Plain text - Found {len(lines)} lines")
 
-    print(f"✅ Loaded {len(lines)} lines")
+    print(f"✅ Loaded {len(lines)} total lines")
 
-    # Update configs
+    # Update all VLESS configs
     updated = []
+    vless_count = 0
     for line in lines:
         if line.startswith('vless://'):
+            vless_count += 1
             updated.append(update_vless_config(line))
         else:
             updated.append(line)
 
     final_content = '\n'.join(updated)
 
-    # Save as base64 (same format as before)
+    # Save back as base64 in Configs.txt
     final_base64 = base64.b64encode(final_content.encode('utf-8')).decode('utf-8')
-
+    
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_base64)
 
-    print(f"🎉 Successfully updated {len(updated)} configs!")
+    print(f"🎉 Successfully updated {vless_count} VLESS configs!")
     print("✅ Configs.txt updated successfully.")
 
 if __name__ == "__main__":
