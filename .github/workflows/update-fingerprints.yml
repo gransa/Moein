@@ -1,0 +1,36 @@
+name: Daily Fingerprint Updater
+
+on:
+  schedule:
+    - cron: '0 3 * * *'      # Every day at 03:00 UTC
+  workflow_dispatch:         # Allow manual trigger
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update Certificate Fingerprints
+        run: python update_fingerprints.py
+
+      - name: Commit and Push changes
+        run: |
+          git config user.name "Fingerprint Updater"
+          git config user.email "action@github.com"
+          git add Configs.txt
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update fingerprints - $(date '+%Y-%m-%d %H:%M:%S')"
+            git push
+          fi
