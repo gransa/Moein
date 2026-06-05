@@ -29,7 +29,8 @@ jobs:
       - name: Update Certificate Fingerprints
         run: python update_fingerprints.py
         env:
-          EXTERNAL_SUB_URL: ${{ vars.EXTERNAL_SUB_URL }}
+          # This checks both locations so it won't matter where you saved it
+          EXTERNAL_SUB_URL: ${{ secrets.EXTERNAL_SUB_URL || vars.EXTERNAL_SUB_URL }}
 
       - name: Commit and Push changes
         run: |
