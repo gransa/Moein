@@ -14,7 +14,6 @@ def get_cert_fingerprint(host, port=443, sni=None):
     if sni is None:
         sni = host
     context = ssl.create_default_context()
-    # Disable strict hostname verification to capture fingerprints cleanly
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     
@@ -46,7 +45,6 @@ def update_vless_config(line):
         parsed = urlparse(config_part)
         query = parse_qs(parsed.query)
 
-        # Filter out non-TLS configurations (e.g. basic port 80 traffic)
         security = query.get('security', [''])[0].lower()
         if security != 'tls':
             return line
@@ -59,7 +57,6 @@ def update_vless_config(line):
         if not fp:
             return line
 
-        # Replace or append the live fingerprint configuration
         new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
         new_query['pcs'] = [fp]
 
@@ -82,7 +79,6 @@ def load_remote_url(url):
         resp.raise_for_status()
         content = resp.text.strip()
         
-        # Auto-detect and unpack Base64 strings if necessary
         try:
             decoded = base64.b64decode(content + '===').decode('utf-8')
             print("🔓 Decoded subscription payload from Base64 configuration.")
@@ -98,7 +94,6 @@ def main():
     print("🚀 Starting Multi-Protocol Fingerprint Updater...")
     lines = []
     
-    # Read comma-separated link list directly from environment variables
     raw_env_items = os.environ.get("EXTERNAL_SUB_URL", "").strip()
     if raw_env_items:
         external_urls = [url.strip() for url in raw_env_items.split(",") if url.strip()]
@@ -121,13 +116,11 @@ def main():
         else:
             updated.append(line)
 
-    # Add a timestamp so GitHub Actions registers a commit change successfully every run
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated.append(f"\n# Last updated: {timestamp}")
 
     final_content = '\n'.join(updated)
 
-    # Save to your output tracking document file
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_content)
 
