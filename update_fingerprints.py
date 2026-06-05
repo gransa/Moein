@@ -61,10 +61,15 @@ def main():
     resp.raise_for_status()
     content = resp.text.strip()
 
-    # Split by lines (plain text)
-    lines = [line.strip() for line in content.splitlines() if line.strip()]
+    # Try to decode if it's base64, otherwise treat as plain text
+    try:
+        decoded = base64.b64decode(content + '===').decode('utf-8')
+        lines = [line.strip() for line in decoded.splitlines() if line.strip()]
+        print("🔓 Decoded base64 content")
+    except:
+        lines = [line.strip() for line in content.splitlines() if line.strip()]
 
-    print(f"✅ Loaded {len(lines)} total lines from Configs.txt")
+    print(f"✅ Loaded {len(lines)} total lines")
 
     updated = []
     vless_count = 0
@@ -82,7 +87,7 @@ def main():
         f.write(final_content)
 
     print(f"🎉 Successfully updated {vless_count} VLESS configs!")
-    print("✅ Configs.txt updated as plain text.")
+    print("✅ Configs.txt saved as plain text (no base64).")
 
 if __name__ == "__main__":
     main()
