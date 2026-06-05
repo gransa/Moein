@@ -5,13 +5,16 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
-# Fixes the Node.js 20 deprecation warning across the entire workflow run
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    # FIX #1: Grants the github-actions[bot] write access to push changes
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout Repository Codebase
         uses: actions/checkout@v4
@@ -33,9 +36,16 @@ jobs:
 
       - name: Commit and Push Verified Updates
         run: |
+          # FIX #2: Safety check to protect existing data if network was unreachable
+          if [ ! -s Configs.txt ]; then
+            echo "⚠️ Warning: Configs.txt is empty. Skipping commit to protect active nodes."
+            exit 0
+          fi
+
           git config user.name "Fingerprint Updater"
           git config user.email "action@github.com"
           git add Configs.txt
+          
           if git diff --staged --quiet; then
             echo "No certificate fingerprint changes found this hour."
           else
