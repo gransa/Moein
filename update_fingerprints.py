@@ -8,14 +8,12 @@ on:
 permissions:
   contents: write
 
-# This global block must be completely outside the 'jobs' declaration
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   update:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
