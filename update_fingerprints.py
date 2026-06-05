@@ -49,8 +49,7 @@ def update_vless_config(line):
         if remark:
             new_url += f"#{remark}"
         return new_url
-    except Exception as e:
-        print(f"⚠️ Error processing: {e}")
+    except Exception:
         return line
 
 def main():
@@ -63,18 +62,18 @@ def main():
     resp.raise_for_status()
     content = resp.text.strip()
 
-    # Decode base64 if needed
+    # Decode base64
     try:
         decoded = base64.b64decode(content + '===').decode('utf-8')
         lines = [line.strip() for line in decoded.splitlines() if line.strip()]
-        print(f"🔓 Decoded base64 - Found {len(lines)} lines")
+        print(f"🔓 Decoded base64 - Found {len(lines)} VLESS lines")
     except:
         lines = [line.strip() for line in content.splitlines() if line.strip()]
         print(f"📄 Plain text - Found {len(lines)} lines")
 
-    print(f"✅ Loaded {len(lines)} total lines")
+    print(f"✅ Total lines loaded: {len(lines)}")
 
-    # Update all VLESS configs
+    # Update all configs
     updated = []
     vless_count = 0
     for line in lines:
@@ -86,7 +85,7 @@ def main():
 
     final_content = '\n'.join(updated)
 
-    # Save back as base64 in Configs.txt
+    # Save as base64
     final_base64 = base64.b64encode(final_content.encode('utf-8')).decode('utf-8')
     
     with open("Configs.txt", "w", encoding="utf-8") as f:
