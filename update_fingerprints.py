@@ -14,7 +14,7 @@ def get_cert_fingerprint(host, port=443, sni=None):
     if sni is None:
         sni = host
     context = ssl.create_default_context()
-    # Disable strict verification to allow capturing self-signed or invalid cert footprints
+    # Disable strict hostname verification to capture fingerprints cleanly
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     
@@ -46,10 +46,9 @@ def update_vless_config(line):
         parsed = urlparse(config_part)
         query = parse_qs(parsed.query)
 
-        # Check if the connection uses TLS
+        # Filter out non-TLS configurations (e.g. basic port 80 traffic)
         security = query.get('security', [''])[0].lower()
         if security != 'tls':
-            # Skip non-TLS configurations (like standard port 80 HTTP traffic)
             return line
 
         host = parsed.hostname
@@ -60,7 +59,7 @@ def update_vless_config(line):
         if not fp:
             return line
 
-        # Replace or insert the updated fingerprint into the 'pcs' parameter
+        # Replace or append the live fingerprint configuration
         new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
         new_query['pcs'] = [fp]
 
@@ -74,8 +73,8 @@ def update_vless_config(line):
 
 def load_remote_url(url):
     """
-    Downloads an external or internal raw link and safely extracts its lines.
-    Supports both Base64 subscription formats and standard plain-text configs.
+    Downloads a subscription link and extracts its lines.
+    Supports both raw standard text configs and standard Base64 subscription blocks.
     """
     try:
         print(f"📥 Fetching subscription link: {url}")
@@ -83,13 +82,13 @@ def load_remote_url(url):
         resp.raise_for_status()
         content = resp.text.strip()
         
-        # Try decoding as Base64 format
+        # Auto-detect and unpack Base64 strings if necessary
         try:
             decoded = base64.b64decode(content + '===').decode('utf-8')
-            print("🔓 Decoded subscription from Base64 structure.")
+            print("🔓 Decoded subscription payload from Base64 configuration.")
             return [line.strip() for line in decoded.splitlines() if line.strip()]
         except Exception:
-            print("📄 Parsed subscription as plain text.")
+            print("📄 Parsed subscription payload as plain text format.")
             return [line.strip() for line in content.splitlines() if line.strip()]
     except Exception as e:
         print(f"❌ Failed to download subscription lines: {e}")
@@ -99,10 +98,9 @@ def main():
     print("🚀 Starting Multi-Protocol Fingerprint Updater...")
     lines = []
     
-    # Extract entries from the single environment variable item list
+    # Read comma-separated link list directly from environment variables
     raw_env_items = os.environ.get("EXTERNAL_SUB_URL", "").strip()
     if raw_env_items:
-        # Split by comma to turn into a list of URLs automatically
         external_urls = [url.strip() for url in raw_env_items.split(",") if url.strip()]
         print(f"ℹ️ Detected {len(external_urls)} subscription link(s) inside configuration variable.")
         
@@ -123,13 +121,13 @@ def main():
         else:
             updated.append(line)
 
-    # Append a verification timestamp to guarantee Git differences for commits
+    # Add a timestamp so GitHub Actions registers a commit change successfully every run
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     updated.append(f"\n# Last updated: {timestamp}")
 
     final_content = '\n'.join(updated)
 
-    # Save the aggregated entries inside the deployment target file
+    # Save to your output tracking document file
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_content)
 
