@@ -6,3 +6,4 @@ vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@172.64.32.19:2053?security=tls&sni=
 
 vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@104.16.9.215:2083?security=tls&sni=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&encryption=none#@Vless-Worker-04%20-%202083
 
+trojan://GABTmlZTPGtULi@www.visa.com.br:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#Trojan-Worker-05%20-%202087
