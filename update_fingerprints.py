@@ -1,16 +1,19 @@
+import base64
 import hashlib
-import os
 import socket
 import ssl
-import json
-import base64
+import os
+import datetime
 from urllib.parse import urlparse, parse_qs, urlencode
 
 def get_cert_fingerprint(host, port=443, sni=None):
-    if not sni:
+    """
+    Connects to the host via SSL/TLS and extracts the SHA-256 certificate fingerprint.
+    """
+    if sni is None:
         sni = host
-        
     context = ssl.create_default_context()
+    # Disable strict verification to allow capturing self-signed or invalid cert footprints
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     
@@ -19,15 +22,21 @@ def get_cert_fingerprint(host, port=443, sni=None):
             with context.wrap_socket(sock, server_hostname=sni) as ssock:
                 cert = ssock.getpeercert(binary_form=True)
                 fp = hashlib.sha256(cert).hexdigest().upper()
-                print(f"✅ Fingerprint for {sni} via {host}:{port} -> {fp[:16]}...")
+                print(f"✅ Fingerprint for {host}:{port} -> {fp[:32]}...")
                 return fp
     except Exception as e:
-        print(f"❌ Failed to get fingerprint for {sni} via {host}:{port}: {e}")
+        print(f"❌ Failed to get fingerprint for {host}:{port} -> {e}")
         return None
 
-def process_standard_url(line, scheme):
-    """Processes protocols that use standard URL formats like vless:// and trojan://"""
+def update_vless_config(line):
+    """
+    Parses a VLESS link, checks if it uses TLS, grabs the remote fingerprint,
+    and appends/updates it inside the 'pcs' query parameter.
+    """
     try:
+        if not line.startswith('vless://'):
+            return line
+
         if '#' in line:
             config_part, remark = line.split('#', 1)
         else:
@@ -36,9 +45,10 @@ def process_standard_url(line, scheme):
         parsed = urlparse(config_part)
         query = parse_qs(parsed.query)
 
-        # Check if security uses TLS
-        security = query.get('security', [''])[0]
-        if security.lower() not in ['tls', 'xtls']:
+        # Check if the connection uses TLS
+        security = query.get('security', [''])[0].lower()
+        if security != 'tls':
+            # Skip non-TLS configurations (like standard port 80 HTTP traffic)
             return line
 
         host = parsed.hostname
@@ -49,92 +59,69 @@ def process_standard_url(line, scheme):
         if not fp:
             return line
 
-        # Rebuild query parameter with updated pcs value
+        # Replace or insert the updated fingerprint into the 'pcs' parameter
         new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
         new_query['pcs'] = [fp]
 
         new_query_str = urlencode(new_query, doseq=True)
-        new_url = f"{scheme}://{parsed.netloc}{parsed.path}?{new_query_str}"
+        new_url = f"vless://{parsed.netloc}{parsed.path}?{new_query_str}"
         if remark:
             new_url += f"#{remark}"
         return new_url
     except Exception:
         return line
 
-def process_vmess(line):
-    """Processes vmess:// configurations which are Base64 encoded JSON blobs"""
+def load_local_file(filename):
+    """
+    Reads local raw files from the repo workspace and safely strips lines.
+    Handles regular text lines as well as potential Base64 strings.
+    """
+    if not os.path.exists(filename):
+        print(f"⚠️ File not found: {filename}")
+        return []
+        
+    with open(filename, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+    
     try:
-        raw_b64 = line[8:].strip()
-        # Fix missing padding if any
-        padded_b64 = raw_b64 + '=' * (-len(raw_b64) % 4)
-        decoded_bytes = base64.b64decode(padded_b64)
-        config_data = json.loads(decoded_bytes.decode('utf-8'))
-
-        # Check if TLS security is enabled in VMess structure
-        tls_status = config_data.get('tls', '')
-        # Some configs use 'tls', others use 'security': 'tls'
-        if str(tls_status).lower() != 'tls' and str(config_data.get('security', '')).lower() != 'tls':
-            return line
-
-        host = config_data.get('add')
-        try:
-            port = int(config_data.get('port', 443))
-        except ValueError:
-            port = 443
-            
-        sni = config_data.get('sni') or config_data.get('host') or host
-
-        fp = get_cert_fingerprint(host, port, sni)
-        if not fp:
-            return line
-
-        # Set or update fingerprint field
-        config_data['pcs'] = fp
-
-        # Re-encode back to string format vmess://
-        json_str = json.dumps(config_data, ensure_ascii=False)
-        new_b64 = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
-        return f"vmess://{new_b64}"
+        decoded = base64.b64decode(content + '===').decode('utf-8')
+        return [line.strip() for line in decoded.splitlines() if line.strip()]
     except Exception:
-        return line
+        return [line.strip() for line in content.splitlines() if line.strip()]
 
 def main():
     print("🚀 Starting Multi-Protocol Fingerprint Updater...")
 
-    raw_lines = []
-    input_files = ["Conf-01.txt", "Conf-02.txt"]
+    # Load local subscription source files directly from the repository
+    files_to_load = ["Conf-01.txt", "Conf-02.txt"]
+    lines = []
     
-    for filename in input_files:
-        if os.path.exists(filename):
-            print(f"📥 Reading {filename}...")
-            with open(filename, "r", encoding="utf-8") as f:
-                for line in f:
-                    cleaned = line.strip()
-                    if cleaned:
-                        raw_lines.append(cleaned)
-        else:
-            print(f"⚠️ Warning: {filename} not found.")
+    for file in files_to_load:
+        print(f"📥 Reading local file: {file}")
+        lines.extend(load_local_file(file))
 
-    print(f"📊 Total raw configurations loaded: {len(raw_lines)}")
+    print(f"📊 Total raw configurations loaded: {len(lines)}")
 
-    updated_configs = []
-    for line in raw_lines:
+    updated = []
+    vless_count = 0
+    for line in lines:
         if line.startswith('vless://'):
-            updated_configs.append(process_standard_url(line, 'vless'))
-        elif line.startswith('trojan://'):
-            updated_configs.append(process_standard_url(line, 'trojan'))
-        elif line.startswith('vmess://'):
-            updated_configs.append(process_vmess(line))
+            vless_count += 1
+            updated.append(update_vless_config(line))
         else:
-            # Pass through unrecognized protocols (shadowsocks, hysteria2, etc.) or blank lines
-            updated_configs.append(line)
+            updated.append(line)
 
-    # Write all processed configs to your production output destination
-    final_content = '\n'.join(updated_configs)
+    # Append a verification timestamp to guarantee Git differences for commits
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    updated.append(f"\n# Last updated: {timestamp}")
+
+    final_content = '\n'.join(updated)
+
+    # Save the aggregated entries inside the deployment target file
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_content)
 
-    print(f"🎉 Process completed. Results successfully dumped to Configs.txt!")
+    print(f"🎉 Process completed. Updated {vless_count} VLESS configs to Configs.txt!")
 
 if __name__ == "__main__":
     main()
