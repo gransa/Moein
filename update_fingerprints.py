@@ -72,69 +72,45 @@ def update_vless_config(line):
     except Exception:
         return line
 
-def load_local_file(filename):
-    """
-    Reads local raw files from the repo workspace and safely strips lines.
-    Handles regular text lines as well as potential Base64 strings.
-    """
-    if not os.path.exists(filename):
-        print(f"⚠️ File not found: {filename}")
-        return []
-        
-    with open(filename, "r", encoding="utf-8") as f:
-        content = f.read().strip()
-    
-    try:
-        decoded = base64.b64decode(content + '===').decode('utf-8')
-        return [line.strip() for line in decoded.splitlines() if line.strip()]
-    except Exception:
-        return [line.strip() for line in content.splitlines() if line.strip()]
-
 def load_remote_url(url):
     """
-    Downloads an external subscription link and safely extracts its lines.
+    Downloads an external or internal raw link and safely extracts its lines.
     Supports both Base64 subscription formats and standard plain-text configs.
     """
-    if not url or not url.startswith("http"):
-        return []
-        
     try:
-        print(f"📥 Fetching external subscription from environment variable...")
+        print(f"📥 Fetching subscription link: {url}")
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
         content = resp.text.strip()
         
-        # Try decoding as Base64 format (common for subscription provider strings)
+        # Try decoding as Base64 format
         try:
             decoded = base64.b64decode(content + '===').decode('utf-8')
-            print("🔓 Decoded external subscription from Base64 structure.")
+            print("🔓 Decoded subscription from Base64 structure.")
             return [line.strip() for line in decoded.splitlines() if line.strip()]
         except Exception:
-            # Fallback to plain-text string if Base64 fails
-            print("📄 Parsed external subscription as plain text.")
+            print("📄 Parsed subscription as plain text.")
             return [line.strip() for line in content.splitlines() if line.strip()]
     except Exception as e:
-        print(f"❌ Failed to fetch external subscription line details: {e}")
+        print(f"❌ Failed to download subscription lines: {e}")
         return []
 
 def main():
     print("🚀 Starting Multi-Protocol Fingerprint Updater...")
-
-    # 1. Load local subscription source files directly from the repository
-    files_to_load = ["Conf-01.txt", "Conf-02.txt"]
     lines = []
     
-    for file in files_to_load:
-        print(f"📥 Reading local file: {file}")
-        lines.extend(load_local_file(file))
-
-    # 2. Automatically load external subscription from GitHub Actions Variables/Secrets
-    external_url = os.environ.get("EXTERNAL_SUB_URL", "").strip()
-    if external_url:
-        remote_lines = load_remote_url(external_url)
-        lines.extend(remote_lines)
+    # Extract entries from the single environment variable item list
+    raw_env_items = os.environ.get("EXTERNAL_SUB_URL", "").strip()
+    if raw_env_items:
+        # Split by comma to turn into a list of URLs automatically
+        external_urls = [url.strip() for url in raw_env_items.split(",") if url.strip()]
+        print(f"ℹ️ Detected {len(external_urls)} subscription link(s) inside configuration variable.")
+        
+        for url in external_urls:
+            remote_lines = load_remote_url(url)
+            lines.extend(remote_lines)
     else:
-        print("ℹ️ No external subscription variable (EXTERNAL_SUB_URL) discovered. Processing local files only.")
+        print("⚠️ Variable empty or missing. No subscription links processed.")
 
     print(f"📊 Total raw configurations loaded: {len(lines)}")
 
