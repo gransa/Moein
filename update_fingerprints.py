@@ -4,6 +4,7 @@ import socket
 import ssl
 import os
 import datetime
+import requests
 from urllib.parse import urlparse, parse_qs, urlencode
 
 def get_cert_fingerprint(host, port=443, sni=None):
@@ -89,16 +90,51 @@ def load_local_file(filename):
     except Exception:
         return [line.strip() for line in content.splitlines() if line.strip()]
 
+def load_remote_url(url):
+    """
+    Downloads an external subscription link and safely extracts its lines.
+    Supports both Base64 subscription formats and standard plain-text configs.
+    """
+    if not url or not url.startswith("http"):
+        return []
+        
+    try:
+        print(f"📥 Fetching external subscription from environment variable...")
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+        content = resp.text.strip()
+        
+        # Try decoding as Base64 format (common for subscription provider strings)
+        try:
+            decoded = base64.b64decode(content + '===').decode('utf-8')
+            print("🔓 Decoded external subscription from Base64 structure.")
+            return [line.strip() for line in decoded.splitlines() if line.strip()]
+        except Exception:
+            # Fallback to plain-text string if Base64 fails
+            print("📄 Parsed external subscription as plain text.")
+            return [line.strip() for line in content.splitlines() if line.strip()]
+    except Exception as e:
+        print(f"❌ Failed to fetch external subscription line details: {e}")
+        return []
+
 def main():
     print("🚀 Starting Multi-Protocol Fingerprint Updater...")
 
-    # Load local subscription source files directly from the repository
+    # 1. Load local subscription source files directly from the repository
     files_to_load = ["Conf-01.txt", "Conf-02.txt"]
     lines = []
     
     for file in files_to_load:
         print(f"📥 Reading local file: {file}")
         lines.extend(load_local_file(file))
+
+    # 2. Automatically load external subscription from GitHub Actions Variables/Secrets
+    external_url = os.environ.get("EXTERNAL_SUB_URL", "").strip()
+    if external_url:
+        remote_lines = load_remote_url(external_url)
+        lines.extend(remote_lines)
+    else:
+        print("ℹ️ No external subscription variable (EXTERNAL_SUB_URL) discovered. Processing local files only.")
 
     print(f"📊 Total raw configurations loaded: {len(lines)}")
 
