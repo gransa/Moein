@@ -30,8 +30,8 @@ def get_tls_fingerprint(host, port, sni=None):
 
 def process_vmess_line(line):
     """
-    Decodes a VMess configuration payload string, extracts connection fields,
-    fetches the TLS fingerprint, and preserves existing values if a timeout occurs.
+    Decodes VMess payload, checks for TLS, and sets the certificate hash field
+    under 'cert-sha256' or 'certSha256' while leaving original parameters intact.
     """
     try:
         b64_data = line[8:].strip()
@@ -53,54 +53,45 @@ def process_vmess_line(line):
         if not host or not port:
             return line
 
-        new_fp = get_tls_fingerprint(host, port, sni)
+        new_cert_hash = get_tls_fingerprint(host, port, sni)
         
-        if new_fp:
-            config_json["fp"] = new_fp
-            print(f"✅ Fingerprint updated for {host}:{port} (VMESS) -> {new_fp[:32]}...")
-        else:
-            if "fp" in config_json and config_json["fp"]:
-                print(f"ℹ️  Keeping existing fingerprint for offline host {host}:{port}")
-            else:
-                print(f"⚠️  No fingerprint found or retrieved for offline host {host}:{port}")
-
-        updated_json_bytes = json.dumps(config_json, ensure_ascii=False).encode('utf-8')
-        encoded_str = base64.b64encode(updated_json_bytes).decode('utf-8')
-        return f"vmess://{encoded_str}"
+        if new_cert_hash:
+            # Set the actual certificate fingerprint without erasing client profile signatures
+            config_json["cert-sha256"] = [new_cert_hash]
+            print(f"✅ Cert Fingerprint pinned for {host}:{port} (VMESS) -> {new_cert_hash[:32]}...")
+            
+            updated_json_bytes = json.dumps(config_json, ensure_ascii=False).encode('utf-8')
+            encoded_str = base64.b64encode(updated_json_bytes).decode('utf-8')
+            return f"vmess://{encoded_str}"
             
     except Exception as e:
-        print(f"❌ Error parsing VMESS configuration structure: {e}")
+        print(f"❌ Error processing VMESS certificate logic: {e}")
     return line
 
 def update_standard_line(line):
     """
-    Parses VLESS/Trojan nodes using regular expressions rather than urllib.parse
-    to avoid breaking mixed characters and raw strings like path=/?ed=2560.
+    Parses VLESS/Trojan nodes. Keeps 'fp=chrome' intact and explicitly injects
+    the live certificate fingerprint into the 'cert-sha256' query string parameter.
     """
     try:
-        # Step 1: Isolate user comment fragment if present
         fragment = ""
         if "#" in line:
             line, fragment = line.split("#", 1)
 
-        # Step 2: Separate core schema and main string components
         match = re.match(r'^([^:]+://)([^@]+@)?([^/?]+)([^?]*)\?(.*)$', line)
         if not match:
-            # If there's no query parameter configuration string block at all
             return line + (f"#{fragment}" if fragment else "")
 
         scheme, auth, netloc, path_part, query_string = match.groups()
         auth = auth if auth else ""
         
-        # Parse Host and Port precisely
         if ":" in netloc:
             host, port = netloc.split(":", 1)
         else:
             host, port = netloc, "443"
 
-        # Step 3: Turn string params cleanly into a mutable dictionary block
+        # Map current query keys safely
         params = {}
-        # Splitting using native '&' boundaries cleanly
         pairs = query_string.split('&')
         for pair in pairs:
             if '=' in pair:
@@ -109,69 +100,51 @@ def update_standard_line(line):
             else:
                 params[pair] = ""
 
-        # Step 4: Validate TLS status before reaching out
+        # Skip non-encrypted profiles
         security = params.get("security", "").lower()
         if security not in ["tls", "xtls", "reality"]:
-            # Reconstruct completely untouched to prevent path modifications
-            rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{query_string}"
+            return line + (f"#{fragment}" if fragment else "")
+
+        sni = params.get("sni", host)
+        new_cert_hash = get_tls_fingerprint(host, port, sni)
+        
+        if new_cert_hash:
+            # Inject the dedicated parameter for certificate fingerprinting 
+            params["cert-sha256"] = new_cert_hash
+            print(f"✅ Cert Fingerprint pinned for {host}:{port} ({scheme[:-3].upper()}) -> {new_cert_hash[:32]}...")
+            
+            rebuilt_query = "&".join([f"{k}={v}" if v else k for k, v in params.items()])
+            rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{rebuilt_query}"
             if fragment:
                 rebuilt_url += f"#{fragment}"
             return rebuilt_url
 
-        sni = params.get("sni", host)
-        new_fp = get_tls_fingerprint(host, port, sni)
-        
-        if new_fp:
-            params["fp"] = new_fp
-            print(f"✅ Fingerprint updated for {host}:{port} ({scheme[:-3].upper()}) -> {new_fp[:32]}...")
-        else:
-            if "fp" in params:
-                print(f"ℹ️  Keeping existing fingerprint for offline host {host}:{port}")
-            else:
-                print(f"⚠️  No fingerprint found or retrieved for offline host {host}:{port}")
-
-        # Step 5: Assemble parameters strictly keeping original string structures intact
-        rebuilt_query = "&".join([f"{k}={v}" if v else k for k, v in params.items()])
-        rebuilt_url = f"{scheme}{auth}{netloc}{path_part}?{rebuilt_query}"
-        if fragment:
-            rebuilt_url += f"#{fragment}"
-        return rebuilt_url
-
     except Exception as e:
-        print(f"❌ Error processing standard line parsing: {e}")
+        print(f"❌ Error appending certificate fingerprint to line: {e}")
         
     return line + (f"#{fragment}" if 'fragment' in locals() and fragment else "")
 
 def main():
-    print("🚀 Starting Multi-Protocol Fingerprint Updater...")
+    print("🚀 Starting Dedicated Certificate Fingerprint Injector...")
     
     sub_urls_env = os.getenv("EXTERNAL_SUB_URL", "")
     if not sub_urls_env:
-        print("❌ Error: No subscription URLs found in environment variable 'EXTERNAL_SUB_URL'")
+        print("❌ Error: Missing configuration variable 'EXTERNAL_SUB_URL'")
         return
         
     urls = [u.strip() for u in re.split(r'[\n,]+', sub_urls_env) if u.strip()]
-    print(f"ℹ️ Detected {len(urls)} subscription link(s) inside configuration variable.")
-    
     all_raw_configs = []
     
     for url in urls:
-        print(f"📥 Fetching subscription link: {url}")
         try:
             res = requests.get(url, timeout=10)
             if res.status_code == 200:
                 lines = res.text.splitlines()
                 all_raw_configs.extend([l.strip() for l in lines if l.strip()])
-                print("📄 Parsed subscription payload format.")
-            else:
-                print(f"⚠️ Failed to fetch {url} - Status Code: {res.status_code}")
         except Exception as e:
-            print(f"⚠️ Request connection failed for {url}: {e}")
+            print(f"⚠️ Connection drop fetching target subscription: {e}")
 
-    print(f"📊 Total raw configurations loaded: {len(all_raw_configs)}")
-    
     updated_configs = []
-    
     for config in all_raw_configs:
         if config.startswith("vmess://"):
             updated_line = process_vmess_line(config)
@@ -187,7 +160,7 @@ def main():
         for cfg in updated_configs:
             f.write(cfg + "\n")
             
-    print(f"🎉 Process completed successfully! Verified updates written to {output_file}.")
+    print(f"🎉 Process completed successfully! Output pushed to {output_file}.")
 
 if __name__ == "__main__":
     main()
