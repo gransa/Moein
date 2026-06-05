@@ -11,7 +11,7 @@ def get_cert_fingerprint(host, port=443, sni=None):
         sni = host
     context = ssl.create_default_context()
     try:
-        with socket.create_connection((host, port), timeout=10) as sock:
+        with socket.create_connection((host, port), timeout=12) as sock:
             with context.wrap_socket(sock, server_hostname=sni) as ssock:
                 cert = ssock.getpeercert(binary_form=True)
                 fp = hashlib.sha256(cert).hexdigest().upper()
@@ -37,8 +37,8 @@ def main():
             r.raise_for_status()
             content = r.text.strip()
 
-            # Decode base64 if necessary
-            if not content.startswith('vless://'):
+            # Decode if base64
+            if not any(content.startswith(x) for x in ['vless://', 'vmess://']):
                 try:
                     content = base64.b64decode(content + '==').decode('utf-8')
                 except:
@@ -46,11 +46,11 @@ def main():
 
             lines = [line.strip() for line in content.splitlines() if line.strip() and line.startswith('vless://')]
             all_configs.extend(lines)
-            print(f"✅ Loaded {len(lines)} VLESS configs from {url}")
+            print(f"✅ Loaded {len(lines)} VLESS configs")
         except Exception as e:
             print(f"❌ Error downloading {url}: {e}")
 
-    print(f"Total VLESS configs found: {len(all_configs)}")
+    print(f"Total configs found: {len(all_configs)}")
 
     updated_configs = []
     for line in all_configs:
@@ -80,7 +80,7 @@ def main():
             else:
                 updated_configs.append(line)
         except Exception as e:
-            print(f"⚠️ Skipped one config: {e}")
+            print(f"⚠️ Skipped config: {e}")
             updated_configs.append(line)
 
     final_text = "\n".join(updated_configs)
@@ -90,7 +90,7 @@ def main():
         f.write(final_base64)
 
     print(f"🎉 Successfully updated {len(updated_configs)} configs!")
-    print("✅ Configs.txt has been updated.")
+    print("✅ Configs.txt updated successfully.")
 
 if __name__ == "__main__":
     main()
