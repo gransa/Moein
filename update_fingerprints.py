@@ -1,5 +1,4 @@
 import requests
-import base64
 import hashlib
 import socket
 import ssl
@@ -62,18 +61,12 @@ def main():
     resp.raise_for_status()
     content = resp.text.strip()
 
-    # Decode base64
-    try:
-        decoded = base64.b64decode(content + '===').decode('utf-8')
-        lines = [line.strip() for line in decoded.splitlines() if line.strip()]
-        print(f"🔓 Decoded base64 - Found {len(lines)} VLESS lines")
-    except:
-        lines = [line.strip() for line in content.splitlines() if line.strip()]
-        print(f"📄 Plain text - Found {len(lines)} lines")
+    # Split by newlines (no base64)
+    lines = [line.strip() for line in content.splitlines() if line.strip()]
 
-    print(f"✅ Total lines loaded: {len(lines)}")
+    print(f"✅ Loaded {len(lines)} total lines")
 
-    # Update all configs
+    # Update all VLESS configs
     updated = []
     vless_count = 0
     for line in lines:
@@ -85,14 +78,12 @@ def main():
 
     final_content = '\n'.join(updated)
 
-    # Save as base64
-    final_base64 = base64.b64encode(final_content.encode('utf-8')).decode('utf-8')
-    
+    # Save as plain text (no base64)
     with open("Configs.txt", "w", encoding="utf-8") as f:
-        f.write(final_base64)
+        f.write(final_content)
 
     print(f"🎉 Successfully updated {vless_count} VLESS configs!")
-    print("✅ Configs.txt updated successfully.")
+    print("✅ Configs.txt updated successfully (plain text).")
 
 if __name__ == "__main__":
     main()
