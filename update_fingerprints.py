@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
 
-# This safely applies the Node.js 24 force globally without clearing step items
+# This global block must be completely outside the 'jobs' declaration
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
