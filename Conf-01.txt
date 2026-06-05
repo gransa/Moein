@@ -8,4 +8,4 @@ vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@104.16.9.215:2083?security=tls&sni=
 
 trojan://GABTmlZTPGtULi@www.visa.com.br:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#Trojan-Worker-05%20-%202087
 
-trojan://krOXKzNRRIROWi@www.visasoutheasteurope.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#Trojan-Worker-06%20-%202096
+trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#Trojan-Worker-06%20-%202096
