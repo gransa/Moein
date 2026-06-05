@@ -1,44 +1,43 @@
-name: Hourly Fingerprint Updater
+name: Hourly Certificate Fingerprint Update
 
 on:
   schedule:
-    # This tells GitHub to run the workflow at the start of every hour automatically
     - cron: '0 * * * *'
-  workflow_dispatch: # Allows you to still run it manually whenever you want
+  workflow_dispatch:
 
-permissions:
-  contents: write
+# Fixes the Node.js 20 deprecation warning across the entire workflow run
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   update:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository Codebase
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Runtime Python Environment
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Network Packages
         run: |
           python -m pip install --upgrade pip
           pip install requests
 
-      - name: Update Certificate Fingerprints
-        run: python update_fingerprints.py
+      - name: Fetch and Process Node Upgrades
         env:
-          EXTERNAL_SUB_URL: ${{ secrets.EXTERNAL_SUB_URL || vars.EXTERNAL_SUB_URL }}
+          EXTERNAL_SUB_URL: ${{ secrets.EXTERNAL_SUB_URL }}
+        run: python update_fingerprints.py
 
-      - name: Commit and Push changes
+      - name: Commit and Push Verified Updates
         run: |
           git config user.name "Fingerprint Updater"
           git config user.email "action@github.com"
           git add Configs.txt
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No certificate fingerprint changes found this hour."
           else
             git commit -m "Update fingerprints - $(date '+%Y-%m-%d %H:%M:%S')"
             git push
