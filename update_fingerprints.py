@@ -2,14 +2,14 @@ import hashlib
 import os
 import socket
 import ssl
+import json
+import base64
 from urllib.parse import urlparse, parse_qs, urlencode
 
 def get_cert_fingerprint(host, port=443, sni=None):
-    if sni is None:
+    if not sni:
         sni = host
         
-    # We create a relaxed SSL context that skips strict hostname verification 
-    # to ensure we grab the raw peer certificate from the target IP address.
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
@@ -25,11 +25,9 @@ def get_cert_fingerprint(host, port=443, sni=None):
         print(f"❌ Failed to get fingerprint for {sni} via {host}:{port}: {e}")
         return None
 
-def update_vless_config(line):
+def process_standard_url(line, scheme):
+    """Processes protocols that use standard URL formats like vless:// and trojan://"""
     try:
-        if not line.startswith('vless://'):
-            return line
-
         if '#' in line:
             config_part, remark = line.split('#', 1)
         else:
@@ -38,10 +36,9 @@ def update_vless_config(line):
         parsed = urlparse(config_part)
         query = parse_qs(parsed.query)
 
-        # Check security; if plaintext/empty, it doesn't use TLS fingerprints
+        # Check if security uses TLS
         security = query.get('security', [''])[0]
         if security.lower() not in ['tls', 'xtls']:
-            # Return line unchanged or skip entirely since it has no cert
             return line
 
         host = parsed.hostname
@@ -52,23 +49,59 @@ def update_vless_config(line):
         if not fp:
             return line
 
-        # Re-build query parameters, replacing or adding 'pcs'
+        # Rebuild query parameter with updated pcs value
         new_query = {k: v for k, v in query.items() if k.lower() != 'pcs'}
         new_query['pcs'] = [fp]
 
         new_query_str = urlencode(new_query, doseq=True)
-        new_url = f"vless://{parsed.netloc}{parsed.path}?{new_query_str}"
+        new_url = f"{scheme}://{parsed.netloc}{parsed.path}?{new_query_str}"
         if remark:
             new_url += f"#{remark}"
         return new_url
     except Exception:
         return line
 
+def process_vmess(line):
+    """Processes vmess:// configurations which are Base64 encoded JSON blobs"""
+    try:
+        raw_b64 = line[8:].strip()
+        # Fix missing padding if any
+        padded_b64 = raw_b64 + '=' * (-len(raw_b64) % 4)
+        decoded_bytes = base64.b64decode(padded_b64)
+        config_data = json.loads(decoded_bytes.decode('utf-8'))
+
+        # Check if TLS security is enabled in VMess structure
+        tls_status = config_data.get('tls', '')
+        # Some configs use 'tls', others use 'security': 'tls'
+        if str(tls_status).lower() != 'tls' and str(config_data.get('security', '')).lower() != 'tls':
+            return line
+
+        host = config_data.get('add')
+        try:
+            port = int(config_data.get('port', 443))
+        except ValueError:
+            port = 443
+            
+        sni = config_data.get('sni') or config_data.get('host') or host
+
+        fp = get_cert_fingerprint(host, port, sni)
+        if not fp:
+            return line
+
+        # Set or update fingerprint field
+        config_data['pcs'] = fp
+
+        # Re-encode back to string format vmess://
+        json_str = json.dumps(config_data, ensure_ascii=False)
+        new_b64 = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        return f"vmess://{new_b64}"
+    except Exception:
+        return line
+
 def main():
-    print("🚀 Starting Local Fingerprint Updater...")
+    print("🚀 Starting Multi-Protocol Fingerprint Updater...")
 
     raw_lines = []
-    # 1. Read directly from your local config source files
     input_files = ["Conf-01.txt", "Conf-02.txt"]
     
     for filename in input_files:
@@ -87,12 +120,16 @@ def main():
     updated_configs = []
     for line in raw_lines:
         if line.startswith('vless://'):
-            # Only process TLS items, keep non-tls as-is without pcs
-            updated_configs.append(update_vless_config(line))
+            updated_configs.append(process_standard_url(line, 'vless'))
+        elif line.startswith('trojan://'):
+            updated_configs.append(process_standard_url(line, 'trojan'))
+        elif line.startswith('vmess://'):
+            updated_configs.append(process_vmess(line))
         else:
+            # Pass through unrecognized protocols (shadowsocks, hysteria2, etc.) or blank lines
             updated_configs.append(line)
 
-    # 2. Write all combined, updated configs into your final output file
+    # Write all processed configs to your production output destination
     final_content = '\n'.join(updated_configs)
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_content)
