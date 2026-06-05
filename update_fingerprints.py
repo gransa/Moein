@@ -30,8 +30,8 @@ def get_tls_fingerprint(host, port, sni=None):
 
 def process_vmess_line(line):
     """
-    Decodes VMess payload, checks for TLS, and sets the certificate hash field
-    under 'cert-sha256' or 'certSha256' while leaving original parameters intact.
+    Decodes VMess payload, updates v2rayNG supported cert pinning parameters
+    while leaving fp=chrome completely untouched.
     """
     try:
         b64_data = line[8:].strip()
@@ -56,8 +56,8 @@ def process_vmess_line(line):
         new_cert_hash = get_tls_fingerprint(host, port, sni)
         
         if new_cert_hash:
-            # Set the actual certificate fingerprint without erasing client profile signatures
-            config_json["cert-sha256"] = [new_cert_hash]
+            # v2rayNG / Xray core support array format or string format for pinned chain inside JSON
+            config_json["pinnedPeerCertificateChainSha256"] = [new_cert_hash]
             print(f"✅ Cert Fingerprint pinned for {host}:{port} (VMESS) -> {new_cert_hash[:32]}...")
             
             updated_json_bytes = json.dumps(config_json, ensure_ascii=False).encode('utf-8')
@@ -70,8 +70,8 @@ def process_vmess_line(line):
 
 def update_standard_line(line):
     """
-    Parses VLESS/Trojan nodes. Keeps 'fp=chrome' intact and explicitly injects
-    the live certificate fingerprint into the 'cert-sha256' query string parameter.
+    Parses VLESS/Trojan nodes. Keeps 'fp=chrome' intact and uses the native
+    v2rayNG parameter 'pinnedPeerCertificateChainSha256' for the hash.
     """
     try:
         fragment = ""
@@ -90,7 +90,7 @@ def update_standard_line(line):
         else:
             host, port = netloc, "443"
 
-        # Map current query keys safely
+        # Map current query parameters safely
         params = {}
         pairs = query_string.split('&')
         for pair in pairs:
@@ -109,8 +109,8 @@ def update_standard_line(line):
         new_cert_hash = get_tls_fingerprint(host, port, sni)
         
         if new_cert_hash:
-            # Inject the dedicated parameter for certificate fingerprinting 
-            params["cert-sha256"] = new_cert_hash
+            # Inject the official v2rayNG parameter name for pinned fingerprints
+            params["pinnedPeerCertificateChainSha256"] = new_cert_hash
             print(f"✅ Cert Fingerprint pinned for {host}:{port} ({scheme[:-3].upper()}) -> {new_cert_hash[:32]}...")
             
             rebuilt_query = "&".join([f"{k}={v}" if v else k for k, v in params.items()])
@@ -125,7 +125,7 @@ def update_standard_line(line):
     return line + (f"#{fragment}" if 'fragment' in locals() and fragment else "")
 
 def main():
-    print("🚀 Starting Dedicated Certificate Fingerprint Injector...")
+    print("🚀 Starting Dedicated Certificate Fingerprint Injector for v2rayNG...")
     
     sub_urls_env = os.getenv("EXTERNAL_SUB_URL", "")
     if not sub_urls_env:
