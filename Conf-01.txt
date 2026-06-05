@@ -6,6 +6,3 @@ vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@172.64.32.19:2053?security=tls&sni=
 
 vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@104.16.9.215:2083?security=tls&sni=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&encryption=none#@Vless-Worker-04%20-%202083
 
-trojan://ParsaJoonam@www.speedtest.net:443?security=tls&sni=cHaLgHoOz.pArIsA.ClOuDnS.PrO&fp=chrome&type=ws&path=/eyJqdW5rIjoiaEE4cXdBd0NFVmJsS1giLCJwcm90b2NvbCI6InRyIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119?ed%3D2560&host=chalghooz.parisa.cloudns.pro
-
-vmess://eyJhZGQiOiIxMDkuNjEuMTA5LjIwNCIsImFpZCI6IjAiLCJob3N0IjoiaW1hZmFrZS5sb2NrZXIiLCJpZCI6IjI1NDU1MWY2LWVjMjgtNDkzOC1hZDBlLTBhYTRhYTE5NjVlYyIsIm5ldCI6IndzIiwicGF0aCI6Ii9zcGVlZHRlc3QiLCJwb3J0IjoiMjQ4NTciLCJwcyI6IlRva3lvLUdldEFGcmVlTm9kZS5jb20iLCJzY3kiOiJhdXRvIiwic25pIjoiaW1hZmFrZS5sb2NrZXIiLCJ0bHMiOiJ0bHMiLCJ0eXBlIjoibm9uZSIsInYiOiIyIn0=
