@@ -61,12 +61,11 @@ def main():
     resp.raise_for_status()
     content = resp.text.strip()
 
-    # Split by newlines (no base64)
+    # Split by lines (plain text)
     lines = [line.strip() for line in content.splitlines() if line.strip()]
 
-    print(f"✅ Loaded {len(lines)} total lines")
+    print(f"✅ Loaded {len(lines)} total lines from Configs.txt")
 
-    # Update all VLESS configs
     updated = []
     vless_count = 0
     for line in lines:
@@ -83,7 +82,7 @@ def main():
         f.write(final_content)
 
     print(f"🎉 Successfully updated {vless_count} VLESS configs!")
-    print("✅ Configs.txt updated successfully (plain text).")
+    print("✅ Configs.txt updated as plain text.")
 
 if __name__ == "__main__":
     main()
