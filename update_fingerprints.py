@@ -4,7 +4,6 @@ import hashlib
 import socket
 import ssl
 from urllib.parse import urlparse, parse_qs, urlencode
-import sys
 
 def get_cert_fingerprint(host, port=443, sni=None):
     if sni is None:
@@ -18,10 +17,10 @@ def get_cert_fingerprint(host, port=443, sni=None):
                 print(f"✅ Fingerprint for {host}: {fp[:32]}...")
                 return fp
     except Exception as e:
-        print(f"❌ Failed to get fingerprint for {host}: {e}")
+        print(f"❌ Failed for {host}: {e}")
         return None
 
-def update_configs():
+def main():
     input_urls = [
         "https://github.com/gransa/Moein/raw/main/Configs.txt",
     ]
@@ -35,7 +34,6 @@ def update_configs():
             r.raise_for_status()
             content = r.text.strip()
             
-            # Decode base64 if needed
             if not content.startswith('vless://'):
                 try:
                     content = base64.b64decode(content + '==').decode('utf-8')
@@ -44,13 +42,11 @@ def update_configs():
             
             lines = [line.strip() for line in content.splitlines() if line.strip() and line.startswith('vless://')]
             all_configs.extend(lines)
-            print(f"Found {len(lines)} VLESS configs from {url}")
+            print(f"Found {len(lines)} VLESS configs")
         except Exception as e:
             print(f"Error fetching {url}: {e}")
     
-    print(f"Total VLESS configs: {len(all_configs)}")
-    
-    updated_configs = []
+    updated = []
     for line in all_configs:
         try:
             if '#' in line:
@@ -74,21 +70,20 @@ def update_configs():
                 new_url = f"vless://{parsed.netloc}{parsed.path}?{urlencode(new_query, doseq=True)}"
                 if remark:
                     new_url += f"#{remark.strip()}"
-                updated_configs.append(new_url)
+                updated.append(new_url)
             else:
-                updated_configs.append(line)
-        except Exception as e:
-            print(f"Error processing config: {e}")
-            updated_configs.append(line)
+                updated.append(line)
+        except:
+            updated.append(line)
     
-    final_text = "\n".join(updated_configs)
+    final_text = "\n".join(updated)
     final_base64 = base64.b64encode(final_text.encode('utf-8')).decode('utf-8')
     
     with open("Configs.txt", "w", encoding="utf-8") as f:
         f.write(final_base64)
     
-    print(f"🎉 Successfully updated {len(updated_configs)} configs!")
-    return final_base64
+    print(f"🎉 Successfully updated {len(updated)} configs!")
+    print("File 'Configs.txt' has been updated.")
 
 if __name__ == "__main__":
-    update_configs()
+    main()
