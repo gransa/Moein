@@ -30,10 +30,8 @@ def fetch_clean_addresses(url):
         addresses = []
         for line in content.splitlines():
             line = line.strip()
-            # Skip empty lines, comments, or annotations
             if not line or line.startswith("#") or line.startswith("//"):
                 continue
-            # Remove inline remarks/names if present (e.g., "1.1.1.1 # Clean IP")
             clean_addr = line.split("#")[0].split("//")[0].strip()
             if clean_addr:
                 addresses.append(clean_addr)
@@ -50,7 +48,7 @@ def extract_explicit_port(url_str):
         return int(match.group(1))
     return None
 
-def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0], clean_addresses=[], ip_counter=[0]):
+def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
     try:
         b64_data = url_str.replace("vmess://", "").strip()
         b64_data += "=" * ((4 - len(b64_data) % 4) % 4)
@@ -72,13 +70,9 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0], clean_addresses=[
             else:
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
-        
-        # Override connection address if clean list is available
-        if clean_addresses:
-            target_address = clean_addresses[ip_counter[0] % len(clean_addresses)]
-            ip_counter[0] += 1
-        else:
-            target_address = config.get("add")
+            
+        # IGNORED: VMESS always uses its native profile address
+        target_address = config.get("add")
             
         outbound = {
             "protocol": "vmess",
@@ -161,7 +155,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
         
-        # Override connection address if clean list is available
+        # Override address only for Cloudflare-based nodes (VLESS / Trojan)
         if clean_addresses:
             target_address = clean_addresses[ip_counter[0] % len(clean_addresses)]
             ip_counter[0] += 1
@@ -322,7 +316,7 @@ def main():
 
     tls_counter = [0]
     non_tls_counter = [0]
-    ip_counter = [0]  # Iterates smoothly across clean destinations
+    ip_counter = [0]  # Only increments for VLESS and Trojan nodes
 
     groups = {
         "vless_tls": [], "vless_n_tls": [],
@@ -344,7 +338,7 @@ def main():
         proto_key = None
         
         if line.startswith("vmess://"):
-            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
             proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
         elif line.startswith("vless://"):
             node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter, clean_addresses, ip_counter)
@@ -380,7 +374,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Compiled cleanly into layout destination: '{output_file}'")
+    print(f"🎉 Compiled cleanly into single layout destination: '{output_file}'")
 
 if __name__ == "__main__":
     main()
