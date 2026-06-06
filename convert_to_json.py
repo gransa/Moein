@@ -50,7 +50,7 @@ def parse_vmess(url_str):
             outbound["streamSettings"]["tlsSettings"] = {
                 "allowInsecure": False,
                 "fingerprint": fp_val,
-                "pinnedPeerCertSha256": config.get("pinnedPeerCertSha256", ""), # Maps hash if available
+                "pinnedPeerCertSha256": config.get("pinnedPeerCertSha256", ""),
                 "serverName": config.get("host", config.get("add")),
                 "show": False
             }
@@ -78,8 +78,6 @@ def parse_standard_uri(url_str, protocol):
         is_tls = security in ["tls", "reality", "xtls"] or protocol == "trojan"
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
-        
-        # Capture certificate fingerprint hash from raw URL queries (looks for certfp, sha256, or pinnedPeerCertSha256)
         cert_hash = params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", "")))
         
         outbound = {
@@ -108,6 +106,9 @@ def parse_standard_uri(url_str, protocol):
                     "level": 8
                 }]
             }
+        else:
+            # Fallback wrapper for shadow/socks configurations if any appear
+            outbound["settings"] = {"servers": [{"address": address, "port": int(port)}]}
             
         outbound["streamSettings"] = {
             "network": net_type,
@@ -128,7 +129,7 @@ def parse_standard_uri(url_str, protocol):
             outbound["streamSettings"][tls_type] = {
                 "allowInsecure": False,
                 "fingerprint": fp_val,
-                "pinnedPeerCertSha256": cert_hash,  # <-- Placed exactly here
+                "pinnedPeerCertSha256": cert_hash,
                 "serverName": params.get("sni", address),
                 "show": False
             }
@@ -207,8 +208,13 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
-    tls_nodes = []
-    n_tls_nodes = []
+    # Categories for strict structural sorting
+    groups = {
+        "vless_tls": [], "vless_n_tls": [],
+        "trojan_tls": [], "trojan_n_tls": [],
+        "vmess_tls": [], "vmess_n_tls": [],
+        "other_protocols": []
+    }
     
     with open(input_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -220,31 +226,49 @@ def main():
             
         node_data = None
         is_tls = False
+        proto_key = None
         
         if line.startswith("vmess://"):
             node_data, is_tls = parse_vmess(line)
+            proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
         elif line.startswith("vless://"):
             node_data, is_tls = parse_standard_uri(line, "vless")
+            proto_key = "vless_tls" if is_tls else "vless_n_tls"
         elif line.startswith("trojan://"):
             node_data, is_tls = parse_standard_uri(line, "trojan")
+            proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
+        elif "://" in line:
+            # Handle anything else like ss://, socks://, hysteria2://
+            p_name = line.split("://")[0].lower()
+            node_data, is_tls = parse_standard_uri(line, p_name)
+            proto_key = "other_protocols"
             
-        if node_data:
-            if is_tls:
-                node_data["tag"] = f"prox-{len(tls_nodes) + 1}"
-                tls_nodes.append(node_data)
-            else:
-                node_data["tag"] = f"prox-{len(n_tls_nodes) + 1}"
-                n_tls_nodes.append(node_data)
+        if node_data and proto_key:
+            # Tag each node sequentially relative to its specific bucket size
+            node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
+            groups[proto_key].append(node_data)
                 
-    final_output = [
-        build_v2rayng_template("🌳 1 - TLS LB - CF CDN 🔥", tls_nodes),
-        build_v2rayng_template("🌳 2 - n-TLS LB - CF CDN 🔥", n_tls_nodes)
+    # Build complete custom balanced config array items only if nodes exist
+    final_output = []
+    
+    mapping = [
+        ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
+        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
+        ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
+        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
+        ("🌳 VMESS - TLS LB 🔥", "vmess_tls"),
+        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls"),
+        ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
     ]
     
+    for remark, key in mapping:
+        if groups[key]: # Only include blocks that actually have parsed configs
+            final_output.append(build_v2rayng_template(remark, groups[key]))
+            
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Config map complete! Layout stored inside '{output_file}'")
+    print(f"🎉 Array generation complete! Profiles split into {len(final_output)} clear blocks inside '{output_file}'")
 
 if __name__ == "__main__":
     main()
