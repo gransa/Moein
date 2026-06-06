@@ -12,9 +12,11 @@ def parse_vmess(url_str):
         
         is_tls = str(config.get("tls", "")).lower() in ["tls", "1", "true"]
         net_type = config.get("net", "tcp")
+        fp_val = config.get("fp", "chrome")
         
         outbound = {
             "protocol": "vmess",
+            "certificate fingerprint": fp_val,  # <-- Added exact custom key here
             "settings": {
                 "vnext": [
                     {
@@ -37,7 +39,6 @@ def parse_vmess(url_str):
             }
         }
         
-        # Parse transport adjustments
         if net_type == "ws":
             outbound["streamSettings"]["wsSettings"] = {
                 "host": config.get("host", ""),
@@ -48,7 +49,7 @@ def parse_vmess(url_str):
             
         if is_tls:
             outbound["streamSettings"]["tlsSettings"] = {
-                "fingerprint": "chrome",
+                "fingerprint": fp_val,
                 "serverName": config.get("host", config.get("add"))
             }
             
@@ -74,13 +75,14 @@ def parse_standard_uri(url_str, protocol):
         security = params.get("security", "").lower()
         is_tls = security in ["tls", "reality", "xtls"] or protocol == "trojan"
         net_type = params.get("type", "tcp")
+        fp_val = params.get("fp", "chrome")
         
         outbound = {
             "protocol": protocol,
+            "certificate fingerprint": fp_val,  # <-- Added exact custom key here
             "settings": {}
         }
         
-        # Build individual target core authentication structures
         if protocol == "vless":
             outbound["settings"] = {
                 "vnext": [{
@@ -120,7 +122,7 @@ def parse_standard_uri(url_str, protocol):
         if is_tls:
             tls_type = "realitySettings" if security == "reality" else "tlsSettings"
             outbound["streamSettings"][tls_type] = {
-                "fingerprint": params.get("fp", "chrome"),
+                "fingerprint": fp_val,
                 "serverName": params.get("sni", address)
             }
             if protocol == "trojan" and "alpn" in params:
@@ -132,7 +134,6 @@ def parse_standard_uri(url_str, protocol):
         return None, False
 
 def build_v2rayng_template(remarks, outbound_nodes):
-    # Core system template components required by v2rayNG client parsers
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
@@ -228,7 +229,6 @@ def main():
                 node_data["tag"] = f"prox-{len(n_tls_nodes) + 1}"
                 n_tls_nodes.append(node_data)
                 
-    # Compile the final two array components required by v2rayNG custom configuration schema
     final_output = [
         build_v2rayng_template("🌳 1 - TLS LB - CF CDN 🔥", tls_nodes),
         build_v2rayng_template("🌳 2 - n-TLS LB - CF CDN 🔥", n_tls_nodes)
@@ -237,7 +237,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Array generation complete! Structured file successfully exported to '{output_file}'")
+    print(f"🎉 Array generation complete! File updated: '{output_file}'")
 
 if __name__ == "__main__":
     main()
