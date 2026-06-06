@@ -261,7 +261,8 @@ def build_v2rayng_template(remarks, outbound_nodes):
 
 def main():
     input_file = "Configs.txt"
-    output_file = "NG-JSON-Configs.txt"
+    tls_output_file = "NG-TLS-Configs.json"
+    n_tls_output_file = "NG-NonTLS-Configs.json"
     
     if not os.path.exists(input_file):
         print(f"Source file {input_file} not found.")
@@ -307,26 +308,48 @@ def main():
             node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
             groups[proto_key].append(node_data)
                 
-    final_output = []
+    # Create isolated lists for separate exports
+    tls_configs = []
+    non_tls_configs = []
     
-    mapping = [
+    # Map out target definitions clearly
+    tls_mapping = [
         ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
-        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
         ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
-        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
-        ("🌳 VMESS - TLS LB 🔥", "vmess_tls"),
-        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls"),
-        ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
+        ("🌳 VMESS - TLS LB 🔥", "vmess_tls")
     ]
     
-    for remark, key in mapping:
+    non_tls_mapping = [
+        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
+        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
+        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls")
+    ]
+    
+    # 1. Build Secure Nodes
+    for remark, key in tls_mapping:
         if groups[key]:
-            final_output.append(build_v2rayng_template(remark, groups[key]))
+            tls_configs.append(build_v2rayng_template(remark, groups[key]))
             
-    with open(output_file, "w", encoding="utf-8") as out:
-        json.dump(final_output, out, indent=2, ensure_ascii=False)
+    # 2. Build Insecure Nodes
+    for remark, key in non_tls_mapping:
+        if groups[key]:
+            non_tls_configs.append(build_v2rayng_template(remark, groups[key]))
+            
+    # Include unclassified profiles to the appropriate stack if necessary
+    if groups["other_protocols"]:
+        non_tls_configs.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"]))
         
-    print(f"🎉 Syntax error resolved. Output verified cleanly in '{output_file}'")
+    # Write Out Complete TLS Profiles File
+    if tls_configs:
+        with open(tls_output_file, "w", encoding="utf-8") as out_tls:
+            json.dump(tls_configs, out_tls, indent=2, ensure_ascii=False)
+        print(f"🔒 Secure JSON compiled into '{tls_output_file}'")
+        
+    # Write Out Complete Non-TLS Profiles File
+    if non_tls_configs:
+        with open(n_tls_output_file, "w", encoding="utf-8") as out_ntls:
+            json.dump(non_tls_configs, out_ntls, indent=2, ensure_ascii=False)
+        print(f"🔓 Non-Secure JSON compiled into '{n_tls_output_file}'")
 
 if __name__ == "__main__":
     main()
