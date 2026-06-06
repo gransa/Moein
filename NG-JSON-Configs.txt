@@ -654,7 +654,7 @@
           "tlsSettings": {
             "allowInsecure": false,
             "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D",
+            "pinnedPeerCertSha256": "",
             "serverName": "imafake.locker",
             "show": false
           }
@@ -689,7 +689,7 @@
           "tlsSettings": {
             "allowInsecure": false,
             "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D",
+            "pinnedPeerCertSha256": "",
             "serverName": "imafake.locker",
             "show": false
           }
@@ -794,7 +794,7 @@
           "tlsSettings": {
             "allowInsecure": false,
             "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D",
+            "pinnedPeerCertSha256": "",
             "serverName": "imafake.locker",
             "show": false
           }
@@ -829,7 +829,7 @@
           "tlsSettings": {
             "allowInsecure": false,
             "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D",
+            "pinnedPeerCertSha256": "",
             "serverName": "imafake.locker",
             "show": false
           }
