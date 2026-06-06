@@ -4,6 +4,7 @@ import base64
 import ipaddress
 import re
 import urllib.request
+import random
 from urllib.parse import urlparse, unquote, parse_qs
 
 # Cloudflare clear distinct port definitions
@@ -106,10 +107,9 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
             outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
             
         if is_tls:
-            # Check for standard keys explicitly
             pcs_value = config.get("pcs", config.get("pinnedPeerCertSha256", ""))
             
-            # STricter Check: If it matches the fake provider placeholder hash, wipe it out
+            # Stricter Check: Wipe out fake provider placeholders
             if str(pcs_value).strip().upper() == "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D":
                 pcs_value = ""
             
@@ -332,6 +332,10 @@ def main():
     with open(input_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
         
+    # CRITICAL ADVANCEMENT: Shuffle raw input links dynamically on every build pipeline action
+    random.shuffle(lines)
+    print("🎲 Raw input lines have been successfully randomized.")
+
     for line in lines:
         line = line.strip()
         if not line:
@@ -356,6 +360,7 @@ def main():
             proto_key = "other_protocols"
             
         if node_data and proto_key:
+            # Tags remain beautifully sorted as prox-1, prox-2, but point to randomized nodes
             node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
             groups[proto_key].append(node_data)
                 
