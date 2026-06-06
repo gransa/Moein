@@ -7,44 +7,24 @@
     "dns": {
       "servers": [
         {
-          "address": "9.9.9.11",
+          "address": "https://one.one.one.one",
           "tag": "remote-dns-1"
         },
         {
-          "address": "45.90.28.0",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-2"
         },
         {
-          "address": "https://common.dot.dns.yandex.net/dns-query",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-3"
         },
         {
-          "address": "1.1.1.2",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-4"
         },
         {
-          "address": "76.76.10.2",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-5"
-        },
-        {
-          "address": "9.9.9.9",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "94.140.14.14",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
         },
         {
           "address": "1.1.1.1",
@@ -57,7 +37,7 @@
           "skipFallback": false
         },
         {
-          "address": "208.67.222.222",
+          "address": "1.0.0.1",
           "domains": [
             "geosite:category-ir"
           ],
@@ -67,7 +47,7 @@
           "skipFallback": false
         },
         {
-          "address": "185.228.168.9",
+          "address": "1.1.1.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -77,9 +57,29 @@
           "skipFallback": false
         },
         {
-          "address": "9.9.9.9",
+          "address": "1.0.0.2",
           "domains": [
-            "full:www.visa.com.br"
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "8.8.8.8",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "1.1.1.1",
+          "domains": [
+            "full:transferwise.com"
           ],
           "skipFallback": true
         }
@@ -123,44 +123,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "172.64.32.19",
-              "port": 2083,
-              "users": [
-                {
-                  "id": "b4cee115-cb5e-4571-99fa-a8f80dc902b1",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "366E3C7033F48ABE20D8C4CC80D7D40DC9AFBD8BB9AB272BF207BC5ED00800B9",
-            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
-            "show": false
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "www.visa.com.br",
+              "address": "63.141.128.232",
               "port": 443,
               "users": [
                 {
@@ -190,14 +153,14 @@
             "show": false
           }
         },
-        "tag": "prox-2"
+        "tag": "prox-1"
       },
       {
         "protocol": "vless",
         "settings": {
           "vnext": [
             {
-              "address": "208.103.161.249",
+              "address": "172.64.32.19",
               "port": 2053,
               "users": [
                 {
@@ -227,7 +190,7 @@
             "show": false
           }
         },
-        "tag": "prox-3"
+        "tag": "prox-2"
       },
       {
         "protocol": "vless",
@@ -235,6 +198,43 @@
           "vnext": [
             {
               "address": "172.64.48.15",
+              "port": 2083,
+              "users": [
+                {
+                  "id": "b4cee115-cb5e-4571-99fa-a8f80dc902b1",
+                  "encryption": "none",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
+            "path": "/?ed=2560"
+          },
+          "tlsSettings": {
+            "allowInsecure": false,
+            "fingerprint": "chrome",
+            "pinnedPeerCertSha256": "366E3C7033F48ABE20D8C4CC80D7D40DC9AFBD8BB9AB272BF207BC5ED00800B9",
+            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
+            "show": false
+          }
+        },
+        "tag": "prox-3"
+      },
+      {
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "transferwise.com",
               "port": 8443,
               "users": [
                 {
@@ -393,44 +393,24 @@
     "dns": {
       "servers": [
         {
-          "address": "156.154.70.1",
+          "address": "https://one.one.one.one",
           "tag": "remote-dns-1"
         },
         {
-          "address": "95.85.95.85",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-2"
         },
         {
-          "address": "208.67.220.123",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-3"
         },
         {
-          "address": "https://www.opennic.org",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://185.121.177.177/dns-query",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-5"
-        },
-        {
-          "address": "9.9.9.9",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "94.140.14.14",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
         },
         {
           "address": "1.1.1.1",
@@ -443,7 +423,7 @@
           "skipFallback": false
         },
         {
-          "address": "208.67.222.222",
+          "address": "1.0.0.1",
           "domains": [
             "geosite:category-ir"
           ],
@@ -453,7 +433,7 @@
           "skipFallback": false
         },
         {
-          "address": "185.228.168.9",
+          "address": "1.1.1.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -463,9 +443,29 @@
           "skipFallback": false
         },
         {
-          "address": "9.9.9.9",
+          "address": "1.0.0.2",
           "domains": [
-            "full:transferwise.com"
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "8.8.8.8",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "1.1.1.1",
+          "domains": [
+            "full:www.visa.com.br"
           ],
           "skipFallback": true
         }
@@ -509,7 +509,7 @@
         "settings": {
           "servers": [
             {
-              "address": "193.9.49.119",
+              "address": "104.16.9.215",
               "port": 2087,
               "password": "GABTmlZTPGtULi",
               "level": 8
@@ -541,7 +541,7 @@
         "settings": {
           "servers": [
             {
-              "address": "transferwise.com",
+              "address": "www.visa.com.br",
               "port": 2096,
               "password": "krOXKzNRRIROWi",
               "level": 8
@@ -695,44 +695,24 @@
     "dns": {
       "servers": [
         {
-          "address": "https://doh.opendns.com/dns-query",
+          "address": "https://one.one.one.one",
           "tag": "remote-dns-1"
         },
         {
-          "address": "https://dns11.quad9.net/dns-query",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-2"
         },
         {
-          "address": "45.90.28.0",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-3"
         },
         {
-          "address": "77.88.8.8",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://dns.gcore.com/dns-query",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-5"
-        },
-        {
-          "address": "9.9.9.9",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "94.140.14.14",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
         },
         {
           "address": "1.1.1.1",
@@ -745,7 +725,7 @@
           "skipFallback": false
         },
         {
-          "address": "208.67.222.222",
+          "address": "1.0.0.1",
           "domains": [
             "geosite:category-ir"
           ],
@@ -755,7 +735,7 @@
           "skipFallback": false
         },
         {
-          "address": "185.228.168.9",
+          "address": "1.1.1.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -765,7 +745,27 @@
           "skipFallback": false
         },
         {
-          "address": "9.9.9.9",
+          "address": "1.0.0.2",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "8.8.8.8",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "1.1.1.1",
           "domains": [
             "full:23andme.com"
           ],
@@ -811,37 +811,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "63.141.128.232",
-              "port": 8080,
-              "users": [
-                {
-                  "id": "8eb92a78-ec8d-4ff6-8a2d-8b801367be87",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "104.16.9.215",
+              "address": "193.9.49.119",
               "port": 8880,
               "users": [
                 {
@@ -864,7 +834,7 @@
             "path": "/?ed=2560"
           }
         },
-        "tag": "prox-2"
+        "tag": "prox-1"
       },
       {
         "protocol": "vless",
@@ -872,6 +842,36 @@
           "vnext": [
             {
               "address": "162.159.142.8",
+              "port": 80,
+              "users": [
+                {
+                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
+                  "encryption": "none",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "none",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
+            "path": "/?ed=2560"
+          }
+        },
+        "tag": "prox-2"
+      },
+      {
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "104.17.2.112",
               "port": 2052,
               "users": [
                 {
@@ -902,10 +902,10 @@
           "vnext": [
             {
               "address": "23andme.com",
-              "port": 80,
+              "port": 8080,
               "users": [
                 {
-                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
+                  "id": "8eb92a78-ec8d-4ff6-8a2d-8b801367be87",
                   "encryption": "none",
                   "level": 8
                 }
@@ -920,7 +920,7 @@
             "domainStrategy": "UseIPv4v6"
           },
           "wsSettings": {
-            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
+            "host": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
             "path": "/?ed=2560"
           }
         },
@@ -1053,44 +1053,24 @@
     "dns": {
       "servers": [
         {
-          "address": "208.67.220.123",
+          "address": "https://one.one.one.one",
           "tag": "remote-dns-1"
         },
         {
-          "address": "156.154.71.2",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-2"
         },
         {
-          "address": "194.242.2.3",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-3"
         },
         {
-          "address": "9.9.9.9",
+          "address": "https://cloudflare-dns.com/dns-query",
           "tag": "remote-dns-4"
         },
         {
-          "address": "119.29.29.29",
+          "address": "https://1.1.1.1/dns-query",
           "tag": "remote-dns-5"
-        },
-        {
-          "address": "9.9.9.9",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "94.140.14.14",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
         },
         {
           "address": "1.1.1.1",
@@ -1103,7 +1083,7 @@
           "skipFallback": false
         },
         {
-          "address": "208.67.222.222",
+          "address": "1.0.0.1",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1113,7 +1093,7 @@
           "skipFallback": false
         },
         {
-          "address": "185.228.168.9",
+          "address": "1.1.1.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1123,7 +1103,27 @@
           "skipFallback": false
         },
         {
-          "address": "9.9.9.9",
+          "address": "1.0.0.2",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "8.8.8.8",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "1.1.1.1",
           "domains": [
             "full:www.speedtest.net"
           ],
@@ -1169,32 +1169,7 @@
         "settings": {
           "servers": [
             {
-              "address": "104.17.2.112",
-              "port": 2086,
-              "password": "krOXKzNRRIROWi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "www.speedtest.net",
+              "address": "208.103.161.249",
               "port": 2082,
               "password": "GABTmlZTPGtULi",
               "level": 8
@@ -1209,6 +1184,31 @@
           },
           "wsSettings": {
             "host": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
+            "path": "/?ed=2560"
+          }
+        },
+        "tag": "prox-1"
+      },
+      {
+        "protocol": "trojan",
+        "settings": {
+          "servers": [
+            {
+              "address": "www.speedtest.net",
+              "port": 2086,
+              "password": "krOXKzNRRIROWi",
+              "level": 8
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "none",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
             "path": "/?ed=2560"
           }
         },
