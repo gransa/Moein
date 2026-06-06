@@ -22,14 +22,7 @@
         },
         {
           "address": "8.8.8.8",
-          "domains": [
-            "full:digitalocean.com",
-            "full:www.visaeurope.ch",
-            "full:check-host.net",
-            "full:adf.ly",
-            "full:feedly.com",
-            "full:www.speedtest.net"
-          ],
+          "domains": [],
           "skipFallback": true
         }
       ],
@@ -353,14 +346,7 @@
         },
         {
           "address": "8.8.8.8",
-          "domains": [
-            "full:digitalocean.com",
-            "full:www.visaeurope.ch",
-            "full:check-host.net",
-            "full:adf.ly",
-            "full:feedly.com",
-            "full:www.speedtest.net"
-          ],
+          "domains": [],
           "skipFallback": true
         }
       ],
@@ -657,12 +643,9 @@
         {
           "address": "8.8.8.8",
           "domains": [
-            "full:digitalocean.com",
-            "full:www.visaeurope.ch",
-            "full:check-host.net",
-            "full:adf.ly",
-            "full:feedly.com",
-            "full:www.speedtest.net"
+            "full:www.visa.com.br",
+            "full:info.github.com",
+            "full:emails.github.com"
           ],
           "skipFallback": true
         }
@@ -967,14 +950,7 @@
         },
         {
           "address": "8.8.8.8",
-          "domains": [
-            "full:digitalocean.com",
-            "full:www.visaeurope.ch",
-            "full:check-host.net",
-            "full:adf.ly",
-            "full:feedly.com",
-            "full:www.speedtest.net"
-          ],
+          "domains": [],
           "skipFallback": true
         }
       ],
