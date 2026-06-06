@@ -588,9 +588,7 @@
         },
         {
           "address": "8.8.8.8",
-          "domains": [
-            "full:www.visa.com.br"
-          ],
+          "domains": [],
           "skipFallback": true
         }
       ],
@@ -633,7 +631,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "63.141.128.232",
+              "address": "185.248.33.173",
               "port": 25714,
               "users": [
                 {
@@ -668,7 +666,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "193.9.49.119",
+              "address": "77.90.60.29",
               "port": 21189,
               "users": [
                 {
@@ -703,7 +701,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "172.64.32.19",
+              "address": "109.61.109.204",
               "port": 29904,
               "users": [
                 {
@@ -738,7 +736,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "104.16.9.215",
+              "address": "109.61.109.204",
               "port": 57463,
               "users": [
                 {
@@ -773,7 +771,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "www.visa.com.br",
+              "address": "77.90.60.29",
               "port": 27100,
               "users": [
                 {
@@ -808,7 +806,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "208.103.161.249",
+              "address": "185.248.33.173",
               "port": 31866,
               "users": [
                 {
