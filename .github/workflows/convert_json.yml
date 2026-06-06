@@ -1,6 +1,10 @@
 name: Generate JSON Client Configs
 
 on:
+  schedule:
+    # Triggers automatically every hour at 23 minutes past the hour.
+    # Shifting away from ':00' avoids delayed or dropped actions caused by heavy server traffic.
+    - cron: '23 * * * *'
   push:
     paths:
       - 'Configs.txt'
