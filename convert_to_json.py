@@ -10,24 +10,51 @@ def parse_vmess(url_str):
         decoded = base64.b64decode(b64_data).decode('utf-8')
         config = json.loads(decoded)
         
-        # Check if TLS is enabled in VMESS configuration fields
         is_tls = str(config.get("tls", "")).lower() in ["tls", "1", "true"]
+        net_type = config.get("net", "tcp")
         
-        return {
+        outbound = {
             "protocol": "vmess",
-            "remarks": config.get("ps", "VMESS_Node"),
-            "address": config.get("add"),
-            "port": int(config.get("port", 0)),
-            "id": config.get("id"),
-            "aid": int(config.get("aid", 0)),
-            "net": config.get("net", "tcp"),
-            "type": config.get("type", "none"),
-            "host": config.get("host", ""),
-            "path": config.get("path", ""),
-            "tls": "tls" if is_tls else ""
-        }, is_tls
+            "settings": {
+                "vnext": [
+                    {
+                        "address": config.get("add"),
+                        "port": int(config.get("port", 443 if is_tls else 80)),
+                        "users": [
+                            {
+                                "id": config.get("id"),
+                                "alterId": int(config.get("aid", 0)),
+                                "security": "auto",
+                                "level": 8
+                            }
+                        ]
+                    }
+                ]
+            },
+            "streamSettings": {
+                "network": net_type,
+                "security": "tls" if is_tls else "none"
+            }
+        }
+        
+        # Parse transport adjustments
+        if net_type == "ws":
+            outbound["streamSettings"]["wsSettings"] = {
+                "host": config.get("host", ""),
+                "path": config.get("path", "")
+            }
+        elif net_type == "kcp":
+            outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
+            
+        if is_tls:
+            outbound["streamSettings"]["tlsSettings"] = {
+                "fingerprint": "chrome",
+                "serverName": config.get("host", config.get("add"))
+            }
+            
+        return outbound, is_tls
     except Exception as e:
-        print(f"Error parsing VMESS block: {e}")
+        print(f"Error filtering VMESS format schema: {e}")
         return None, False
 
 def parse_standard_uri(url_str, protocol):
@@ -39,31 +66,130 @@ def parse_standard_uri(url_str, protocol):
         if ':' in host_port:
             address, port = host_port.split(':')
         else:
-            address, port = host_port, 443
+            address, port = host_port, (443 if protocol in ["vless", "trojan"] else 80)
             
         query = parse_qs(parsed_url.query)
-        remarks = unquote(parsed_url.fragment) if parsed_url.fragment else f"{protocol.upper()}_Node"
         params = {k: v[0] for k, v in query.items()}
         
-        # Determine TLS status for VLESS/Trojan based on security or security-like parameters
         security = params.get("security", "").lower()
         is_tls = security in ["tls", "reality", "xtls"] or protocol == "trojan"
+        net_type = params.get("type", "tcp")
         
-        return {
+        outbound = {
             "protocol": protocol,
-            "remarks": remarks,
-            "address": address,
-            "port": int(port),
-            "id": userinfo,
-            "sni": params.get("sni", ""),
-            "type": params.get("type", "tcp"),
-            "path": params.get("path", ""),
-            "security": security if security else ("tls" if is_tls else "none"),
-            "fp": params.get("fp", "")
-        }, is_tls
+            "settings": {}
+        }
+        
+        # Build individual target core authentication structures
+        if protocol == "vless":
+            outbound["settings"] = {
+                "vnext": [{
+                    "address": address,
+                    "port": int(port),
+                    "users": [{
+                        "id": userinfo,
+                        "encryption": params.get("encryption", "none"),
+                        "level": 8
+                    }]
+                }]
+            }
+        elif protocol == "trojan":
+            outbound["settings"] = {
+                "servers": [{
+                    "address": address,
+                    "port": int(port),
+                    "password": userinfo,
+                    "level": 8
+                }]
+            }
+            
+        outbound["streamSettings"] = {
+            "network": net_type,
+            "security": "tls" if is_tls else "none",
+            "sockopt": {
+                "domainStrategy": "UseIPv4v6"
+            }
+        }
+        
+        if net_type == "ws":
+            outbound["streamSettings"]["wsSettings"] = {
+                "host": params.get("host", ""),
+                "path": params.get("path", "")
+            }
+            
+        if is_tls:
+            tls_type = "realitySettings" if security == "reality" else "tlsSettings"
+            outbound["streamSettings"][tls_type] = {
+                "fingerprint": params.get("fp", "chrome"),
+                "serverName": params.get("sni", address)
+            }
+            if protocol == "trojan" and "alpn" in params:
+                outbound["streamSettings"][tls_type]["alpn"] = [params["alpn"]]
+                
+        return outbound, is_tls
     except Exception as e:
-        print(f"Error parsing {protocol.upper()} block: {e}")
+        print(f"Error filtering structural schema configurations for {protocol}: {e}")
         return None, False
+
+def build_v2rayng_template(remarks, outbound_nodes):
+    # Core system template components required by v2rayNG client parsers
+    base_outbounds = list(outbound_nodes)
+    base_outbounds.extend([
+        {"protocol": "dns", "tag": "dns-out"},
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
+    ])
+    
+    return {
+        "remarks": remarks,
+        "log": {"loglevel": "warning"},
+        "dns": {
+            "servers": [
+                {"address": "https://8.8.8.8/dns-query", "tag": "remote-dns"},
+                {"address": "8.8.8.8", "domains": ["geosite:category-ir"], "expectIPs": ["geoip:ir"], "skipFallback": True},
+                {"address": "8.8.8.8", "domains": ["full:digitalocean.com", "full:www.visaeurope.ch", "full:check-host.net", "full:adf.ly", "full:feedly.com", "full:www.speedtest.net"], "skipFallback": True}
+            ],
+            "queryStrategy": "UseIP",
+            "tag": "dns"
+        },
+        "inbounds": [
+            {"port": 10808, "protocol": "socks", "settings": {"auth": "noauth", "udp": True, "userLevel": 8}, "sniffing": {"destOverride": ["http", "tls"], "enabled": False, "routeOnly": False}, "tag": "socks-in"},
+            {"port": 10853, "protocol": "dokodemo-door", "settings": {"address": "1.1.1.1", "network": "tcp,udp", "port": 53}, "tag": "dns-in"}
+        ],
+        "outbounds": base_outbounds,
+        "policy": {
+            "levels": {"8": {"connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1}},
+            "system": {"statsOutboundUplink": True, "statsOutboundDownlink": True}
+        },
+        "routing": {
+            "domainStrategy": "IPIfNonMatch",
+            "rules": [
+                {"inboundTag": ["dns-in"], "outboundTag": "dns-out", "type": "field"},
+                {"inboundTag": ["socks-in"], "port": 53, "outboundTag": "dns-out", "type": "field"},
+                {"inboundTag": ["remote-dns"], "balancerTag": "all", "type": "field"},
+                {"inboundTag": ["dns"], "outboundTag": "direct", "type": "field"},
+                {"domain": ["geosite:category-ir"], "outboundTag": "direct", "type": "field"},
+                {"ip": ["geoip:ir"], "outboundTag": "direct", "type": "field"},
+                {"network": "udp", "outboundTag": "block", "type": "field"},
+                {"network": "tcp", "balancerTag": "all", "type": "field"}
+            ],
+            "balancers": [
+                {
+                    "tag": "all",
+                    "selector": ["prox"],
+                    "strategy": {"type": "leastPing"},
+                    "fallbackTag": "prox-1" if len(outbound_nodes) > 0 else "direct"
+                }
+            ]
+        },
+        "stats": {},
+        "observatory": {
+            "subjectSelector": ["prox"],
+            "probeUrl": "https://www.gstatic.com/generate_204",
+            "probeInterval": "30s",
+            "enableConcurrency": True
+        }
+    }
 
 def main():
     input_file = "Configs.txt"
@@ -73,11 +199,8 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
-    # Master structure containing separate configuration arrays
-    output_data = {
-        "tls_configs": [],
-        "non_tls_configs": []
-    }
+    tls_nodes = []
+    n_tls_nodes = []
     
     with open(input_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -87,32 +210,34 @@ def main():
         if not line:
             continue
             
-        parsed = None
+        node_data = None
         is_tls = False
         
         if line.startswith("vmess://"):
-            parsed, is_tls = parse_vmess(line)
+            node_data, is_tls = parse_vmess(line)
         elif line.startswith("vless://"):
-            parsed, is_tls = parse_standard_uri(line, "vless")
+            node_data, is_tls = parse_standard_uri(line, "vless")
         elif line.startswith("trojan://"):
-            parsed, is_tls = parse_standard_uri(line, "trojan")
-        else:
-            prefix = line.split("://")[0] if "://" in line else "unknown"
-            if "://" in line:
-                parsed, is_tls = parse_standard_uri(line, prefix)
-                
-        if parsed:
-            if is_tls:
-                output_data["tls_configs"].append(parsed)
-            else:
-                output_data["non_tls_configs"].append(parsed)
+            node_data, is_tls = parse_standard_uri(line, "trojan")
             
+        if node_data:
+            if is_tls:
+                node_data["tag"] = f"prox-{len(tls_nodes) + 1}"
+                tls_nodes.append(node_data)
+            else:
+                node_data["tag"] = f"prox-{len(n_tls_nodes) + 1}"
+                n_tls_nodes.append(node_data)
+                
+    # Compile the final two array components required by v2rayNG custom configuration schema
+    final_output = [
+        build_v2rayng_template("🌳 1 - TLS LB - CF CDN 🔥", tls_nodes),
+        build_v2rayng_template("🌳 2 - n-TLS LB - CF CDN 🔥", n_tls_nodes)
+    ]
+    
     with open(output_file, "w", encoding="utf-8") as out:
-        json.dump(output_data, out, indent=2, ensure_ascii=False)
+        json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    total_parsed = len(output_data["tls_configs"]) + len(output_data["non_tls_configs"])
-    print(f"🎉 Structured {total_parsed} entries into '{output_file}'!")
-    print(f"   🔒 TLS Nodes: {len(output_data['tls_configs'])} | 🔓 Non-TLS Nodes: {len(output_data['non_tls_configs'])}")
+    print(f"🎉 Array generation complete! Structured file successfully exported to '{output_file}'")
 
 if __name__ == "__main__":
     main()
