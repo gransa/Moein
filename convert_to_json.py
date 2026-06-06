@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import ipaddress
 from urllib.parse import urlparse, unquote, parse_qs
 
 def parse_vmess(url_str):
@@ -107,7 +108,6 @@ def parse_standard_uri(url_str, protocol):
                 }]
             }
         else:
-            # Fallback wrapper for shadow/socks configurations if any appear
             outbound["settings"] = {"servers": [{"address": address, "port": int(port)}]}
             
         outbound["streamSettings"] = {
@@ -149,6 +149,27 @@ def build_v2rayng_template(remarks, outbound_nodes):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
+    # Dynamically extract and store clean domains
+    extracted_domains = []
+    for node in outbound_nodes:
+        addr = None
+        settings = node.get("settings", {})
+        
+        if "vnext" in settings and settings["vnext"]:
+            addr = settings["vnext"][0].get("address")
+        elif "servers" in settings and settings["servers"]:
+            addr = settings["servers"][0].get("address")
+            
+        if addr:
+            try:
+                # If it successfully parses as an IP address, safely ignore it
+                ipaddress.ip_address(addr)
+            except ValueError:
+                # It's a clean domain name string! Prefix with 'full:'
+                domain_entry = f"full:{addr}"
+                if domain_entry not in extracted_domains:
+                    extracted_domains.append(domain_entry)
+                    
     return {
         "remarks": remarks,
         "log": {"loglevel": "warning"},
@@ -156,7 +177,8 @@ def build_v2rayng_template(remarks, outbound_nodes):
             "servers": [
                 {"address": "https://8.8.8.8/dns-query", "tag": "remote-dns"},
                 {"address": "8.8.8.8", "domains": ["geosite:category-ir"], "expectIPs": ["geoip:ir"], "skipFallback": True},
-                {"address": "8.8.8.8", "domains": ["full:digitalocean.com", "full:www.visaeurope.ch", "full:check-host.net", "full:adf.ly", "full:feedly.com", "full:www.speedtest.net"], "skipFallback": True}
+                # Cleared default websites: Now exclusively matches your configuration node domains
+                {"address": "8.8.8.8", "domains": extracted_domains, "skipFallback": True}
             ],
             "queryStrategy": "UseIP",
             "tag": "dns"
@@ -208,7 +230,6 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
-    # Categories for strict structural sorting
     groups = {
         "vless_tls": [], "vless_n_tls": [],
         "trojan_tls": [], "trojan_n_tls": [],
@@ -238,17 +259,14 @@ def main():
             node_data, is_tls = parse_standard_uri(line, "trojan")
             proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
         elif "://" in line:
-            # Handle anything else like ss://, socks://, hysteria2://
             p_name = line.split("://")[0].lower()
             node_data, is_tls = parse_standard_uri(line, p_name)
             proto_key = "other_protocols"
             
         if node_data and proto_key:
-            # Tag each node sequentially relative to its specific bucket size
             node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
             groups[proto_key].append(node_data)
                 
-    # Build complete custom balanced config array items only if nodes exist
     final_output = []
     
     mapping = [
@@ -262,13 +280,13 @@ def main():
     ]
     
     for remark, key in mapping:
-        if groups[key]: # Only include blocks that actually have parsed configs
+        if groups[key]:
             final_output.append(build_v2rayng_template(remark, groups[key]))
             
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Array generation complete! Profiles split into {len(final_output)} clear blocks inside '{output_file}'")
+    print(f"🎉 Array generation complete! Domains mapped dynamically into '{output_file}'")
 
 if __name__ == "__main__":
     main()
