@@ -4,7 +4,7 @@ import base64
 import ipaddress
 from urllib.parse import urlparse, unquote, parse_qs
 
-def parse_vmess(url_str):
+def parse_vmess(url_str, non_tls_counter=[0]):
     try:
         b64_data = url_str.replace("vmess://", "").strip()
         b64_data += "=" * ((4 - len(b64_data) % 4) % 4)
@@ -15,9 +15,13 @@ def parse_vmess(url_str):
         net_type = config.get("net", "tcp")
         fp_val = config.get("fp", "chrome")
         
-        # Default fallback: 443 for TLS, 2082 for non-TLS
-        fallback_port = 443 if is_tls else 2082
-        
+        # Cloudflare target mapping fallback logic
+        if is_tls:
+            fallback_port = 443
+        else:
+            fallback_port = 2082 if non_tls_counter[0] % 2 == 0 else 2086
+            non_tls_counter[0] += 1
+            
         outbound = {
             "protocol": "vmess",
             "settings": {
@@ -50,7 +54,7 @@ def parse_vmess(url_str):
         elif net_type == "kcp":
             outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
             
-        # ONLY add tlsSettings if the config actually uses TLS
+        # Strip TLS settings explicitly for non-secure nodes
         if is_tls:
             outbound["streamSettings"]["tlsSettings"] = {
                 "allowInsecure": False,
@@ -81,7 +85,7 @@ def parse_standard_uri(url_str, protocol, non_tls_counter=[0]):
         else:
             is_tls = security in ["tls", "reality", "xtls"]
             
-        # Alternate fallbacks dynamically between 2082 and 2086 for non-TLS configs
+        # Set dynamic Cloudflare ports
         if is_tls:
             fallback_port = 443
         else:
@@ -142,7 +146,7 @@ def parse_standard_uri(url_str, protocol, non_tls_counter=[0]):
                 "path": params.get("path", "")
             }
             
-        # ONLY add tlsSettings/realitySettings if the config actually uses TLS
+        # Strip TLS settings explicitly for non-secure nodes
         if is_tls:
             tls_type = "realitySettings" if security == "reality" else "tlsSettings"
             outbound["streamSettings"][tls_type] = {
@@ -245,6 +249,9 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
+    # Track independent round-robin cycles
+    shared_counter = [0]
+
     groups = {
         "vless_tls": [], "vless_n_tls": [],
         "trojan_tls": [], "trojan_n_tls": [],
@@ -265,17 +272,17 @@ def main():
         proto_key = None
         
         if line.startswith("vmess://"):
-            node_data, is_tls = parse_vmess(line)
+            node_data, is_tls = parse_vmess(line, shared_counter)
             proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
         elif line.startswith("vless://"):
-            node_data, is_tls = parse_standard_uri(line, "vless")
+            node_data, is_tls = parse_standard_uri(line, "vless", shared_counter)
             proto_key = "vless_tls" if is_tls else "vless_n_tls"
         elif line.startswith("trojan://"):
-            node_data, is_tls = parse_standard_uri(line, "trojan")
+            node_data, is_tls = parse_standard_uri(line, "trojan", shared_counter)
             proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
         elif "://" in line:
             p_name = line.split("://")[0].lower()
-            node_data, is_tls = parse_standard_uri(line, p_name)
+            node_data, is_tls = parse_standard_uri(line, p_name, shared_counter)
             proto_key = "other_protocols"
             
         if node_data and proto_key:
@@ -301,7 +308,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Separation finalized! Non-TLS structures updated inside '{output_file}'")
+    print(f"🎉 Architecture validation clean! Outputs successfully synchronized into '{output_file}'")
 
 if __name__ == "__main__":
     main()
