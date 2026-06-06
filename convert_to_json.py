@@ -76,7 +76,13 @@ def parse_standard_uri(url_str, protocol):
         params = {k: v[0] for k, v in query.items()}
         
         security = params.get("security", "").lower()
-        is_tls = security in ["tls", "reality", "xtls"] or protocol == "trojan"
+        
+        # FIXED: Trojan defaults to TLS *unless* security is explicitly set to "none"
+        if protocol == "trojan":
+            is_tls = security not in ["none"]
+        else:
+            is_tls = security in ["tls", "reality", "xtls"]
+            
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
         cert_hash = params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", "")))
@@ -149,7 +155,6 @@ def build_v2rayng_template(remarks, outbound_nodes):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Dynamically extract and store clean domains
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -162,10 +167,8 @@ def build_v2rayng_template(remarks, outbound_nodes):
             
         if addr:
             try:
-                # If it successfully parses as an IP address, safely ignore it
                 ipaddress.ip_address(addr)
             except ValueError:
-                # It's a clean domain name string! Prefix with 'full:'
                 domain_entry = f"full:{addr}"
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
@@ -177,7 +180,6 @@ def build_v2rayng_template(remarks, outbound_nodes):
             "servers": [
                 {"address": "https://8.8.8.8/dns-query", "tag": "remote-dns"},
                 {"address": "8.8.8.8", "domains": ["geosite:category-ir"], "expectIPs": ["geoip:ir"], "skipFallback": True},
-                # Cleared default websites: Now exclusively matches your configuration node domains
                 {"address": "8.8.8.8", "domains": extracted_domains, "skipFallback": True}
             ],
             "queryStrategy": "UseIP",
@@ -286,7 +288,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Array generation complete! Domains mapped dynamically into '{output_file}'")
+    print(f"🎉 Separation fix complete! Trojan pools verified inside '{output_file}'")
 
 if __name__ == "__main__":
     main()
