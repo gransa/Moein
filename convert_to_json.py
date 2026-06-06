@@ -7,40 +7,53 @@ import urllib.request
 import random
 from urllib.parse import urlparse, unquote, parse_qs
 
+# Configuration URLs
+CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/Cloudflare-IPs.txt"
+DNS_SOURCE_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/DNS.txt"
+
 # Cloudflare clear distinct port definitions
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
-# URL for your clean Cloudflare IPs/Domains
-CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/Cloudflare-IPs.txt"
-
 def fetch_clean_addresses(url):
-    """
-    Fetches clean IPs/Domains from the remote repository.
-    Falls back to an empty list if the request fails.
-    """
+    """Fetches clean IPs/Domains from the remote repository."""
     try:
         print(f"📡 Fetching clean endpoints from: {url}")
-        req = urllib.request.Request(
-            url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        )
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=10) as response:
             content = response.read().decode('utf-8')
-            
         addresses = []
         for line in content.splitlines():
             line = line.strip()
-            if not line or line.startswith("#") or line.startswith("//"):
+            if not line or line.startswith(("#", "//")):
                 continue
             clean_addr = line.split("#")[0].split("//")[0].strip()
             if clean_addr:
                 addresses.append(clean_addr)
-                
         print(f"✅ Successfully loaded {len(addresses)} clean endpoints.")
         return addresses
     except Exception as e:
         print(f"⚠️ Warning: Could not fetch remote clean endpoints ({e}). Using link defaults.")
+        return []
+
+def fetch_remote_dns(url):
+    """Fetches and cleans list of DoH / DNS entries from remote repository."""
+    try:
+        print(f"📡 Fetching remote DNS from: {url}")
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            content = response.read().decode('utf-8')
+        dns_list = []
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith(("#", "//")):
+                continue
+            if line.startswith("https://") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', line):
+                dns_list.append(line)
+        print(f"✅ Successfully loaded {len(dns_list)} DNS resources.")
+        return dns_list
+    except Exception as e:
+        print(f"⚠️ Warning: Could not fetch remote DNS ({e}). Using structural fallbacks.")
         return []
 
 def extract_explicit_port(url_str):
@@ -59,7 +72,6 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
         is_tls = str(config.get("tls", "")).lower() in ["tls", "1", "true"]
         net_type = config.get("net", "tcp")
         fp_val = config.get("fp", "chrome")
-        
         explicit_port = config.get("port")
         
         if explicit_port and str(explicit_port).isdigit():
@@ -73,43 +85,30 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
                 non_tls_counter[0] += 1
             
         target_address = config.get("add")
-            
         outbound = {
             "protocol": "vmess",
             "settings": {
-                "vnext": [
-                    {
-                        "address": target_address,
-                        "port": final_port,
-                        "users": [
-                            {
-                                "id": config.get("id"),
-                                "alterId": int(config.get("aid", 0)),
-                                "security": "auto",
-                                "level": 8
-                            }
-                        ]
-                    }
-                ]
+                "vnext": [{
+                    "address": target_address,
+                    "port": final_port,
+                    "users": [{
+                        "id": config.get("id"),
+                        "alterId": int(config.get("aid", 0)),
+                        "security": "auto",
+                        "level": 8
+                    }]
+                }]
             },
-            "streamSettings": {
-                "network": net_type,
-                "security": "tls" if is_tls else "none"
-            }
+            "streamSettings": {"network": net_type, "security": "tls" if is_tls else "none"}
         }
         
         if net_type == "ws":
-            outbound["streamSettings"]["wsSettings"] = {
-                "host": config.get("host", ""),
-                "path": config.get("path", "")
-            }
+            outbound["streamSettings"]["wsSettings"] = {"host": config.get("host", ""), "path": config.get("path", "")}
         elif net_type == "kcp":
             outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
             
         if is_tls:
             pcs_value = config.get("pcs", config.get("pinnedPeerCertSha256", ""))
-            
-            # Stricter Check: Wipe out fake provider placeholders
             if str(pcs_value).strip().upper() == "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D":
                 pcs_value = ""
             
@@ -120,7 +119,6 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
                 "serverName": config.get("host", config.get("add")),
                 "show": False
             }
-            
         return outbound, is_tls
     except Exception as e:
         print(f"Error filtering VMESS format schema: {e}")
@@ -131,7 +129,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
         parsed_url = urlparse(url_str)
         userinfo = parsed_url.username or parsed_url.netloc.split('@')[0]
         host_port = parsed_url.netloc.split('@')[-1]
-        
         query = parse_qs(parsed_url.query)
         params = {k: v[0] for k, v in query.items()}
         
@@ -146,10 +143,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
             final_port = None
 
         if protocol == "trojan":
-            if security == "none" or (final_port in NON_TLS_PORTS):
-                is_tls = False
-            else:
-                is_tls = True
+            is_tls = not (security == "none" or (final_port in NON_TLS_PORTS))
         else:
             is_tls = security in ["tls", "reality", "xtls"]
 
@@ -171,48 +165,29 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
         fp_val = params.get("fp", "chrome")
         cert_hash = params.get("pcs", params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", ""))))
         
-        outbound = {
-            "protocol": protocol,
-            "settings": {}
-        }
-        
+        outbound = {"protocol": protocol, "settings": {}}
         if protocol == "vless":
             outbound["settings"] = {
                 "vnext": [{
                     "address": target_address,
                     "port": final_port,
-                    "users": [{
-                        "id": userinfo,
-                        "encryption": params.get("encryption", "none"),
-                        "level": 8
-                    }]
+                    "users": [{"id": userinfo, "encryption": params.get("encryption", "none"), "level": 8}]
                 }]
             }
         elif protocol == "trojan":
             outbound["settings"] = {
-                "servers": [{
-                    "address": target_address,
-                    "port": final_port,
-                    "password": userinfo,
-                    "level": 8
-                }]
+                "servers": [{"address": target_address, "port": final_port, "password": userinfo, "level": 8}]
             }
         else:
             outbound["settings"] = {"servers": [{"address": target_address, "port": final_port}]}
             
         outbound["streamSettings"] = {
-            "network": net_type,
-            "security": "tls" if is_tls else "none",
-            "sockopt": {
-                "domainStrategy": "UseIPv4v6"
-            }
+            "network": net_type, "security": "tls" if is_tls else "none",
+            "sockopt": {"domainStrategy": "UseIPv4v6"}
         }
         
         if net_type == "ws":
-            outbound["streamSettings"]["wsSettings"] = {
-                "host": params.get("host", ""),
-                "path": params.get("path", "")
-            }
+            outbound["streamSettings"]["wsSettings"] = {"host": params.get("host", ""), "path": params.get("path", "")}
             
         if is_tls:
             tls_type = "realitySettings" if security == "reality" else "tlsSettings"
@@ -231,7 +206,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
         print(f"Error filtering structural schema configurations for {protocol}: {e}")
         return None, False
 
-def build_v2rayng_template(remarks, outbound_nodes):
+def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
@@ -239,11 +214,39 @@ def build_v2rayng_template(remarks, outbound_nodes):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
+    # Static backup fallbacks if external fetched resource list is dry
+    fallbacks = [
+        "https://dns.quad9.net/dns-query", "https://dns.adguard-dns.com/dns-query",
+        "https://unfiltered.com.cloudflare-dns.com/dns-query", "https://doh.opendns.com/dns-query",
+        "https://doh.cleanbrowsing.org/doh/security-filter"
+    ]
+    
+    # Random sample 5 distinct servers from pool or fallback
+    chosen_servers = random.sample(pool_dns_servers, 5) if len(pool_dns_servers) >= 5 else random.sample(fallbacks, 5)
+    
+    dns_servers_config = []
+    inbound_tags = []
+    
+    for i, address in enumerate(chosen_servers, 1):
+        tag_name = f"remote-dns-{i}"
+        inbound_tags.append(tag_name)
+        dns_servers_config.append({"address": address, "tag": tag_name})
+        
+    # Append localized domestic logic matrix routing
+    domestic_ips = ["9.9.9.9", "94.140.14.14", "1.1.1.1", "208.67.222.222", "185.228.168.9"]
+    for ip in domestic_ips:
+        dns_servers_config.append({
+            "address": ip,
+            "domains": ["geosite:category-ir"],
+            "expectIPs": ["geoip:ir"],
+            "skipFallback": False
+        })
+        
+    # Append strict domain routing rules parsed dynamically
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
         settings = node.get("settings", {})
-        
         if "vnext" in settings and settings["vnext"]:
             addr = settings["vnext"][0].get("address")
         elif "servers" in settings and settings["servers"]:
@@ -257,15 +260,18 @@ def build_v2rayng_template(remarks, outbound_nodes):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
+    for domain in extracted_domains:
+        dns_servers_config.append({
+            "address": "9.9.9.9",
+            "domains": [domain],
+            "skipFallback": True
+        })
+                    
     return {
         "remarks": remarks,
         "log": {"loglevel": "warning"},
         "dns": {
-            "servers": [
-                {"address": "https://8.8.8.8/dns-query", "tag": "remote-dns"},
-                {"address": "8.8.8.8", "domains": ["geosite:category-ir"], "expectIPs": ["geoip:ir"], "skipFallback": True},
-                {"address": "8.8.8.8", "domains": extracted_domains, "skipFallback": True}
-            ],
+            "servers": dns_servers_config,
             "queryStrategy": "UseIP",
             "tag": "dns"
         },
@@ -283,7 +289,7 @@ def build_v2rayng_template(remarks, outbound_nodes):
             "rules": [
                 {"inboundTag": ["dns-in"], "outboundTag": "dns-out", "type": "field"},
                 {"inboundTag": ["socks-in"], "port": 53, "outboundTag": "dns-out", "type": "field"},
-                {"inboundTag": ["remote-dns"], "balancerTag": "all", "type": "field"},
+                {"inboundTag": inbound_tags, "balancerTag": "all", "type": "field"},
                 {"inboundTag": ["dns"], "outboundTag": "direct", "type": "field"},
                 {"domain": ["geosite:category-ir"], "outboundTag": "direct", "type": "field"},
                 {"ip": ["geoip:ir"], "outboundTag": "direct", "type": "field"},
@@ -317,22 +323,20 @@ def main():
         return
 
     clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
+    pool_dns_servers = fetch_remote_dns(DNS_SOURCE_URL)
 
     tls_counter = [0]
     non_tls_counter = [0]
     ip_counter = [0]
 
     groups = {
-        "vless_tls": [], "vless_n_tls": [],
-        "trojan_tls": [], "trojan_n_tls": [],
-        "vmess_tls": [], "vmess_n_tls": [],
-        "other_protocols": []
+        "vless_tls": [], "vless_n_tls": [], "trojan_tls": [], "trojan_n_tls": [],
+        "vmess_tls": [], "vmess_n_tls": [], "other_protocols": []
     }
     
     with open(input_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
         
-    # CRITICAL ADVANCEMENT: Shuffle raw input links dynamically on every build pipeline action
     random.shuffle(lines)
     print("🎲 Raw input lines have been successfully randomized.")
 
@@ -360,12 +364,10 @@ def main():
             proto_key = "other_protocols"
             
         if node_data and proto_key:
-            # Tags remain beautifully sorted as prox-1, prox-2, but point to randomized nodes
             node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
             groups[proto_key].append(node_data)
                 
     final_output = []
-    
     mapping = [
         ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
         ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
@@ -378,7 +380,7 @@ def main():
     
     for remark, key in mapping:
         if groups[key]:
-            final_output.append(build_v2rayng_template(remark, groups[key]))
+            final_output.append(build_v2rayng_template(remark, groups[key], pool_dns_servers))
             
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
