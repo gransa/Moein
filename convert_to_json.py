@@ -3,23 +3,54 @@ import json
 import base64
 import ipaddress
 import re
+import urllib.request
 from urllib.parse import urlparse, unquote, parse_qs
 
 # Cloudflare clear distinct port definitions
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
+# URL for your clean Cloudflare IPs/Domains
+CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/Cloudflare-IPs.txt"
+
+def fetch_clean_addresses(url):
+    """
+    Fetches clean IPs/Domains from the remote repository.
+    Falls back to an empty list if the request fails.
+    """
+    try:
+        print(f"📡 Fetching clean endpoints from: {url}")
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            content = response.read().decode('utf-8')
+            
+        addresses = []
+        for line in content.splitlines():
+            line = line.strip()
+            # Skip empty lines, comments, or annotations
+            if not line or line.startswith("#") or line.startswith("//"):
+                continue
+            # Remove inline remarks/names if present (e.g., "1.1.1.1 # Clean IP")
+            clean_addr = line.split("#")[0].split("//")[0].strip()
+            if clean_addr:
+                addresses.append(clean_addr)
+                
+        print(f"✅ Successfully loaded {len(addresses)} clean endpoints.")
+        return addresses
+    except Exception as e:
+        print(f"⚠️ Warning: Could not fetch remote clean endpoints ({e}). Using link defaults.")
+        return []
+
 def extract_explicit_port(url_str):
-    """
-    Scans the raw link text for an explicit port declaration (e.g., '@host:port' or 'domain.com:port').
-    Returns the port as an integer if found, or None.
-    """
     match = re.search(r':([0-9]{2,5})(?:\?|#|$)', url_str)
     if match:
         return int(match.group(1))
     return None
 
-def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
+def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0], clean_addresses=[], ip_counter=[0]):
     try:
         b64_data = url_str.replace("vmess://", "").strip()
         b64_data += "=" * ((4 - len(b64_data) % 4) % 4)
@@ -41,13 +72,20 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
             else:
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
+        
+        # Override connection address if clean list is available
+        if clean_addresses:
+            target_address = clean_addresses[ip_counter[0] % len(clean_addresses)]
+            ip_counter[0] += 1
+        else:
+            target_address = config.get("add")
             
         outbound = {
             "protocol": "vmess",
             "settings": {
                 "vnext": [
                     {
-                        "address": config.get("add"),
+                        "address": target_address,
                         "port": final_port,
                         "users": [
                             {
@@ -88,7 +126,7 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
         print(f"Error filtering VMESS format schema: {e}")
         return None, False
 
-def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
+def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], clean_addresses=[], ip_counter=[0]):
     try:
         parsed_url = urlparse(url_str)
         userinfo = parsed_url.username or parsed_url.netloc.split('@')[0]
@@ -100,15 +138,13 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         security = params.get("security", "").lower()
         explicit_port = extract_explicit_port(url_str)
         
-        # Determine address parsing 
         if explicit_port is not None:
             final_port = explicit_port
-            address = host_port.split(':')[0] if ':' in host_port else host_port
+            original_address = host_port.split(':')[0] if ':' in host_port else host_port
         else:
-            address = host_port
+            original_address = host_port
             final_port = None
 
-        # Fixed logic: Detect TLS strictly by security value AND clear port numbers
         if protocol == "trojan":
             if security == "none" or (final_port in NON_TLS_PORTS):
                 is_tls = False
@@ -117,7 +153,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         else:
             is_tls = security in ["tls", "reality", "xtls"]
 
-        # Fallback allocation if port is completely missing
         if final_port is None:
             if is_tls:
                 final_port = TLS_PORTS[tls_counter[0] % len(TLS_PORTS)]
@@ -125,6 +160,13 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
             else:
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
+        
+        # Override connection address if clean list is available
+        if clean_addresses:
+            target_address = clean_addresses[ip_counter[0] % len(clean_addresses)]
+            ip_counter[0] += 1
+        else:
+            target_address = original_address
             
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
@@ -138,7 +180,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         if protocol == "vless":
             outbound["settings"] = {
                 "vnext": [{
-                    "address": address,
+                    "address": target_address,
                     "port": final_port,
                     "users": [{
                         "id": userinfo,
@@ -150,14 +192,14 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         elif protocol == "trojan":
             outbound["settings"] = {
                 "servers": [{
-                    "address": address,
+                    "address": target_address,
                     "port": final_port,
                     "password": userinfo,
                     "level": 8
                 }]
             }
         else:
-            outbound["settings"] = {"servers": [{"address": address, "port": final_port}]}
+            outbound["settings"] = {"servers": [{"address": target_address, "port": final_port}]}
             
         outbound["streamSettings"] = {
             "network": net_type,
@@ -179,7 +221,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
                 "allowInsecure": False,
                 "fingerprint": fp_val,
                 "pinnedPeerCertSha256": cert_hash,
-                "serverName": params.get("sni", address),
+                "serverName": params.get("sni", original_address),
                 "show": False
             }
             if protocol == "trojan" and "alpn" in params:
@@ -275,8 +317,12 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
+    # Fetch clean cloudflare addresses before parsing configs
+    clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
+
     tls_counter = [0]
     non_tls_counter = [0]
+    ip_counter = [0]  # Iterates smoothly across clean destinations
 
     groups = {
         "vless_tls": [], "vless_n_tls": [],
@@ -298,17 +344,17 @@ def main():
         proto_key = None
         
         if line.startswith("vmess://"):
-            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
+            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter, clean_addresses, ip_counter)
             proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
         elif line.startswith("vless://"):
-            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter)
+            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter, clean_addresses, ip_counter)
             proto_key = "vless_tls" if is_tls else "vless_n_tls"
         elif line.startswith("trojan://"):
-            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter)
+            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter, clean_addresses, ip_counter)
             proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
         elif "://" in line:
             p_name = line.split("://")[0].lower()
-            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter)
+            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter, clean_addresses, ip_counter)
             proto_key = "other_protocols"
             
         if node_data and proto_key:
@@ -334,7 +380,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Compiled cleanly into single file layout destination: '{output_file}'")
+    print(f"🎉 Compiled cleanly into layout destination: '{output_file}'")
 
 if __name__ == "__main__":
     main()
