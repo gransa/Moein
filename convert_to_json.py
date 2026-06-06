@@ -16,7 +16,6 @@ def parse_vmess(url_str):
         
         outbound = {
             "protocol": "vmess",
-            "certificate fingerprint": fp_val,  # <-- Added exact custom key here
             "settings": {
                 "vnext": [
                     {
@@ -49,8 +48,11 @@ def parse_vmess(url_str):
             
         if is_tls:
             outbound["streamSettings"]["tlsSettings"] = {
+                "allowInsecure": False,
                 "fingerprint": fp_val,
-                "serverName": config.get("host", config.get("add"))
+                "pinnedPeerCertSha256": config.get("pinnedPeerCertSha256", ""), # Maps hash if available
+                "serverName": config.get("host", config.get("add")),
+                "show": False
             }
             
         return outbound, is_tls
@@ -77,9 +79,11 @@ def parse_standard_uri(url_str, protocol):
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
         
+        # Capture certificate fingerprint hash from raw URL queries (looks for certfp, sha256, or pinnedPeerCertSha256)
+        cert_hash = params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", "")))
+        
         outbound = {
             "protocol": protocol,
-            "certificate fingerprint": fp_val,  # <-- Added exact custom key here
             "settings": {}
         }
         
@@ -122,8 +126,11 @@ def parse_standard_uri(url_str, protocol):
         if is_tls:
             tls_type = "realitySettings" if security == "reality" else "tlsSettings"
             outbound["streamSettings"][tls_type] = {
+                "allowInsecure": False,
                 "fingerprint": fp_val,
-                "serverName": params.get("sni", address)
+                "pinnedPeerCertSha256": cert_hash,  # <-- Placed exactly here
+                "serverName": params.get("sni", address),
+                "show": False
             }
             if protocol == "trojan" and "alpn" in params:
                 outbound["streamSettings"][tls_type]["alpn"] = [params["alpn"]]
@@ -237,7 +244,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Array generation complete! File updated: '{output_file}'")
+    print(f"🎉 Config map complete! Layout stored inside '{output_file}'")
 
 if __name__ == "__main__":
     main()
