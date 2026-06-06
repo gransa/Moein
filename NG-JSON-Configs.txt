@@ -1,1316 +1,335 @@
-[
-  {
-    "remarks": "🌳 VLESS - TLS LB 🔥",
-    "log": {
-      "loglevel": "warning"
-    },
-    "dns": {
-      "servers": [
-        {
-          "address": "https://8.8.8.8/dns-query",
-          "tag": "remote-dns"
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": true
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [],
-          "skipFallback": true
-        }
-      ],
-      "queryStrategy": "UseIP",
-      "tag": "dns"
-    },
-    "inbounds": [
-      {
-        "port": 10808,
-        "protocol": "socks",
-        "settings": {
-          "auth": "noauth",
-          "udp": true,
-          "userLevel": 8
-        },
-        "sniffing": {
-          "destOverride": [
-            "http",
-            "tls"
-          ],
-          "enabled": false,
-          "routeOnly": false
-        },
-        "tag": "socks-in"
-      },
-      {
-        "port": 10853,
-        "protocol": "dokodemo-door",
-        "settings": {
-          "address": "1.1.1.1",
-          "network": "tcp,udp",
-          "port": 53
-        },
-        "tag": "dns-in"
-      }
-    ],
-    "outbounds": [
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "63.141.128.232",
-              "port": 443,
-              "users": [
-                {
-                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
+import os
+import json
+import base64
+import ipaddress
+import re
+from urllib.parse import urlparse, unquote, parse_qs
+
+# Your Cloudflare port lists for missing-port fallbacks
+TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
+NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
+
+def extract_explicit_port(url_str):
+    """
+    Scans the raw link text for an explicit port declaration (e.g., '@host:port' or 'domain.com:port').
+    Returns the port as an integer if found, or None.
+    """
+    match = re.search(r':([0-9]{2,5})(?:\?|#|$)', url_str)
+    if match:
+        return int(match.group(1))
+    return None
+
+def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
+    try:
+        b64_data = url_str.replace("vmess://", "").strip()
+        b64_data += "=" * ((4 - len(b64_data) % 4) % 4)
+        decoded = base64.b64decode(b64_data).decode('utf-8')
+        config = json.loads(decoded)
+        
+        is_tls = str(config.get("tls", "")).lower() in ["tls", "1", "true"]
+        net_type = config.get("net", "tcp")
+        fp_val = config.get("fp", "chrome")
+        
+        explicit_port = config.get("port")
+        
+        if explicit_port and str(explicit_port).isdigit():
+            final_port = int(explicit_port)
+        else:
+            if is_tls:
+                final_port = TLS_PORTS[tls_counter[0] % len(TLS_PORTS)]
+                tls_counter[0] += 1
+            else:
+                final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
+                non_tls_counter[0] += 1
+            
+        outbound = {
+            "protocol": "vmess",
+            "settings": {
+                "vnext": [
+                    {
+                        "address": config.get("add"),
+                        "port": final_port,
+                        "users": [
+                            {
+                                "id": config.get("id"),
+                                "alterId": int(config.get("aid", 0)),
+                                "security": "auto",
+                                "level": 8
+                            }
+                        ]
+                    }
+                ]
+            },
+            "streamSettings": {
+                "network": net_type,
+                "security": "tls" if is_tls else "none"
             }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
-            "show": false
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "193.9.49.119",
-              "port": 8443,
-              "users": [
-                {
-                  "id": "8eb92a78-ec8d-4ff6-8a2d-8b801367be87",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
-            "show": false
-          }
-        },
-        "tag": "prox-2"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "172.64.32.19",
-              "port": 2053,
-              "users": [
-                {
-                  "id": "eb0bc4e6-1e55-443e-9a69-1902c256f04b",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV",
-            "show": false
-          }
-        },
-        "tag": "prox-3"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "104.16.9.215",
-              "port": 2083,
-              "users": [
-                {
-                  "id": "b4cee115-cb5e-4571-99fa-a8f80dc902b1",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
-            "show": false
-          }
-        },
-        "tag": "prox-4"
-      },
-      {
-        "protocol": "dns",
-        "tag": "dns-out"
-      },
-      {
-        "protocol": "freedom",
-        "settings": {
-          "domainStrategy": "UseIP"
-        },
-        "tag": "direct"
-      },
-      {
-        "protocol": "blackhole",
-        "settings": {
-          "response": {
-            "type": "http"
-          }
-        },
-        "tag": "block"
-      }
-    ],
-    "policy": {
-      "levels": {
-        "8": {
-          "connIdle": 300,
-          "downlinkOnly": 1,
-          "handshake": 4,
-          "uplinkOnly": 1
         }
-      },
-      "system": {
-        "statsOutboundUplink": true,
-        "statsOutboundDownlink": true
-      }
-    },
-    "routing": {
-      "domainStrategy": "IPIfNonMatch",
-      "rules": [
-        {
-          "inboundTag": [
-            "dns-in"
-          ],
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "socks-in"
-          ],
-          "port": 53,
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "remote-dns"
-          ],
-          "balancerTag": "all",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "dns"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "domain": [
-            "geosite:category-ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "ip": [
-            "geoip:ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "network": "udp",
-          "outboundTag": "block",
-          "type": "field"
-        },
-        {
-          "network": "tcp",
-          "balancerTag": "all",
-          "type": "field"
+        
+        if net_type == "ws":
+            outbound["streamSettings"]["wsSettings"] = {
+                "host": config.get("host", ""),
+                "path": config.get("path", "")
+            }
+        elif net_type == "kcp":
+            outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
+            
+        if is_tls:
+            outbound["streamSettings"]["tlsSettings"] = {
+                "allowInsecure": False,
+                "fingerprint": fp_val,
+                "pinnedPeerCertSha256": config.get("pcs", config.get("pinnedPeerCertSha256", "")),
+                "serverName": config.get("host", config.get("add")),
+                "show": False
+            }
+            
+        return outbound, is_tls
+    except Exception as e:
+        print(f"Error filtering VMESS format schema: {e}")
+        return None, False
+
+def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
+    try:
+        parsed_url = urlparse(url_str)
+        userinfo = parsed_url.username or parsed_url.netloc.split('@')[0]
+        host_port = parsed_url.netloc.split('@')[-1]
+        
+        query = parse_qs(parsed_url.query)
+        params = {k: v[0] for k, v in query.items()}
+        
+        security = params.get("security", "").lower()
+        
+        if protocol == "trojan":
+            is_tls = security not in ["none"]
+        else:
+            is_tls = security in ["tls", "reality", "xtls"]
+            
+        explicit_port = extract_explicit_port(url_str)
+        
+        if explicit_port is not None:
+            final_port = explicit_port
+            address = host_port.split(':')[0] if ':' in host_port else host_port
+        else:
+            address = host_port
+            if is_tls:
+                final_port = TLS_PORTS[tls_counter[0] % len(TLS_PORTS)]
+                tls_counter[0] += 1
+            else:
+                final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
+                non_tls_counter[0] += 1
+            
+        net_type = params.get("type", "tcp")
+        fp_val = params.get("fp", "chrome")
+        
+        # Pulling the 'pcs' value explicitly from query params
+        cert_hash = params.get("pcs", params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", ""))))
+        
+        outbound = {
+            "protocol": protocol,
+            "settings": {}
         }
-      ],
-      "balancers": [
-        {
-          "tag": "all",
-          "selector": [
-            "prox"
-          ],
-          "strategy": {
-            "type": "leastPing"
-          },
-          "fallbackTag": "prox-1"
+        
+        if protocol == "vless":
+            outbound["settings"] = {
+                "vnext": [{
+                    "address": address,
+                    "port": final_port,
+                    "users": [{
+                        "id": userinfo,
+                        "encryption": params.get("encryption", "none"),
+                        "level": 8
+                    }]
+                }]
+            }
+        elif protocol == "trojan":
+            outbound["settings"] = {
+                "servers": [{
+                    "address": address,
+                    "port": final_port,
+                    "password": userinfo,
+                    "level": 8
+                }]
+            }
+        else:
+            outbound["settings"] = {"servers": [{"address": address, "port": final_port}]}
+            
+        outbound["streamSettings"] = {
+            "network": net_type,
+            "security": "tls" if is_tls else "none",
+            "sockopt": {
+                "domainStrategy": "UseIPv4v6"
+            }
         }
-      ]
-    },
-    "stats": {},
-    "observatory": {
-      "subjectSelector": [
-        "prox"
-      ],
-      "probeUrl": "https://www.gstatic.com/generate_204",
-      "probeInterval": "30s",
-      "enableConcurrency": true
+        
+        if net_type == "ws":
+            outbound["streamSettings"]["wsSettings"] = {
+                "host": params.get("host", ""),
+                "path": params.get("path", "")
+            }
+            
+        if is_tls:
+            tls_type = "realitySettings" if security == "reality" else "tlsSettings"
+            outbound["streamSettings"][tls_type] = {
+                "allowInsecure": False,
+                "fingerprint": fp_val,
+                "pinnedPeerCertSha256": cert_hash,
+                "serverName": params.get("sni", address),
+                "show": False
+            }
+            if protocol == "trojan" and "alpn" in params:
+                outbound["streamSettings"][tls_type]["alpn"] = [params["alpn"]]
+                
+        return outbound, is_tls
+    except Exception as e:
+        print(f"Error filtering structural schema configurations for {protocol}: {e}")
+        return None, False
+
+def build_v2rayng_template(remarks, outbound_nodes):
+    base_outbounds = list(outbound_nodes)
+    base_outbounds.extend([
+        {"protocol": "dns", "tag": "dns-out"},
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
+    ])
+    
+    extracted_domains = []
+    for node in outbound_nodes:
+        addr = None
+        settings = node.get("settings", {})
+        
+        if "vnext" in settings and settings["vnext"]:
+            addr = settings["vnext"][0].get("address")
+        elif "servers" in settings and settings["servers"]:
+            addr = settings["servers"][0].get("address")
+            
+        if addr:
+            try:
+                ipaddress.ip_address(addr)
+            except ValueError:
+                domain_entry = f"full:{addr}"
+                if domain_entry not in extracted_domains:
+                    extracted_domains.append(domain_entry)
+                    
+    return {
+        "remarks": remarks,
+        "log": {"loglevel": "warning"},
+        "dns": {
+            "servers": [
+                {"address": "https://8.8.8.8/dns-query", "tag": "remote-dns"},
+                {"address": "8.8.8.8", "domains": ["geosite:category-ir"], "expectIPs": ["geoip:ir"], "skipFallback": True},
+                {"address": "8.8.8.8", "domains": extracted_domains, "skipFallback": True}
+            ],
+            "queryStrategy": "UseIP",
+            "tag": "dns"
+        },
+        "inbounds": [
+            {"port": 10808, "protocol": "socks", "settings": {"auth": "noauth", "udp": True, "userLevel": 8}, "sniffing": {"destOverride": ["http", "tls"], "enabled": False, "routeOnly": False}, "tag": "socks-in"},
+            {"port": 10853, "protocol": "dokodemo-door", "settings": {"address": "1.1.1.1", "network": "tcp,udp", "port": 53}, "tag": "dns-in"}
+        ],
+        "outbounds": base_outbounds,
+        "policy": {
+            "levels": {"8": {"connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1}},
+            "system": {"statsOutboundUplink": True, "statsOutboundDownlink": True}
+        },
+        "routing": {
+            "domainStrategy": "IPIfNonMatch",
+            "rules": [
+                {"inboundTag": ["dns-in"], "outboundTag": "dns-out", "type": "field"},
+                {"inboundTag": ["socks-in"], "port": 53, "outboundTag": "dns-out", "type": "field"},
+                {"inboundTag": ["remote-dns"], "balancerTag": "all", "type": "field"},
+                {"inboundTag": ["dns"], "outboundTag": "direct", "type": "field"},
+                {"domain": ["geosite:category-ir"], "outboundTag": "direct", "type": "field"},
+                {"ip": ["geoip:ir"], "outboundTag": "direct", "type": "field"},
+                {"network": "udp", "outboundTag": "block", "type": "field"},
+                {"network": "tcp", "balancerTag": "all", "type": "field"}
+            ],
+            "balancers": [
+                {
+                    "tag": "all",
+                    "selector": ["prox"],
+                    "strategy": {"type": "leastPing"},
+                    "fallbackTag": "prox-1" if len(outbound_nodes) > 0 else "direct"
+                }
+            ]
+        },
+        "stats": {},
+        "observatory": {
+            "subjectSelector": ["prox"],
+            "probeUrl": "https://www.gstatic.com/generate_204",
+            "probeInterval": "30s",
+            "enableConcurrency": True
+        }
     }
-  },
-  {
-    "remarks": "🌳 VLESS - Non-TLS LB 🔥",
-    "log": {
-      "loglevel": "warning"
-    },
-    "dns": {
-      "servers": [
-        {
-          "address": "https://8.8.8.8/dns-query",
-          "tag": "remote-dns"
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": true
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [],
-          "skipFallback": true
-        }
-      ],
-      "queryStrategy": "UseIP",
-      "tag": "dns"
-    },
-    "inbounds": [
-      {
-        "port": 10808,
-        "protocol": "socks",
-        "settings": {
-          "auth": "noauth",
-          "udp": true,
-          "userLevel": 8
-        },
-        "sniffing": {
-          "destOverride": [
-            "http",
-            "tls"
-          ],
-          "enabled": false,
-          "routeOnly": false
-        },
-        "tag": "socks-in"
-      },
-      {
-        "port": 10853,
-        "protocol": "dokodemo-door",
-        "settings": {
-          "address": "1.1.1.1",
-          "network": "tcp,udp",
-          "port": 53
-        },
-        "tag": "dns-in"
-      }
-    ],
-    "outbounds": [
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "208.103.161.249",
-              "port": 80,
-              "users": [
-                {
-                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "162.159.142.8",
-              "port": 8080,
-              "users": [
-                {
-                  "id": "8eb92a78-ec8d-4ff6-8a2d-8b801367be87",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-2"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "172.64.48.15",
-              "port": 8880,
-              "users": [
-                {
-                  "id": "eb0bc4e6-1e55-443e-9a69-1902c256f04b",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-3"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "104.17.2.112",
-              "port": 2052,
-              "users": [
-                {
-                  "id": "b4cee115-cb5e-4571-99fa-a8f80dc902b1",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-4"
-      },
-      {
-        "protocol": "dns",
-        "tag": "dns-out"
-      },
-      {
-        "protocol": "freedom",
-        "settings": {
-          "domainStrategy": "UseIP"
-        },
-        "tag": "direct"
-      },
-      {
-        "protocol": "blackhole",
-        "settings": {
-          "response": {
-            "type": "http"
-          }
-        },
-        "tag": "block"
-      }
-    ],
-    "policy": {
-      "levels": {
-        "8": {
-          "connIdle": 300,
-          "downlinkOnly": 1,
-          "handshake": 4,
-          "uplinkOnly": 1
-        }
-      },
-      "system": {
-        "statsOutboundUplink": true,
-        "statsOutboundDownlink": true
-      }
-    },
-    "routing": {
-      "domainStrategy": "IPIfNonMatch",
-      "rules": [
-        {
-          "inboundTag": [
-            "dns-in"
-          ],
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "socks-in"
-          ],
-          "port": 53,
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "remote-dns"
-          ],
-          "balancerTag": "all",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "dns"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "domain": [
-            "geosite:category-ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "ip": [
-            "geoip:ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "network": "udp",
-          "outboundTag": "block",
-          "type": "field"
-        },
-        {
-          "network": "tcp",
-          "balancerTag": "all",
-          "type": "field"
-        }
-      ],
-      "balancers": [
-        {
-          "tag": "all",
-          "selector": [
-            "prox"
-          ],
-          "strategy": {
-            "type": "leastPing"
-          },
-          "fallbackTag": "prox-1"
-        }
-      ]
-    },
-    "stats": {},
-    "observatory": {
-      "subjectSelector": [
-        "prox"
-      ],
-      "probeUrl": "https://www.gstatic.com/generate_204",
-      "probeInterval": "30s",
-      "enableConcurrency": true
+
+def main():
+    input_file = "Configs.txt"
+    output_file = "NG-JSON-Configs.txt"
+    
+    if not os.path.exists(input_file):
+        print(f"Source file {input_file} not found.")
+        return
+
+    tls_counter = [0]
+    non_tls_counter = [0]
+
+    groups = {
+        "vless_tls": [], "vless_n_tls": [],
+        "trojan_tls": [], "trojan_n_tls": [],
+        "vmess_tls": [], "vmess_n_tls": [],
+        "other_protocols": []
     }
-  },
-  {
-    "remarks": "🌳 TROJAN - TLS LB 🔥",
-    "log": {
-      "loglevel": "warning"
-    },
-    "dns": {
-      "servers": [
-        {
-          "address": "https://8.8.8.8/dns-query",
-          "tag": "remote-dns"
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": true
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [
-            "full:www.visa.com.br",
-            "full:info.github.com",
-            "full:emails.github.com"
-          ],
-          "skipFallback": true
-        }
-      ],
-      "queryStrategy": "UseIP",
-      "tag": "dns"
-    },
-    "inbounds": [
-      {
-        "port": 10808,
-        "protocol": "socks",
-        "settings": {
-          "auth": "noauth",
-          "udp": true,
-          "userLevel": 8
-        },
-        "sniffing": {
-          "destOverride": [
-            "http",
-            "tls"
-          ],
-          "enabled": false,
-          "routeOnly": false
-        },
-        "tag": "socks-in"
-      },
-      {
-        "port": 10853,
-        "protocol": "dokodemo-door",
-        "settings": {
-          "address": "1.1.1.1",
-          "network": "tcp,udp",
-          "port": 53
-        },
-        "tag": "dns-in"
-      }
-    ],
-    "outbounds": [
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "www.visa.com.br",
-              "port": 2087,
-              "password": "GABTmlZTPGtULi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
-            "show": false
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "info.github.com",
-              "port": 2096,
-              "password": "krOXKzNRRIROWi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
-            "show": false
-          }
-        },
-        "tag": "prox-2"
-      },
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "emails.github.com",
-              "port": 2082,
-              "password": "GABTmlZTPGtULi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "emails.github.com",
-            "show": false
-          }
-        },
-        "tag": "prox-3"
-      },
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "info.github.com",
-              "port": 2086,
-              "password": "krOXKzNRRIROWi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "info.github.com",
-            "show": false
-          }
-        },
-        "tag": "prox-4"
-      },
-      {
-        "protocol": "dns",
-        "tag": "dns-out"
-      },
-      {
-        "protocol": "freedom",
-        "settings": {
-          "domainStrategy": "UseIP"
-        },
-        "tag": "direct"
-      },
-      {
-        "protocol": "blackhole",
-        "settings": {
-          "response": {
-            "type": "http"
-          }
-        },
-        "tag": "block"
-      }
-    ],
-    "policy": {
-      "levels": {
-        "8": {
-          "connIdle": 300,
-          "downlinkOnly": 1,
-          "handshake": 4,
-          "uplinkOnly": 1
-        }
-      },
-      "system": {
-        "statsOutboundUplink": true,
-        "statsOutboundDownlink": true
-      }
-    },
-    "routing": {
-      "domainStrategy": "IPIfNonMatch",
-      "rules": [
-        {
-          "inboundTag": [
-            "dns-in"
-          ],
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "socks-in"
-          ],
-          "port": 53,
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "remote-dns"
-          ],
-          "balancerTag": "all",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "dns"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "domain": [
-            "geosite:category-ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "ip": [
-            "geoip:ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "network": "udp",
-          "outboundTag": "block",
-          "type": "field"
-        },
-        {
-          "network": "tcp",
-          "balancerTag": "all",
-          "type": "field"
-        }
-      ],
-      "balancers": [
-        {
-          "tag": "all",
-          "selector": [
-            "prox"
-          ],
-          "strategy": {
-            "type": "leastPing"
-          },
-          "fallbackTag": "prox-1"
-        }
-      ]
-    },
-    "stats": {},
-    "observatory": {
-      "subjectSelector": [
-        "prox"
-      ],
-      "probeUrl": "https://www.gstatic.com/generate_204",
-      "probeInterval": "30s",
-      "enableConcurrency": true
-    }
-  },
-  {
-    "remarks": "🌳 VMESS - TLS LB 🔥",
-    "log": {
-      "loglevel": "warning"
-    },
-    "dns": {
-      "servers": [
-        {
-          "address": "https://8.8.8.8/dns-query",
-          "tag": "remote-dns"
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": true
-        },
-        {
-          "address": "8.8.8.8",
-          "domains": [],
-          "skipFallback": true
-        }
-      ],
-      "queryStrategy": "UseIP",
-      "tag": "dns"
-    },
-    "inbounds": [
-      {
-        "port": 10808,
-        "protocol": "socks",
-        "settings": {
-          "auth": "noauth",
-          "udp": true,
-          "userLevel": 8
-        },
-        "sniffing": {
-          "destOverride": [
-            "http",
-            "tls"
-          ],
-          "enabled": false,
-          "routeOnly": false
-        },
-        "tag": "socks-in"
-      },
-      {
-        "port": 10853,
-        "protocol": "dokodemo-door",
-        "settings": {
-          "address": "1.1.1.1",
-          "network": "tcp,udp",
-          "port": 53
-        },
-        "tag": "dns-in"
-      }
-    ],
-    "outbounds": [
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "185.248.33.173",
-              "port": 25714,
-              "users": [
-                {
-                  "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "77.90.60.29",
-              "port": 21189,
-              "users": [
-                {
-                  "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-2"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "109.61.109.204",
-              "port": 29904,
-              "users": [
-                {
-                  "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-3"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "109.61.109.204",
-              "port": 57463,
-              "users": [
-                {
-                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-4"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "77.90.60.29",
-              "port": 27100,
-              "users": [
-                {
-                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-5"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "185.248.33.173",
-              "port": 31866,
-              "users": [
-                {
-                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-6"
-      },
-      {
-        "protocol": "dns",
-        "tag": "dns-out"
-      },
-      {
-        "protocol": "freedom",
-        "settings": {
-          "domainStrategy": "UseIP"
-        },
-        "tag": "direct"
-      },
-      {
-        "protocol": "blackhole",
-        "settings": {
-          "response": {
-            "type": "http"
-          }
-        },
-        "tag": "block"
-      }
-    ],
-    "policy": {
-      "levels": {
-        "8": {
-          "connIdle": 300,
-          "downlinkOnly": 1,
-          "handshake": 4,
-          "uplinkOnly": 1
-        }
-      },
-      "system": {
-        "statsOutboundUplink": true,
-        "statsOutboundDownlink": true
-      }
-    },
-    "routing": {
-      "domainStrategy": "IPIfNonMatch",
-      "rules": [
-        {
-          "inboundTag": [
-            "dns-in"
-          ],
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "socks-in"
-          ],
-          "port": 53,
-          "outboundTag": "dns-out",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "remote-dns"
-          ],
-          "balancerTag": "all",
-          "type": "field"
-        },
-        {
-          "inboundTag": [
-            "dns"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "domain": [
-            "geosite:category-ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "ip": [
-            "geoip:ir"
-          ],
-          "outboundTag": "direct",
-          "type": "field"
-        },
-        {
-          "network": "udp",
-          "outboundTag": "block",
-          "type": "field"
-        },
-        {
-          "network": "tcp",
-          "balancerTag": "all",
-          "type": "field"
-        }
-      ],
-      "balancers": [
-        {
-          "tag": "all",
-          "selector": [
-            "prox"
-          ],
-          "strategy": {
-            "type": "leastPing"
-          },
-          "fallbackTag": "prox-1"
-        }
-      ]
-    },
-    "stats": {},
-    "observatory": {
-      "subjectSelector": [
-        "prox"
-      ],
-      "probeUrl": "https://www.gstatic.com/generate_204",
-      "probeInterval": "30s",
-      "enableConcurrency": true
-    }
-  }
-]
+    
+    with open(input_file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        node_data = None
+        is_tls = False
+        proto_key = None
+        
+        if line.startswith("vmess://"):
+            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
+            proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
+        elif line.startswith("vless://"):
+            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter)
+            proto_key = "vless_tls" if is_tls else "vless_n_tls"
+        elif line.startswith("trojan://"):
+            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter)
+            proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
+        elif "://" in line:
+            p_name = line.split("://")[0].lower()
+            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter)
+            proto_key = "other_protocols"
+            
+        if node_data and proto_key:
+            node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
+            groups[proto_key].append(node_data)
+                
+    final_output = []
+    
+    # Strictly maps them so TLS sets are always placed first, followed sequentially by Non-TLS configs
+    mapping = [
+        ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
+        ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
+        ("🌳 VMESS - TLS LB 🔥", "vmess_tls"),
+        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
+        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
+        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls"),
+        ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
+    ]
+    
+    for remark, key in mapping:
+        if groups[key]:
+            final_output.append(build_v2rayng_template(remark, groups[key]))
+            
+    with open(output_file, "w", encoding="utf-8") as out:
+        json.dump(final_output, out, indent=2, ensure_ascii=False)
+        
+    print(f"🎉 Single-file targets built successfully inside '{output_file}'")
+
+if __name__ == "__main__":
+    main()
