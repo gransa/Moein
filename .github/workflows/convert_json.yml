@@ -1,0 +1,43 @@
+name: Generate Categorized JSON Client Configs
+
+on:
+  push:
+    paths:
+      - 'Configs.txt'
+  workflow_dispatch:
+
+jobs:
+  build-json:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository Codebase
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Runtime Python Environment
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+
+      - name: Split and Process Subscriptions to JSON
+        run: python convert_to_json.py
+
+      - name: Commit and Push Categorized Configuration File
+        run: |
+          if [ ! -s NG-JSON-Configs.txt ]; then
+            echo "⚠️ Target output asset is empty. Skipping commit sequence to preserve configuration sync."
+            exit 0
+          fi
+
+          git config user.name "JSON Compiler Engine"
+          git config user.email "action@github.com"
+          git add NG-JSON-Configs.txt
+          
+          if git diff --staged --quiet; then
+            echo "No split layout upgrades required this block."
+          else
+            git commit -m "Automated Sync: Update categorized TLS and non-TLS configs"
+            git push
+          fi
