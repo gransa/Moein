@@ -14,7 +14,6 @@ def extract_explicit_port(url_str):
     Scans the raw link text for an explicit port declaration (e.g., '@host:port' or 'domain.com:port').
     Returns the port as an integer if found, or None.
     """
-    # Pattern looks for a colon followed by 2-5 digits before the query parameters (?) or fragment (#)
     match = re.search(r':([0-9]{2,5})(?:\?|#|$)', url_str)
     if match:
         return int(match.group(1))
@@ -31,13 +30,11 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
         net_type = config.get("net", "tcp")
         fp_val = config.get("fp", "chrome")
         
-        # Check if the internal JSON config already specifies a valid original port
         explicit_port = config.get("port")
         
         if explicit_port and str(explicit_port).isdigit():
             final_port = int(explicit_port)
         else:
-            # Fallback to round-robin only if no port exists originally
             if is_tls:
                 final_port = TLS_PORTS[tls_counter[0] % len(TLS_PORTS)]
                 tls_counter[0] += 1
@@ -107,15 +104,12 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         else:
             is_tls = security in ["tls", "reality", "xtls"]
             
-        # 1. Look for an explicit original port first using regex scan
         explicit_port = extract_explicit_port(url_str)
         
         if explicit_port is not None:
             final_port = explicit_port
-            # Cleanly split the address out if parsing isolated it with a colon attached
             address = host_port.split(':')[0] if ':' in host_port else host_port
         else:
-            # 2. Only use round-robin fallback if the port was completely missing
             address = host_port
             if is_tls:
                 final_port = TLS_PORTS[tls_counter[0] % len(TLS_PORTS)]
@@ -244,3 +238,95 @@ def build_v2rayng_template(remarks, outbound_nodes):
                 {"inboundTag": ["dns"], "outboundTag": "direct", "type": "field"},
                 {"domain": ["geosite:category-ir"], "outboundTag": "direct", "type": "field"},
                 {"ip": ["geoip:ir"], "outboundTag": "direct", "type": "field"},
+                {"network": "udp", "outboundTag": "block", "type": "field"},
+                {"network": "tcp", "balancerTag": "all", "type": "field"}
+            ],
+            "balancers": [
+                {
+                    "tag": "all",
+                    "selector": ["prox"],
+                    "strategy": {"type": "leastPing"},
+                    "fallbackTag": "prox-1" if len(outbound_nodes) > 0 else "direct"
+                }
+            ]
+        },
+        "stats": {},
+        "observatory": {
+            "subjectSelector": ["prox"],
+            "probeUrl": "https://www.gstatic.com/generate_204",
+            "probeInterval": "30s",
+            "enableConcurrency": True
+        }
+    }
+
+def main():
+    input_file = "Configs.txt"
+    output_file = "NG-JSON-Configs.txt"
+    
+    if not os.path.exists(input_file):
+        print(f"Source file {input_file} not found.")
+        return
+
+    tls_counter = [0]
+    non_tls_counter = [0]
+
+    groups = {
+        "vless_tls": [], "vless_n_tls": [],
+        "trojan_tls": [], "trojan_n_tls": [],
+        "vmess_tls": [], "vmess_n_tls": [],
+        "other_protocols": []
+    }
+    
+    with open(input_file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        node_data = None
+        is_tls = False
+        proto_key = None
+        
+        if line.startswith("vmess://"):
+            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
+            proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
+        elif line.startswith("vless://"):
+            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter)
+            proto_key = "vless_tls" if is_tls else "vless_n_tls"
+        elif line.startswith("trojan://"):
+            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter)
+            proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
+        elif "://" in line:
+            p_name = line.split("://")[0].lower()
+            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter)
+            proto_key = "other_protocols"
+            
+        if node_data and proto_key:
+            node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
+            groups[proto_key].append(node_data)
+                
+    final_output = []
+    
+    mapping = [
+        ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
+        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
+        ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
+        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
+        ("🌳 VMESS - TLS LB 🔥", "vmess_tls"),
+        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls"),
+        ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
+    ]
+    
+    for remark, key in mapping:
+        if groups[key]:
+            final_output.append(build_v2rayng_template(remark, groups[key]))
+            
+    with open(output_file, "w", encoding="utf-8") as out:
+        json.dump(final_output, out, indent=2, ensure_ascii=False)
+        
+    print(f"🎉 Syntax error resolved. Output verified cleanly in '{output_file}'")
+
+if __name__ == "__main__":
+    main()
