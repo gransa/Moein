@@ -69,6 +69,7 @@
     "outbounds": [
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -103,6 +104,7 @@
       },
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -137,6 +139,7 @@
       },
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -171,6 +174,7 @@
       },
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -205,6 +209,7 @@
       },
       {
         "protocol": "trojan",
+        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -234,6 +239,7 @@
       },
       {
         "protocol": "trojan",
+        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -263,6 +269,7 @@
       },
       {
         "protocol": "trojan",
+        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -292,6 +299,7 @@
       },
       {
         "protocol": "trojan",
+        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -321,6 +329,7 @@
       },
       {
         "protocol": "vmess",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -353,6 +362,7 @@
       },
       {
         "protocol": "vmess",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -385,6 +395,7 @@
       },
       {
         "protocol": "vmess",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -417,6 +428,7 @@
       },
       {
         "protocol": "vmess",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -449,6 +461,7 @@
       },
       {
         "protocol": "vmess",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -481,6 +494,7 @@
       },
       {
         "protocol": "vmess",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -696,6 +710,7 @@
     "outbounds": [
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -726,6 +741,7 @@
       },
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -756,6 +772,7 @@
       },
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -786,6 +803,7 @@
       },
       {
         "protocol": "vless",
+        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
