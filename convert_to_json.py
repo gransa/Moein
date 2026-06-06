@@ -5,7 +5,7 @@ import ipaddress
 import re
 from urllib.parse import urlparse, unquote, parse_qs
 
-# Your Cloudflare port lists for missing-port fallbacks
+# Cloudflare clear distinct port definitions
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
@@ -98,19 +98,27 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         params = {k: v[0] for k, v in query.items()}
         
         security = params.get("security", "").lower()
-        
-        if protocol == "trojan":
-            is_tls = security not in ["none"]
-        else:
-            is_tls = security in ["tls", "reality", "xtls"]
-            
         explicit_port = extract_explicit_port(url_str)
         
+        # Determine address parsing 
         if explicit_port is not None:
             final_port = explicit_port
             address = host_port.split(':')[0] if ':' in host_port else host_port
         else:
             address = host_port
+            final_port = None
+
+        # Fixed logic: Detect TLS strictly by security value AND clear port numbers
+        if protocol == "trojan":
+            if security == "none" or (final_port in NON_TLS_PORTS):
+                is_tls = False
+            else:
+                is_tls = True
+        else:
+            is_tls = security in ["tls", "reality", "xtls"]
+
+        # Fallback allocation if port is completely missing
+        if final_port is None:
             if is_tls:
                 final_port = TLS_PORTS[tls_counter[0] % len(TLS_PORTS)]
                 tls_counter[0] += 1
@@ -120,8 +128,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
             
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
-        
-        # Pulling the 'pcs' value explicitly from query params
         cert_hash = params.get("pcs", params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", ""))))
         
         outbound = {
@@ -311,7 +317,6 @@ def main():
                 
     final_output = []
     
-    # Strictly maps them so TLS sets are always placed first, followed sequentially by Non-TLS configs
     mapping = [
         ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
         ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
@@ -329,7 +334,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Single-file targets built successfully inside '{output_file}'")
+    print(f"🎉 Compiled cleanly into single file layout destination: '{output_file}'")
 
 if __name__ == "__main__":
     main()
