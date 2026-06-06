@@ -347,8 +347,7 @@
         {
           "address": "8.8.8.8",
           "domains": [
-            "full:www.visa.com.br",
-            "full:info.github.com"
+            "full:www.visa.com.br"
           ],
           "skipFallback": true
         }
@@ -424,7 +423,7 @@
         "settings": {
           "servers": [
             {
-              "address": "info.github.com",
+              "address": "208.103.161.249",
               "port": 2096,
               "password": "krOXKzNRRIROWi",
               "level": 8
@@ -589,7 +588,9 @@
         },
         {
           "address": "8.8.8.8",
-          "domains": [],
+          "domains": [
+            "full:www.visa.com.br"
+          ],
           "skipFallback": true
         }
       ],
@@ -632,7 +633,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "185.248.33.173",
+              "address": "63.141.128.232",
               "port": 25714,
               "users": [
                 {
@@ -667,7 +668,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "77.90.60.29",
+              "address": "193.9.49.119",
               "port": 21189,
               "users": [
                 {
@@ -702,7 +703,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "109.61.109.204",
+              "address": "172.64.32.19",
               "port": 29904,
               "users": [
                 {
@@ -737,7 +738,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "109.61.109.204",
+              "address": "104.16.9.215",
               "port": 57463,
               "users": [
                 {
@@ -772,7 +773,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "77.90.60.29",
+              "address": "www.visa.com.br",
               "port": 27100,
               "users": [
                 {
@@ -807,7 +808,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "185.248.33.173",
+              "address": "208.103.161.249",
               "port": 31866,
               "users": [
                 {
@@ -975,7 +976,9 @@
         },
         {
           "address": "8.8.8.8",
-          "domains": [],
+          "domains": [
+            "full:23andme.com"
+          ],
           "skipFallback": true
         }
       ],
@@ -1018,7 +1021,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "208.103.161.249",
+              "address": "162.159.142.8",
               "port": 80,
               "users": [
                 {
@@ -1048,7 +1051,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "162.159.142.8",
+              "address": "172.64.48.15",
               "port": 8080,
               "users": [
                 {
@@ -1078,7 +1081,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "172.64.48.15",
+              "address": "104.17.2.112",
               "port": 8880,
               "users": [
                 {
@@ -1108,7 +1111,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "104.17.2.112",
+              "address": "23andme.com",
               "port": 2052,
               "users": [
                 {
@@ -1272,8 +1275,8 @@
         {
           "address": "8.8.8.8",
           "domains": [
-            "full:emails.github.com",
-            "full:info.github.com"
+            "full:transferwise.com",
+            "full:www.speedtest.net"
           ],
           "skipFallback": true
         }
@@ -1317,7 +1320,7 @@
         "settings": {
           "servers": [
             {
-              "address": "emails.github.com",
+              "address": "transferwise.com",
               "port": 2082,
               "password": "GABTmlZTPGtULi",
               "level": 8
@@ -1342,7 +1345,7 @@
         "settings": {
           "servers": [
             {
-              "address": "info.github.com",
+              "address": "www.speedtest.net",
               "port": 2086,
               "password": "krOXKzNRRIROWi",
               "level": 8
