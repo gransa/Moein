@@ -37,7 +37,7 @@ def fetch_clean_addresses(url):
         return []
 
 def fetch_remote_dns(url):
-    """Fetches and cleans list of DoH / DNS entries from remote repository."""
+    """Fetches list of DoH / DNS entries from remote repository."""
     try:
         print(f"📡 Fetching remote DNS from: {url}")
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -48,7 +48,6 @@ def fetch_remote_dns(url):
             line = line.strip()
             if not line or line.startswith(("#", "//")):
                 continue
-            # Keep raw links and valid IPs intact
             dns_list.append(line)
         print(f"✅ Successfully loaded {len(dns_list)} DNS lines.")
         return dns_list
@@ -214,41 +213,52 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Fallback lists used if remote file fails or returns empty
-    fallback_doh = [
-        "https://dns.quad9.net/dns-query", "https://dns.adguard-dns.com/dns-query",
-        "https://unfiltered.com.cloudflare-dns.com/dns-query", "https://doh.opendns.com/dns-query",
-        "https://doh.cleanbrowsing.org/doh/security-filter"
+    # Defaults in case the remote resource parsing returns empty profiles
+    fallback_providers = [
+        {"doh": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
+        {"doh": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
+        {"doh": "https://unfiltered.com.cloudflare-dns.com/dns-query", "ip": "1.1.1.1"},
+        {"doh": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
+        {"doh": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
-    fallback_ips = ["9.9.9.9", "94.140.14.14", "1.1.1.1", "208.67.222.222", "185.228.168.9"]
 
-    # Filter out DoH links and clear matching IPv4 addresses out of the parsed list
-    doh_pool = [x for x in pool_dns_servers if x.startswith("https://")]
-    ip_pool = [x for x in pool_dns_servers if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', x)]
+    # Process and link paired providers together (DoH + matching sequential IP)
+    paired_providers = []
+    current_pair = {}
+    
+    for item in pool_dns_servers:
+        if item.startswith("https://"):
+            current_pair["doh"] = item
+        elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item):
+            current_pair["ip"] = item
+            
+        # Once we have both components, save the complete provider structure
+        if "doh" in current_pair and "ip" in current_pair:
+            paired_providers.append(current_pair)
+            current_pair = {}
 
-    # Grab the top 5 entries safely
-    chosen_doh = doh_pool[:5] if len(doh_pool) >= 5 else fallback_doh
-    chosen_ips = ip_pool[:5] if len(ip_pool) >= 5 else fallback_ips
+    # Slice the top 5 distinct providers cleanly
+    chosen_providers = paired_providers[:5] if len(paired_providers) >= 5 else fallback_providers
 
     dns_servers_config = []
     inbound_tags = []
     
-    # 1. Inject the first 5 DoH nodes
-    for i, doh_address in enumerate(chosen_doh, 1):
+    # 1. Map 5 completely unique provider DoH URLs
+    for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
-        dns_servers_config.append({"address": doh_address, "tag": tag_name})
+        dns_servers_config.append({"address": provider["doh"], "tag": tag_name})
         
-    # 2. Inject the 5 matching second-line IPv4 blocks from the exact same providers
-    for ip_address in chosen_ips:
+    # 2. Map the matching sequential IPv4 values from those exact same 5 providers
+    for provider in chosen_providers:
         dns_servers_config.append({
-            "address": ip_address,
+            "address": provider["ip"],
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
         })
         
-    # Process unique structural domains out of outbounds list
+    # Extract structural unique server endpoints out of the raw outbounds
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -266,8 +276,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Dynamic layout rule linked to the exact matching IPv4 address from the first provider
-    first_provider_ip = chosen_ips[0] if chosen_ips else "9.9.9.9"
+    # 3. Dynamic custom rule pointing to the exact matching IPv4 value of the first provider
+    first_provider_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
             "address": first_provider_ip,
