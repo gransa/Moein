@@ -71,7 +71,6 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
             
-        # VMESS nodes explicitly preserve their native address
         target_address = config.get("add")
             
         outbound = {
@@ -107,13 +106,13 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
             outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
             
         if is_tls:
-            # FIX: Clean fallback to ensure no variable leak if missing in config
+            # Look up the original fingerprint keys natively. If missing, default strictly to ""
             pcs_value = config.get("pcs", config.get("pinnedPeerCertSha256", ""))
             
             outbound["streamSettings"]["tlsSettings"] = {
                 "allowInsecure": False,
                 "fingerprint": fp_val,
-                "pinnedPeerCertSha256": pcs_value if pcs_value else "",
+                "pinnedPeerCertSha256": str(pcs_value).strip() if pcs_value else "",
                 "serverName": config.get("host", config.get("add")),
                 "show": False
             }
@@ -158,7 +157,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
         
-        # Override address loop strictly for Cloudflare-based endpoints (VLESS / Trojan)
         if clean_addresses:
             target_address = clean_addresses[ip_counter[0] % len(clean_addresses)]
             ip_counter[0] += 1
@@ -314,12 +312,11 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
-    # Load alternative remote infrastructure routes
     clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
 
     tls_counter = [0]
     non_tls_counter = [0]
-    ip_counter = [0]  # Dedicated tracking index for structural rotation
+    ip_counter = [0]
 
     groups = {
         "vless_tls": [], "vless_n_tls": [],
