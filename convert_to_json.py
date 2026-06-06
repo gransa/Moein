@@ -121,7 +121,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
         
-        # Checked parameter list updated to prioritize your 'pcs' parameter key
+        # Pulling the 'pcs' value explicitly from query params
         cert_hash = params.get("pcs", params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", ""))))
         
         outbound = {
@@ -263,8 +263,7 @@ def build_v2rayng_template(remarks, outbound_nodes):
 
 def main():
     input_file = "Configs.txt"
-    tls_output_file = "NG-TLS-Configs.json"
-    n_tls_output_file = "NG-NonTLS-Configs.json"
+    output_file = "NG-JSON-Configs.txt"
     
     if not os.path.exists(input_file):
         print(f"Source file {input_file} not found.")
@@ -310,7 +309,27 @@ def main():
             node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
             groups[proto_key].append(node_data)
                 
-    tls_configs = []
-    non_tls_configs = []
+    final_output = []
     
-    tls
+    # Strictly maps them so TLS sets are always placed first, followed sequentially by Non-TLS configs
+    mapping = [
+        ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
+        ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
+        ("🌳 VMESS - TLS LB 🔥", "vmess_tls"),
+        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
+        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
+        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls"),
+        ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
+    ]
+    
+    for remark, key in mapping:
+        if groups[key]:
+            final_output.append(build_v2rayng_template(remark, groups[key]))
+            
+    with open(output_file, "w", encoding="utf-8") as out:
+        json.dump(final_output, out, indent=2, ensure_ascii=False)
+        
+    print(f"🎉 Single-file targets built successfully inside '{output_file}'")
+
+if __name__ == "__main__":
+    main()
