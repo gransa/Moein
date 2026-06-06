@@ -15,13 +15,16 @@ def parse_vmess(url_str):
         net_type = config.get("net", "tcp")
         fp_val = config.get("fp", "chrome")
         
+        # Enforce strict fallback ports based on TLS state
+        fallback_port = 443 if is_tls else 80
+        
         outbound = {
             "protocol": "vmess",
             "settings": {
                 "vnext": [
                     {
                         "address": config.get("add"),
-                        "port": int(config.get("port", 443 if is_tls else 80)),
+                        "port": int(config.get("port", fallback_port)),
                         "users": [
                             {
                                 "id": config.get("id"),
@@ -67,21 +70,26 @@ def parse_standard_uri(url_str, protocol):
         userinfo = parsed_url.username or parsed_url.netloc.split('@')[0]
         host_port = parsed_url.netloc.split('@')[-1]
         
-        if ':' in host_port:
-            address, port = host_port.split(':')
-        else:
-            address, port = host_port, (443 if protocol in ["vless", "trojan"] else 80)
-            
         query = parse_qs(parsed_url.query)
         params = {k: v[0] for k, v in query.items()}
         
         security = params.get("security", "").lower()
         
-        # FIXED: Trojan defaults to TLS *unless* security is explicitly set to "none"
+        # 1. First determine TLS state accurately
         if protocol == "trojan":
             is_tls = security not in ["none"]
         else:
             is_tls = security in ["tls", "reality", "xtls"]
+            
+        # 2. Assign dynamic fallback port depending on TLS state (443 vs 80)
+        fallback_port = 443 if is_tls else 80
+        
+        if ':' in host_port:
+            address, port = host_port.split(':')
+            port = int(port)
+        else:
+            address = host_port
+            port = fallback_port
             
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
@@ -96,7 +104,7 @@ def parse_standard_uri(url_str, protocol):
             outbound["settings"] = {
                 "vnext": [{
                     "address": address,
-                    "port": int(port),
+                    "port": port,
                     "users": [{
                         "id": userinfo,
                         "encryption": params.get("encryption", "none"),
@@ -108,13 +116,13 @@ def parse_standard_uri(url_str, protocol):
             outbound["settings"] = {
                 "servers": [{
                     "address": address,
-                    "port": int(port),
+                    "port": port,
                     "password": userinfo,
                     "level": 8
                 }]
             }
         else:
-            outbound["settings"] = {"servers": [{"address": address, "port": int(port)}]}
+            outbound["settings"] = {"servers": [{"address": address, "port": port}]}
             
         outbound["streamSettings"] = {
             "network": net_type,
@@ -288,7 +296,7 @@ def main():
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Separation fix complete! Trojan pools verified inside '{output_file}'")
+    print(f"🎉 Separation complete! Fallback ports cleanly separated by TLS status inside '{output_file}'")
 
 if __name__ == "__main__":
     main()
