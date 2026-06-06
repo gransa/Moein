@@ -221,7 +221,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"doh": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
 
-    # Process and link paired providers together (DoH + matching sequential IP)
     paired_providers = []
     current_pair = {}
     
@@ -235,18 +234,16 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             paired_providers.append(current_pair)
             current_pair = {}
 
-    # Randomize the pool entirely
+    # Completely randomize the ordering of the pool pairs
     random.shuffle(paired_providers)
 
-    # Filter to ensure absolutely NO repeated providers
+    # Filter to isolate 5 unique, non-repeating providers
     chosen_providers = []
     seen_domains = set()
 
     for provider in paired_providers:
         try:
-            # Extract domain name (e.g., 'quad9.net' or 'cloudflare-dns.com') to unique key them
             domain = urlparse(provider["doh"]).netloc
-            # Simplify base domains to avoid sub-domain repeats
             domain_parts = domain.split('.')
             base_domain = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
         except Exception:
@@ -259,7 +256,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         if len(chosen_providers) == 5:
             break
 
-    # Fallback guard if the file didn't contain enough unique providers
+    # Guard fallback filler if pool has fewer than 5 unique provider entries
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -278,7 +275,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         inbound_tags.append(tag_name)
         dns_servers_config.append({"address": provider["doh"], "tag": tag_name})
         
-    # 2. Map the matching sequential IPv4 values from those exact same 5 unique providers
+    # 2. Map the matching sequential IPv4 configurations for those exact same 5 unique providers
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -287,7 +284,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             "skipFallback": False
         })
         
-    # Extract structural unique server endpoints out of the raw outbounds
+    # Extract structural unique server endpoints out of the raw outbound lists
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -305,7 +302,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Dynamic custom rule pointing to the exact matching IPv4 value of the first randomized provider
+    # 3. Dynamic layout rule pointing to the exact matching IPv4 address of the first randomized provider
     first_provider_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
