@@ -69,7 +69,6 @@
     "outbounds": [
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -96,15 +95,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv"
+            "pinnedPeerCertSha256": "",
+            "serverName": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
+            "show": false
           }
         },
         "tag": "prox-1"
       },
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -131,15 +132,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV"
+            "pinnedPeerCertSha256": "",
+            "serverName": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
+            "show": false
           }
         },
         "tag": "prox-2"
       },
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -166,15 +169,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV"
+            "pinnedPeerCertSha256": "",
+            "serverName": "kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV",
+            "show": false
           }
         },
         "tag": "prox-3"
       },
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -201,15 +206,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV"
+            "pinnedPeerCertSha256": "",
+            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
+            "show": false
           }
         },
         "tag": "prox-4"
       },
       {
         "protocol": "trojan",
-        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -231,15 +238,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv"
+            "pinnedPeerCertSha256": "",
+            "serverName": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
+            "show": false
           }
         },
         "tag": "prox-5"
       },
       {
         "protocol": "trojan",
-        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -261,15 +270,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV"
+            "pinnedPeerCertSha256": "",
+            "serverName": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
+            "show": false
           }
         },
         "tag": "prox-6"
       },
       {
         "protocol": "trojan",
-        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -291,15 +302,17 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "emails.github.com"
+            "pinnedPeerCertSha256": "",
+            "serverName": "emails.github.com",
+            "show": false
           }
         },
         "tag": "prox-7"
       },
       {
         "protocol": "trojan",
-        "certificate fingerprint": "chrome",
         "settings": {
           "servers": [
             {
@@ -321,20 +334,22 @@
             "path": "/?ed=2560"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "info.github.com"
+            "pinnedPeerCertSha256": "",
+            "serverName": "info.github.com",
+            "show": false
           }
         },
         "tag": "prox-8"
       },
       {
         "protocol": "vmess",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
-              "address": "109.61.109.204",
-              "port": 21252,
+              "address": "185.248.33.173",
+              "port": 25714,
               "users": [
                 {
                   "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
@@ -354,20 +369,22 @@
             "path": "/speedtest"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "imafake.locker"
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
           }
         },
         "tag": "prox-9"
       },
       {
         "protocol": "vmess",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
-              "address": "185.248.33.173",
-              "port": 12434,
+              "address": "77.90.60.29",
+              "port": 21189,
               "users": [
                 {
                   "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
@@ -387,20 +404,22 @@
             "path": "/speedtest"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "imafake.locker"
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
           }
         },
         "tag": "prox-10"
       },
       {
         "protocol": "vmess",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
-              "address": "77.90.60.29",
-              "port": 45272,
+              "address": "109.61.109.204",
+              "port": 29904,
               "users": [
                 {
                   "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
@@ -420,20 +439,22 @@
             "path": "/speedtest"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "imafake.locker"
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
           }
         },
         "tag": "prox-11"
       },
       {
         "protocol": "vmess",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
               "address": "109.61.109.204",
-              "port": 46298,
+              "port": 57463,
               "users": [
                 {
                   "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
@@ -453,20 +474,22 @@
             "path": "/speedtest"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "imafake.locker"
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
           }
         },
         "tag": "prox-12"
       },
       {
         "protocol": "vmess",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
               "address": "77.90.60.29",
-              "port": 13602,
+              "port": 27100,
               "users": [
                 {
                   "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
@@ -486,20 +509,22 @@
             "path": "/speedtest"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "imafake.locker"
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
           }
         },
         "tag": "prox-13"
       },
       {
         "protocol": "vmess",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
               "address": "185.248.33.173",
-              "port": 53428,
+              "port": 31866,
               "users": [
                 {
                   "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
@@ -519,8 +544,11 @@
             "path": "/speedtest"
           },
           "tlsSettings": {
+            "allowInsecure": false,
             "fingerprint": "chrome",
-            "serverName": "imafake.locker"
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
           }
         },
         "tag": "prox-14"
@@ -710,7 +738,6 @@
     "outbounds": [
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -741,7 +768,6 @@
       },
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -772,7 +798,6 @@
       },
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
@@ -803,7 +828,6 @@
       },
       {
         "protocol": "vless",
-        "certificate fingerprint": "chrome",
         "settings": {
           "vnext": [
             {
