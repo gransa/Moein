@@ -78,7 +78,7 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
             outbound["streamSettings"]["tlsSettings"] = {
                 "allowInsecure": False,
                 "fingerprint": fp_val,
-                "pinnedPeerCertSha256": config.get("pinnedPeerCertSha256", ""),
+                "pinnedPeerCertSha256": config.get("pcs", config.get("pinnedPeerCertSha256", "")),
                 "serverName": config.get("host", config.get("add")),
                 "show": False
             }
@@ -120,7 +120,9 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0]):
             
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
-        cert_hash = params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", "")))
+        
+        # Checked parameter list updated to prioritize your 'pcs' parameter key
+        cert_hash = params.get("pcs", params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", ""))))
         
         outbound = {
             "protocol": protocol,
@@ -308,48 +310,7 @@ def main():
             node_data["tag"] = f"prox-{len(groups[proto_key]) + 1}"
             groups[proto_key].append(node_data)
                 
-    # Create isolated lists for separate exports
     tls_configs = []
     non_tls_configs = []
     
-    # Map out target definitions clearly
-    tls_mapping = [
-        ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
-        ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
-        ("🌳 VMESS - TLS LB 🔥", "vmess_tls")
-    ]
-    
-    non_tls_mapping = [
-        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
-        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
-        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls")
-    ]
-    
-    # 1. Build Secure Nodes
-    for remark, key in tls_mapping:
-        if groups[key]:
-            tls_configs.append(build_v2rayng_template(remark, groups[key]))
-            
-    # 2. Build Insecure Nodes
-    for remark, key in non_tls_mapping:
-        if groups[key]:
-            non_tls_configs.append(build_v2rayng_template(remark, groups[key]))
-            
-    # Include unclassified profiles to the appropriate stack if necessary
-    if groups["other_protocols"]:
-        non_tls_configs.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"]))
-        
-    # Write Out Complete TLS Profiles File
-    if tls_configs:
-        with open(tls_output_file, "w", encoding="utf-8") as out_tls:
-            json.dump(tls_configs, out_tls, indent=2, ensure_ascii=False)
-        print(f"🔒 Secure JSON compiled into '{tls_output_file}'")
-        
-    # Write Out Complete Non-TLS Profiles File
-    if non_tls_configs:
-        with open(n_tls_output_file, "w", encoding="utf-8") as out_ntls:
-            json.dump(non_tls_configs, out_ntls, indent=2, ensure_ascii=False)
-        print(f"🔓 Non-Secure JSON compiled into '{n_tls_output_file}'")
-
-if __name__ == "__main__":
-    main()
+    tls
