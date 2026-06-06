@@ -106,8 +106,12 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
             outbound["streamSettings"]["kcpSettings"] = {"header": {"type": config.get("type", "none")}}
             
         if is_tls:
-            # Look up the original fingerprint keys natively. If missing, default strictly to ""
+            # Check for standard keys explicitly
             pcs_value = config.get("pcs", config.get("pinnedPeerCertSha256", ""))
+            
+            # STricter Check: If it matches the fake provider placeholder hash, wipe it out
+            if str(pcs_value).strip().upper() == "EDB3FE2BF8BCE4A7CE51CC7D619BA261B5AB600832748B9AF68738AE6D52AB5D":
+                pcs_value = ""
             
             outbound["streamSettings"]["tlsSettings"] = {
                 "allowInsecure": False,
