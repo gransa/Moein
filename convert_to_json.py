@@ -213,7 +213,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Defaults in case the remote resource parsing returns empty profiles
     fallback_providers = [
         {"doh": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"doh": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
@@ -232,13 +231,43 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item):
             current_pair["ip"] = item
             
-        # Once we have both components, save the complete provider structure
         if "doh" in current_pair and "ip" in current_pair:
             paired_providers.append(current_pair)
             current_pair = {}
 
-    # Slice the top 5 distinct providers cleanly
-    chosen_providers = paired_providers[:5] if len(paired_providers) >= 5 else fallback_providers
+    # Randomize the pool entirely
+    random.shuffle(paired_providers)
+
+    # Filter to ensure absolutely NO repeated providers
+    chosen_providers = []
+    seen_domains = set()
+
+    for provider in paired_providers:
+        try:
+            # Extract domain name (e.g., 'quad9.net' or 'cloudflare-dns.com') to unique key them
+            domain = urlparse(provider["doh"]).netloc
+            # Simplify base domains to avoid sub-domain repeats
+            domain_parts = domain.split('.')
+            base_domain = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
+        except Exception:
+            base_domain = provider["doh"]
+
+        if base_domain not in seen_domains:
+            seen_domains.add(base_domain)
+            chosen_providers.append(provider)
+        
+        if len(chosen_providers) == 5:
+            break
+
+    # Fallback guard if the file didn't contain enough unique providers
+    if len(chosen_providers) < 5:
+        for fb in fallback_providers:
+            if len(chosen_providers) == 5:
+                break
+            fb_domain = urlparse(fb["doh"]).netloc
+            if fb_domain not in seen_domains:
+                seen_domains.add(fb_domain)
+                chosen_providers.append(fb)
 
     dns_servers_config = []
     inbound_tags = []
@@ -249,7 +278,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         inbound_tags.append(tag_name)
         dns_servers_config.append({"address": provider["doh"], "tag": tag_name})
         
-    # 2. Map the matching sequential IPv4 values from those exact same 5 providers
+    # 2. Map the matching sequential IPv4 values from those exact same 5 unique providers
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -276,7 +305,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Dynamic custom rule pointing to the exact matching IPv4 value of the first provider
+    # 3. Dynamic custom rule pointing to the exact matching IPv4 value of the first randomized provider
     first_provider_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
