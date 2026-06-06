@@ -48,9 +48,9 @@ def fetch_remote_dns(url):
             line = line.strip()
             if not line or line.startswith(("#", "//")):
                 continue
-            if line.startswith("https://") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', line):
-                dns_list.append(line)
-        print(f"✅ Successfully loaded {len(dns_list)} DNS resources.")
+            # Keep raw links and valid IPs intact
+            dns_list.append(line)
+        print(f"✅ Successfully loaded {len(dns_list)} DNS lines.")
         return dns_list
     except Exception as e:
         print(f"⚠️ Warning: Could not fetch remote DNS ({e}). Using structural fallbacks.")
@@ -214,35 +214,41 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Static backup fallbacks if external fetched resource list is dry
-    fallbacks = [
+    # Fallback lists used if remote file fails or returns empty
+    fallback_doh = [
         "https://dns.quad9.net/dns-query", "https://dns.adguard-dns.com/dns-query",
         "https://unfiltered.com.cloudflare-dns.com/dns-query", "https://doh.opendns.com/dns-query",
         "https://doh.cleanbrowsing.org/doh/security-filter"
     ]
-    
-    # Random sample 5 distinct servers from pool or fallback
-    chosen_servers = random.sample(pool_dns_servers, 5) if len(pool_dns_servers) >= 5 else random.sample(fallbacks, 5)
-    
+    fallback_ips = ["9.9.9.9", "94.140.14.14", "1.1.1.1", "208.67.222.222", "185.228.168.9"]
+
+    # Filter out DoH links and clear matching IPv4 addresses out of the parsed list
+    doh_pool = [x for x in pool_dns_servers if x.startswith("https://")]
+    ip_pool = [x for x in pool_dns_servers if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', x)]
+
+    # Grab the top 5 entries safely
+    chosen_doh = doh_pool[:5] if len(doh_pool) >= 5 else fallback_doh
+    chosen_ips = ip_pool[:5] if len(ip_pool) >= 5 else fallback_ips
+
     dns_servers_config = []
     inbound_tags = []
     
-    for i, address in enumerate(chosen_servers, 1):
+    # 1. Inject the first 5 DoH nodes
+    for i, doh_address in enumerate(chosen_doh, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
-        dns_servers_config.append({"address": address, "tag": tag_name})
+        dns_servers_config.append({"address": doh_address, "tag": tag_name})
         
-    # Append localized domestic logic matrix routing
-    domestic_ips = ["9.9.9.9", "94.140.14.14", "1.1.1.1", "208.67.222.222", "185.228.168.9"]
-    for ip in domestic_ips:
+    # 2. Inject the 5 matching second-line IPv4 blocks from the exact same providers
+    for ip_address in chosen_ips:
         dns_servers_config.append({
-            "address": ip,
+            "address": ip_address,
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
         })
         
-    # Append strict domain routing rules parsed dynamically
+    # Process unique structural domains out of outbounds list
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -260,9 +266,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
+    # 3. Dynamic layout rule linked to the exact matching IPv4 address from the first provider
+    first_provider_ip = chosen_ips[0] if chosen_ips else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
-            "address": "9.9.9.9",
+            "address": first_provider_ip,
             "domains": [domain],
             "skipFallback": True
         })
