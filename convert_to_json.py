@@ -233,7 +233,7 @@ def get_identity_key(srv):
         return srv
 
 def parse_dns_source(pool_dns_servers):
-    """Converts a flat text line source into structural paired dictionary groupings cleanly."""
+    """Converts text lines into paired dictionary groupings, providing safe dummy routing IPs for standalone links."""
     paired = []
     i = 0
     while i < len(pool_dns_servers):
@@ -246,14 +246,14 @@ def parse_dns_source(pool_dns_servers):
             server_url = item
             ip_address = None
             
-            # Check if immediate following line matches an explicit IP layout
+            # Look ahead to see if the next immediate line is a valid IPv4 address
             if i + 1 < len(pool_dns_servers):
                 next_item = pool_dns_servers[i + 1].strip()
                 if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item):
                     ip_address = next_item
-                    i += 1 # Forward counter past verified IP line
+                    i += 1 # Advance index since we successfully consumed the IP line
             
-            # If no IP was found right underneath, provide a safe, smart default contextually
+            # If no IP line was found underneath, provide a safe alternative non-Cloudflare routing IP
             if not ip_address:
                 if "quad9" in server_url:
                     ip_address = "9.9.9.9"
@@ -262,7 +262,7 @@ def parse_dns_source(pool_dns_servers):
                 elif "opendns" in server_url:
                     ip_address = "208.67.222.222"
                 else:
-                    ip_address = "9.9.9.9" # Safe default fallback context away from Cloudflare
+                    ip_address = "9.9.9.9" # Safe fallback away from Cloudflare for Iran ISPs
                     
             paired.append({"server": server_url, "ip": ip_address})
         i += 1
@@ -276,7 +276,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Safe alternative defaults pool completely free of any standard Cloudflare addresses
+    # Alternative emergency top-up pool (Completely free of standard Cloudflare items)
     fallback_providers = [
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
@@ -306,7 +306,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         chosen_providers.append(provider)
         break
 
-    # Absolute Emergency Fallback ONLY if DNS-TOP.txt downloaded 100% empty
+    # Absolute Emergency Fallback ONLY if DNS-TOP.txt downloaded completely empty
     if not chosen_providers:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
@@ -314,15 +314,15 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # --- SLOT 2: remote-dns-2 Selection (STRICTLY FROM DNS.txt ONLY) ---
+    # --- SLOT 2: remote-dns-2 Selection (STRICTLY FROM DNS.txt AND EXPLICITLY NOT SAME AS SLOT 1) ---
     for provider in doh_main:
         ident = get_identity_key(provider["server"])
-        if ident not in seen_identifiers:
+        if ident not in seen_identifiers:  # Force skip if it matches Slot 1 provider signature
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
             break
 
-    # Backup logic for Slot 2 ONLY if DNS.txt failed or isn't unique
+    # Backup logic for Slot 2 if DNS.txt failed or isn't unique from slot 1
     if len(chosen_providers) < 2 and len(chosen_providers) == 1:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
