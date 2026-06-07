@@ -215,7 +215,7 @@ def clean_dns_address(srv_str, prefix):
     return clean.split(":")[0]
 
 def get_identity_key(srv):
-    """Extracts base registration domain string for unique grouping identifier match validation."""
+    """Extracts base registration domain string for unique identifier matching."""
     try:
         if srv.startswith("https://"):
             domain = urlparse(srv).netloc
@@ -262,29 +262,32 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
         {"server": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
+    # Completely randomize the fallback list so Quad9 isn't always chosen first
+    random.shuffle(fallback_providers)
 
-    # Structure lines into pairs
+    # Structure text lists into clean pairs
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    # Filter out DoH servers
+    # Gather DoH options
     doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
+    # Shuffle everything before picking positions
     random.shuffle(doh_top)
     random.shuffle(doh_main)
 
     chosen_providers = []
     seen_identifiers = set()
 
-    # Slot 1: Locked to DoH from DNS-TOP
+    # Slot 1: Grab random DoH from DNS-TOP
     for provider in doh_top:
         ident = get_identity_key(provider["server"])
         seen_identifiers.add(ident)
         chosen_providers.append(provider)
         break
 
-    # Top up Slot 1 from backends if DNS-TOP has no DoH
+    # If DNS-TOP has no valid entries, get a random item from our shuffled fallback list
     if not chosen_providers:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
@@ -292,7 +295,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # Slot 2: Locked to DoH from DNS-MAIN (Ensure unique provider identity)
+    # Slot 2: Grab random DoH from DNS-MAIN
     for provider in doh_main:
         ident = get_identity_key(provider["server"])
         if ident not in seen_identifiers:
@@ -300,7 +303,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             chosen_providers.append(provider)
             break
 
-    # Top up Slot 2 from fallback defaults if DNS-MAIN failed to match uniquely
+    # If DNS-MAIN has no valid/unique entries, select another random shuffled fallback option
     if len(chosen_providers) < 2:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
@@ -309,7 +312,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # Slots 3, 4, 5: Fully random draw combining leftover items from BOTH pools
+    # Slots 3, 4, 5: Merge leftovers and grab completely random servers from either source
     combined_remaining = [p for p in (pairs_top + pairs_main) if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
 
@@ -321,7 +324,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
 
-    # Safety final check backup to ensure exactly 5 structural unique pairs exist
+    # Final top-up loop using the shuffled backup list to reach exactly 5 entries
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -334,7 +337,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     dns_servers_config = []
     inbound_tags = []
     
-    # Generate Server Engine Objects Arrays
+    # Generate Output Config Array
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
