@@ -205,6 +205,32 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
         print(f"Error filtering structural schema configurations for {protocol}: {e}")
         return None, False
 
+def clean_dns_address(srv_str, prefix):
+    """Strips prefixes, leading slashes, and trailing ports perfectly."""
+    clean = srv_str.replace(prefix, "").replace("//", "").strip()
+    if clean.startswith("[") and "]" in clean:
+        parts = clean.split("]")
+        return parts[0] + "]"
+    return clean.split(":")[0]
+
+def get_identity_key(srv):
+    """Extracts base registration domain string for unique grouping identifier match validation."""
+    try:
+        if srv.startswith("https://"):
+            domain = urlparse(srv).netloc
+        elif srv.startswith("tcp:"):
+            domain = clean_dns_address(srv, "tcp:")
+        elif srv.startswith("quic:"):
+            domain = clean_dns_address(srv, "quic:")
+        elif srv.startswith("udp:"):
+            domain = clean_dns_address(srv, "udp:")
+        else:
+            domain = srv
+        domain_parts = domain.replace("[", "").replace("]", "").split('.')
+        return ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
+    except Exception:
+        return srv
+
 def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
@@ -221,10 +247,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"server": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
 
-    paired_providers = []
+    paired_doh = []
+    paired_others = []
     current_pair = {}
     
-    # Identify protocol addresses vs rule routing fallback IPs
+    # Process inputs into separate DoH vs Non-DoH paired structures
     for item in pool_dns_servers:
         if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
             current_pair["server"] = item
@@ -232,83 +259,78 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             current_pair["ip"] = item
             
         if "server" in current_pair and "ip" in current_pair:
-            paired_providers.append(current_pair)
+            if current_pair["server"].startswith("https://"):
+                paired_doh.append(current_pair)
+            else:
+                paired_others.append(current_pair)
             current_pair = {}
 
-    random.shuffle(paired_providers)
+    random.shuffle(paired_doh)
+    random.shuffle(paired_others)
 
-    # De-duplicate to guarantee exactly 5 unique providers based on domain or base IP mapping
     chosen_providers = []
     seen_identifiers = set()
 
-    for provider in paired_providers:
-        srv = provider["server"]
-        try:
-            if srv.startswith("https://"):
-                domain = urlparse(srv).netloc
-            else:
-                clean = srv.replace("tcp:", "").replace("quic:", "").replace("udp:", "").replace("//", "")
-                # Regex safely extracts host/IP, leaving IPv6 brackets untouched while wiping explicit trailing ports
-                domain = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
-                
-            domain_parts = domain.split('.')
-            identity_key = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
-        except Exception:
-            identity_key = srv
+    # 1. Lock a completely randomized DoH server explicitly into the first spot
+    for provider in paired_doh:
+        ident = get_identity_key(provider["server"])
+        seen_identifiers.add(ident)
+        chosen_providers.append(provider)
+        break
 
-        if identity_key not in seen_identifiers:
-            seen_identifiers.add(identity_key)
-            chosen_providers.append(provider)
-        
+    # If no custom DoH provider exists in file list pool, draw from fallback template list options
+    if not chosen_providers:
+        for fb in fallback_providers:
+            if fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                seen_identifiers.add(ident)
+                chosen_providers.append(fb)
+                break
+
+    # 2. Randomly fill the remaining 4 spots with completely unique providers left in the pool
+    combined_pool = paired_others + [p for p in paired_doh if get_identity_key(p["server"]) not in seen_identifiers]
+    random.shuffle(combined_pool)
+
+    for provider in combined_pool:
         if len(chosen_providers) == 5:
             break
+        ident = get_identity_key(provider["server"])
+        if ident not in seen_identifiers:
+            seen_identifiers.add(ident)
+            chosen_providers.append(provider)
 
-    # Fill up with fallback options if unique pairs fall below 5
+    # Secondary structural fallbacks safely checks and tops up lists if sample pool underperforms
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
                 break
-            try:
-                fb_domain = urlparse(fb["server"]).netloc if fb["server"].startswith("https://") else fb["server"]
-            except Exception:
-                fb_domain = fb["server"]
-                
-            if fb_domain not in seen_identifiers:
-                seen_identifiers.add(fb_domain)
+            ident = get_identity_key(fb["server"])
+            if ident not in seen_identifiers:
+                seen_identifiers.add(ident)
                 chosen_providers.append(fb)
 
     dns_servers_config = []
     inbound_tags = []
     
-    # 1. Output Server Block (Strictly formatted syntax for Xray Core)
+    # Generate Output Configuration Array Object Layers
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
-        
         srv_address = provider["server"]
         
         if srv_address.startswith("tcp:"):
-            clean = srv_address.replace("tcp:", "").replace("//", "")
-            clean_host = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
+            clean_host = clean_dns_address(srv_address, "tcp:")
             dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
-            
         elif srv_address.startswith("quic:"):
-            clean = srv_address.replace("quic:", "").replace("//", "")
-            clean_host = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
-            
-            # Dynamic Port Shift: Assign 853 if it's Cloudflare, else fallback to 784
+            clean_host = clean_dns_address(srv_address, "quic:")
             quic_port = 853 if "one.one.one.one" in clean_host or "1.1.1." in clean_host else 784
             dns_servers_config.append({"address": f"quic:{clean_host}", "port": quic_port, "tag": tag_name})
-            
         elif srv_address.startswith("udp:"):
-            clean = srv_address.replace("udp:", "").replace("//", "")
-            clean_host = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
+            clean_host = clean_dns_address(srv_address, "udp:")
             dns_servers_config.append({"address": clean_host, "port": 53, "tag": tag_name})
-            
         else:
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Output Matching Domestic Routing Fallback Objects
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -317,7 +339,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             "skipFallback": False
         })
         
-    # Gather configuration routing fields out of outbounds nodes
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -335,7 +356,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Dynamic layout rule targeting outbound configuration domains using first server's fallback IP
     first_provider_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
