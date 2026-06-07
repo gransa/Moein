@@ -268,25 +268,29 @@ def parse_dns_source(pool_dns_servers):
         i += 1
     return paired
 
-def build_bpb_template(base_vless_tls_node):
-    """Constructs a custom standalone template without modifying the target layout structure, using a random custom Vless node."""
-    # Extract structural variables from the randomly chosen core Vless outbound node safely
+def build_bpb_template(base_vless_tls_node, clean_addresses):
+    """Constructs a custom standalone template using a random custom Vless node and selects a completely random destination address from the remote endpoint file."""
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
-    node_address = vnext_info["address"]
+    # Pick a completely random address from Cloudflare-IPs.txt if available, otherwise fallback to standard node address
+    if clean_addresses:
+        node_address = random.choice(clean_addresses)
+    else:
+        node_address = vnext_info["address"]
+        
     node_port = vnext_info["port"]
     user_id = vnext_info["users"][0]["id"]
     
     network_type = stream_info.get("network", "ws")
     security_type = stream_info.get("security", "tls")
     
-    # Safely fetch internal TLS/WS specific map contexts
     tls_settings = stream_info.get("tlsSettings", {})
     ws_settings = stream_info.get("wsSettings", {})
     
     fingerprint_val = tls_settings.get("fingerprint", "chrome")
     sni_server_name = tls_settings.get("serverName", "")
+    cert_fingerprint = tls_settings.get("pinnedPeerCertSha256", "")
     
     ws_host = ws_settings.get("host", sni_server_name)
     ws_path = ws_settings.get("path", "/")
@@ -412,6 +416,7 @@ def build_bpb_template(base_vless_tls_node):
                     "security": security_type,
                     "tlsSettings": {
                         "fingerprint": fingerprint_val,
+                        "pinnedPeerCertSha256": cert_fingerprint,
                         "serverName": sni_server_name,
                         "show": False
                     },
@@ -739,18 +744,17 @@ def main():
         ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
     ]
     
-    # 1. Map out standard template balancer profiles dynamically
     for remark, key in mapping:
         if groups[key]:
             final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
             
-    # 2. Add the dynamic standalone BPB profile using a completely random Vless-TLS configuration node
     if groups["vless_tls"]:
         random_vless_node = random.choice(groups["vless_tls"])
-        final_output.append(build_bpb_template(random_vless_node))
-        print("🎲 Successfully chose a random VLESS-TLS node and generated your dynamic BPB configuration.")
+        # Pass clean_addresses so the BPB function selects a completely random IP every build
+        final_output.append(build_bpb_template(random_vless_node, clean_addresses))
+        print("🎲 Randomly mixed dynamic Cloudflare IP address assigned into BPB profile configuration layout.")
     else:
-        print("⚠️ Warning: No VLESS-TLS configurations loaded. Skipping standalone BPB compilation.")
+        print("⚠️ Warning: No VLESS-TLS configurations loaded. Standalone BPB creation skipped.")
             
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
