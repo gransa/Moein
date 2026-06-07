@@ -214,6 +214,8 @@ tcp://[2a10:50c0::ad2:ff]:53
 
 https://dns.adguard-dns.com/dns-query
 
+https://d.adguard-dns.com/dns-query/f8f16c52
+
 tls://dns.adguard-dns.com:853
 
 quic://dns.adguard-dns.com:853
