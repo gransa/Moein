@@ -247,8 +247,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             if srv.startswith("https://"):
                 domain = urlparse(srv).netloc
             else:
-                # Clean prefix tags, dual slashes, and training ports to accurately pull unique domains
-                domain = srv.replace("tcp:", "").replace("quic:", "").replace("udp:", "").replace("//", "").split(":")[0]
+                clean = srv.replace("tcp:", "").replace("quic:", "").replace("udp:", "").replace("//", "")
+                # Regex safely extracts host/IP, leaving IPv6 brackets untouched while wiping explicit trailing ports
+                domain = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
                 
             domain_parts = domain.split('.')
             identity_key = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
@@ -287,22 +288,24 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         srv_address = provider["server"]
         
         if srv_address.startswith("tcp:"):
-            # Strip protocol tag, extra slashes, and trailing port. Prefix with 'tcp:' for DoT
-            clean_host = srv_address.replace("tcp:", "").replace("//", "").split(":")[0]
+            clean = srv_address.replace("tcp:", "").replace("//", "")
+            clean_host = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
             dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
             
         elif srv_address.startswith("quic:"):
-            # Strip protocol tag, extra slashes, and trailing port. Prefix with 'quic:' for DoQ
-            clean_host = srv_address.replace("quic:", "").replace("//", "").split(":")[0]
-            dns_servers_config.append({"address": f"quic:{clean_host}", "port": 784, "tag": tag_name})
+            clean = srv_address.replace("quic:", "").replace("//", "")
+            clean_host = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
+            
+            # Dynamic Port Shift: Assign 853 if it's Cloudflare, else fallback to 784
+            quic_port = 853 if "one.one.one.one" in clean_host or "1.1.1." in clean_host else 784
+            dns_servers_config.append({"address": f"quic:{clean_host}", "port": quic_port, "tag": tag_name})
             
         elif srv_address.startswith("udp:"):
-            # Standard unencrypted UDP uses only a raw IP or domain string
-            clean_host = srv_address.replace("udp:", "").replace("//", "").split(":")[0]
+            clean = srv_address.replace("udp:", "").replace("//", "")
+            clean_host = re.sub(r'(?<!\]):[0-9]+$', '', clean) if "]" in clean else clean.split(":")[0]
             dns_servers_config.append({"address": clean_host, "port": 53, "tag": tag_name})
             
         else:
-            # Handle standard HTTPS DoH structure strings perfectly
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
     # 2. Output Matching Domestic Routing Fallback Objects
