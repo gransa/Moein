@@ -268,6 +268,233 @@ def parse_dns_source(pool_dns_servers):
         i += 1
     return paired
 
+def build_bpb_template(base_vless_tls_node):
+    """Constructs a custom standalone template without modifying the target layout structure, using a random custom Vless node."""
+    # Extract structural variables from the randomly chosen core Vless outbound node safely
+    vnext_info = base_vless_tls_node["settings"]["vnext"][0]
+    stream_info = base_vless_tls_node["streamSettings"]
+    
+    node_address = vnext_info["address"]
+    node_port = vnext_info["port"]
+    user_id = vnext_info["users"][0]["id"]
+    
+    network_type = stream_info.get("network", "ws")
+    security_type = stream_info.get("security", "tls")
+    
+    # Safely fetch internal TLS/WS specific map contexts
+    tls_settings = stream_info.get("tlsSettings", {})
+    ws_settings = stream_info.get("wsSettings", {})
+    
+    fingerprint_val = tls_settings.get("fingerprint", "chrome")
+    sni_server_name = tls_settings.get("serverName", "")
+    
+    ws_host = ws_settings.get("host", sni_server_name)
+    ws_path = ws_settings.get("path", "/")
+
+    return {
+        "remarks": "🌴 5 - BPB - CF Vless 🤖",
+        "dns": {
+            "hosts": {
+                "domain:googleapis.cn": "googleapis.com",
+                "tcp://8.8.8.8": [
+                    "8.8.8.8",
+                    "8.8.4.4",
+                    "2001:4860:4860::8888",
+                    "2001:4860:4860::8844"
+                ],
+                "udp://1.1.1.1": [
+                    "1.1.1.1",
+                    "1.0.0.1",
+                    "2606:4700:4700::1111",
+                    "2606:4700:4700::1001"
+                ],
+                "https://8.8.8.8/dns-query": [
+                    "8.8.8.8",
+                    "8.8.4.4",
+                    "2001:4860:4860::8888",
+                    "2001:4860:4860::8844"
+                ],
+                "https://1.1.1.1/dns-query": [
+                    "1.1.1.1",
+                    "1.0.0.1",
+                    "2606:4700:4700::1111",
+                    "2606:4700:4700::1001"
+                ]
+            },
+            "servers": [
+                "https://8.8.8.8/dns-query",
+                {
+                    "address": "78.157.42.100",
+                    "domains": [
+                        "geosite:openai",
+                        "geosite:microsoft",
+                        "geosite:oracle",
+                        "geosite:docker",
+                        "geosite:adobe",
+                        "geosite:epicgames",
+                        "geosite:intel",
+                        "geosite:amd",
+                        "geosite:nvidia",
+                        "geosite:asus",
+                        "geosite:hp",
+                        "geosite:lenovo"
+                    ],
+                    "skipFallback": True
+                },
+                {
+                    "address": "78.157.42.101",
+                    "domains": [
+                        "geosite:openai",
+                        "geosite:microsoft",
+                        "geosite:oracle",
+                        "geosite:docker",
+                        "geosite:adobe",
+                        "geosite:epicgames",
+                        "geosite:intel",
+                        "geosite:amd",
+                        "geosite:nvidia",
+                        "geosite:asus",
+                        "geosite:hp",
+                        "geosite:lenovo"
+                    ],
+                    "skipFallback": True
+                }
+            ],
+            "tag": "dns-module"
+        },
+        "inbounds": [
+            {
+                "listen": "127.0.0.1",
+                "port": 10808,
+                "protocol": "socks",
+                "settings": {
+                    "auth": "noauth",
+                    "udp": True,
+                    "userLevel": 8
+                },
+                "sniffing": {
+                    "destOverride": [
+                        "fakedns"
+                    ],
+                    "enabled": True,
+                    "routeOnly": False
+                },
+                "tag": "socks"
+            }
+        ],
+        "log": {
+            "loglevel": "warning"
+        },
+        "outbounds": [
+            {
+                "mux": {
+                    "concurrency": -1,
+                    "enabled": False
+                },
+                "protocol": "vless",
+                "settings": {
+                    "vnext": [
+                        {
+                            "address": node_address,
+                            "port": node_port,
+                            "users": [
+                                {
+                                    "encryption": "none",
+                                    "id": user_id,
+                                    "level": 8
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": network_type,
+                    "security": security_type,
+                    "tlsSettings": {
+                        "fingerprint": fingerprint_val,
+                        "serverName": sni_server_name,
+                        "show": False
+                    },
+                    "wsSettings": {
+                        "headers": {
+                            "Host": ws_host
+                        },
+                        "path": ws_path
+                    }
+                },
+                "tag": "proxy"
+            },
+            {
+                "protocol": "freedom",
+                "settings": {
+                    "domainStrategy": "UseIP"
+                },
+                "tag": "direct"
+            },
+            {
+                "protocol": "blackhole",
+                "settings": {
+                    "response": {
+                        "type": "http"
+                    }
+                },
+                "tag": "block"
+            }
+        ],
+        "policy": {
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            },
+            "system": {
+                "statsOutboundUplink": True,
+                "statsOutboundDownlink": True
+            }
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": [
+                {
+                    "inboundTag": [
+                        "domestic-dns"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                },
+                {
+                    "inboundTag": [
+                        "dns-module"
+                    ],
+                    "outboundTag": "proxy",
+                    "type": "field"
+                },
+                {
+                    "type": "field",
+                    "domain": [
+                        "geosite:openai",
+                        "geosite:microsoft",
+                        "geosite:oracle",
+                        "geosite:docker",
+                        "geosite:adobe",
+                        "geosite:epicgames",
+                        "geosite:intel",
+                        "geosite:amd",
+                        "geosite:nvidia",
+                        "geosite:asus",
+                        "geosite:hp",
+                        "geosite:lenovo"
+                    ],
+                    "outboundTag": "direct"
+                }
+            ]
+        },
+        "stats": {}
+    }
+
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
@@ -276,7 +503,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Alternative emergency top-up pool (Completely free of standard Cloudflare items)
     fallback_providers = [
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
@@ -285,11 +511,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     ]
     random.shuffle(fallback_providers)
 
-    # Structure text lists into clean pairs
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    # Gather DoH options exclusively
     doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
@@ -299,14 +523,12 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     chosen_providers = []
     seen_identifiers = set()
 
-    # --- SLOT 1: remote-dns-1 Selection (STRICTLY FROM DNS-TOP.txt ONLY) ---
     for provider in doh_top:
         ident = get_identity_key(provider["server"])
         seen_identifiers.add(ident)
         chosen_providers.append(provider)
         break
 
-    # Absolute Emergency Fallback ONLY if DNS-TOP.txt downloaded completely empty
     if not chosen_providers:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
@@ -314,15 +536,13 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # --- SLOT 2: remote-dns-2 Selection (STRICTLY FROM DNS.txt AND EXPLICITLY NOT SAME AS SLOT 1) ---
     for provider in doh_main:
         ident = get_identity_key(provider["server"])
-        if ident not in seen_identifiers:  # Force skip if it matches Slot 1 provider signature
+        if ident not in seen_identifiers:
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
             break
 
-    # Backup logic for Slot 2 if DNS.txt failed or isn't unique from slot 1
     if len(chosen_providers) < 2 and len(chosen_providers) == 1:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
@@ -331,11 +551,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # Remove the strictly assigned nodes from the leftover pool to prevent back-pollution
     remaining_top = [p for p in pairs_top if get_identity_key(p["server"]) not in seen_identifiers]
     remaining_main = [p for p in pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
     
-    # --- SLOTS 3, 4, 5: General Random Pool Mix (Leftovers from BOTH Sources) ---
     combined_remaining = remaining_top + remaining_main
     random.shuffle(combined_remaining)
 
@@ -347,7 +565,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
 
-    # General top-up using alternative backup elements if 5 unique providers weren't reached
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -360,7 +577,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     dns_servers_config = []
     inbound_tags = []
     
-    # Generate Output Configuration Data Structure
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
@@ -523,9 +739,18 @@ def main():
         ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
     ]
     
+    # 1. Map out standard template balancer profiles dynamically
     for remark, key in mapping:
         if groups[key]:
             final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
+            
+    # 2. Add the dynamic standalone BPB profile using a completely random Vless-TLS configuration node
+    if groups["vless_tls"]:
+        random_vless_node = random.choice(groups["vless_tls"])
+        final_output.append(build_bpb_template(random_vless_node))
+        print("🎲 Successfully chose a random VLESS-TLS node and generated your dynamic BPB configuration.")
+    else:
+        print("⚠️ Warning: No VLESS-TLS configurations loaded. Skipping standalone BPB compilation.")
             
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
