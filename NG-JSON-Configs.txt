@@ -7,54 +7,28 @@
     "dns": {
       "servers": [
         {
-          "address": "https://dns.alidns.com/dns-query",
+          "address": "tcp://91.239.100.100:53",
+          "port": 853,
           "tag": "remote-dns-1"
         },
         {
-          "address": "https://security.cloudflare-dns.com/dns-query",
+          "address": "tcp://77.88.8.8:53",
+          "port": 853,
           "tag": "remote-dns-2"
         },
         {
-          "address": "https://doh.opennic.org/dns-query",
+          "address": "quic://p0.freedns.controld.com:853",
+          "port": 784,
           "tag": "remote-dns-3"
         },
         {
-          "address": "https://dns.uncensoreddns.org/dns-query",
+          "address": "quic://dns.mullvad.net:853",
+          "port": 784,
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://dns.aha-dns.com/dns-query",
+          "address": "https://dns.quad9.net/dns-query",
           "tag": "remote-dns-5"
-        },
-        {
-          "address": "119.29.29.29",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "1.0.0.2",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "169.239.202.202",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
         },
         {
           "address": "89.233.43.71",
@@ -67,7 +41,7 @@
           "skipFallback": false
         },
         {
-          "address": "45.90.30.0",
+          "address": "77.88.8.1",
           "domains": [
             "geosite:category-ir"
           ],
@@ -75,6 +49,43 @@
             "geoip:ir"
           ],
           "skipFallback": false
+        },
+        {
+          "address": "76.76.2.1",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "194.242.2.3",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "9.9.9.9",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "89.233.43.71",
+          "domains": [
+            "full:www.visa.com.br"
+          ],
+          "skipFallback": true
         }
       ],
       "queryStrategy": "UseIP",
@@ -116,11 +127,11 @@
         "settings": {
           "vnext": [
             {
-              "address": "208.103.161.249",
-              "port": 8443,
+              "address": "63.141.128.232",
+              "port": 2083,
               "users": [
                 {
-                  "id": "8eb92a78-ec8d-4ff6-8a2d-8b801367be87",
+                  "id": "b4cee115-cb5e-4571-99fa-a8f80dc902b1",
                   "encryption": "none",
                   "level": 8
                 }
@@ -135,14 +146,14 @@
             "domainStrategy": "UseIPv4v6"
           },
           "wsSettings": {
-            "host": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
+            "host": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
             "path": "/?ed=2560"
           },
           "tlsSettings": {
             "allowInsecure": false,
             "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "26B650F0C1B85797938FEE5F177B776051D6D925DD646EBCF49A4E04900B9427",
-            "serverName": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
+            "pinnedPeerCertSha256": "366E3C7033F48ABE20D8C4CC80D7D40DC9AFBD8BB9AB272BF207BC5ED00800B9",
+            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
             "show": false
           }
         },
@@ -153,44 +164,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "162.159.142.8",
-              "port": 443,
-              "users": [
-                {
-                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "31B7E5477FF010FE905CDC4D255BB507777532C49FBE8C35C56A932B88387039",
-            "serverName": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
-            "show": false
-          }
-        },
-        "tag": "prox-2"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
-              "address": "172.64.48.15",
+              "address": "193.9.49.119",
               "port": 2053,
               "users": [
                 {
@@ -220,18 +194,18 @@
             "show": false
           }
         },
-        "tag": "prox-3"
+        "tag": "prox-2"
       },
       {
         "protocol": "vless",
         "settings": {
           "vnext": [
             {
-              "address": "104.17.2.112",
-              "port": 2083,
+              "address": "www.visa.com.br",
+              "port": 8443,
               "users": [
                 {
-                  "id": "b4cee115-cb5e-4571-99fa-a8f80dc902b1",
+                  "id": "8eb92a78-ec8d-4ff6-8a2d-8b801367be87",
                   "encryption": "none",
                   "level": 8
                 }
@@ -246,14 +220,51 @@
             "domainStrategy": "UseIPv4v6"
           },
           "wsSettings": {
-            "host": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
+            "host": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
             "path": "/?ed=2560"
           },
           "tlsSettings": {
             "allowInsecure": false,
             "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "366E3C7033F48ABE20D8C4CC80D7D40DC9AFBD8BB9AB272BF207BC5ED00800B9",
-            "serverName": "KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV",
+            "pinnedPeerCertSha256": "26B650F0C1B85797938FEE5F177B776051D6D925DD646EBCF49A4E04900B9427",
+            "serverName": "KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV",
+            "show": false
+          }
+        },
+        "tag": "prox-3"
+      },
+      {
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "208.103.161.249",
+              "port": 443,
+              "users": [
+                {
+                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
+                  "encryption": "none",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
+            "path": "/?ed=2560"
+          },
+          "tlsSettings": {
+            "allowInsecure": false,
+            "fingerprint": "chrome",
+            "pinnedPeerCertSha256": "31B7E5477FF010FE905CDC4D255BB507777532C49FBE8C35C56A932B88387039",
+            "serverName": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
             "show": false
           }
         },
@@ -386,57 +397,31 @@
     "dns": {
       "servers": [
         {
-          "address": "https://dns.quad9.net/dns-query",
+          "address": "tcp://77.88.8.88:53",
+          "port": 853,
           "tag": "remote-dns-1"
         },
         {
-          "address": "https://base.dns.mullvad.net/dns-query",
+          "address": "https://dns.alidns.com/dns-query",
           "tag": "remote-dns-2"
         },
         {
-          "address": "https://doh.alternate-dns.com/dns-query",
+          "address": "tcp://194.242.2.5:53",
+          "port": 853,
           "tag": "remote-dns-3"
         },
         {
-          "address": "https://doh.opendns.com/dns-query",
+          "address": "tcp://185.228.168.9:53",
+          "port": 853,
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://dns.alidns.com/dns-query",
+          "address": "tcp://149.112.121.10:53",
+          "port": 853,
           "tag": "remote-dns-5"
         },
         {
-          "address": "9.9.9.9",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "194.242.2.4",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "23.253.163.53",
-          "domains": [
-            "geosite:category-ir"
-          ],
-          "expectIPs": [
-            "geoip:ir"
-          ],
-          "skipFallback": false
-        },
-        {
-          "address": "185.121.177.177",
+          "address": "77.88.8.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -456,9 +441,39 @@
           "skipFallback": false
         },
         {
-          "address": "9.9.9.9",
+          "address": "194.242.2.8",
           "domains": [
-            "full:transferwise.com"
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "185.228.169.9",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "149.112.122.10",
+          "domains": [
+            "geosite:category-ir"
+          ],
+          "expectIPs": [
+            "geoip:ir"
+          ],
+          "skipFallback": false
+        },
+        {
+          "address": "77.88.8.2",
+          "domains": [
+            "full:23andme.com"
           ],
           "skipFallback": true
         }
@@ -503,38 +518,6 @@
           "servers": [
             {
               "address": "172.64.32.19",
-              "port": 2096,
-              "password": "krOXKzNRRIROWi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
-            "path": "/?ed=2560"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "4A6B313871C5A30FA44A6EE83545057A219F0CD78929785F5063FE5D1207E13F",
-            "serverName": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
-            "show": false
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "transferwise.com",
               "port": 2087,
               "password": "GABTmlZTPGtULi",
               "level": 8
@@ -556,6 +539,38 @@
             "fingerprint": "chrome",
             "pinnedPeerCertSha256": "2ACC7C59CCFD015057E0CC7581D00F457CA0D0A35F62EC9F1D1E719FC1578002",
             "serverName": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
+            "show": false
+          }
+        },
+        "tag": "prox-1"
+      },
+      {
+        "protocol": "trojan",
+        "settings": {
+          "servers": [
+            {
+              "address": "23andme.com",
+              "port": 2096,
+              "password": "krOXKzNRRIROWi",
+              "level": 8
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
+            "path": "/?ed=2560"
+          },
+          "tlsSettings": {
+            "allowInsecure": false,
+            "fingerprint": "chrome",
+            "pinnedPeerCertSha256": "4A6B313871C5A30FA44A6EE83545057A219F0CD78929785F5063FE5D1207E13F",
+            "serverName": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
             "show": false
           }
         },
@@ -688,27 +703,30 @@
     "dns": {
       "servers": [
         {
-          "address": "https://adblock.dns.mullvad.net/dns-query",
+          "address": "quic://dns.adguard-dns.com:853",
+          "port": 784,
           "tag": "remote-dns-1"
         },
         {
-          "address": "https://1.1.1.1/dns-query",
+          "address": "tcp://94.140.14.140:53",
+          "port": 853,
           "tag": "remote-dns-2"
         },
         {
-          "address": "https://dns.adguard-dns.com/dns-query",
+          "address": "tcp://76.76.2.0:53",
+          "port": 853,
           "tag": "remote-dns-3"
         },
         {
-          "address": "https://dns0.eu/dns-query",
+          "address": "https://doh.opennic.org/dns-query",
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://freedns.controld.com/malware",
+          "address": "https://odvr.nic.cz/dns-query",
           "tag": "remote-dns-5"
         },
         {
-          "address": "194.242.2.3",
+          "address": "94.140.14.140",
           "domains": [
             "geosite:category-ir"
           ],
@@ -718,7 +736,7 @@
           "skipFallback": false
         },
         {
-          "address": "1.1.1.1",
+          "address": "94.140.14.141",
           "domains": [
             "geosite:category-ir"
           ],
@@ -728,7 +746,7 @@
           "skipFallback": false
         },
         {
-          "address": "94.140.15.15",
+          "address": "76.76.10.0",
           "domains": [
             "geosite:category-ir"
           ],
@@ -738,7 +756,7 @@
           "skipFallback": false
         },
         {
-          "address": "185.253.5.0",
+          "address": "37.235.1.174",
           "domains": [
             "geosite:category-ir"
           ],
@@ -748,7 +766,7 @@
           "skipFallback": false
         },
         {
-          "address": "76.76.10.2",
+          "address": "185.1.192.192",
           "domains": [
             "geosite:category-ir"
           ],
@@ -797,111 +815,6 @@
         "settings": {
           "vnext": [
             {
-              "address": "109.61.109.204",
-              "port": 56638,
-              "users": [
-                {
-                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "109.61.109.204",
-              "port": 20354,
-              "users": [
-                {
-                  "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-2"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
-              "address": "77.90.60.29",
-              "port": 41284,
-              "users": [
-                {
-                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
-                  "alterId": 0,
-                  "security": "auto",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "tls",
-          "wsSettings": {
-            "host": "imafake.locker",
-            "path": "/speedtest"
-          },
-          "tlsSettings": {
-            "allowInsecure": false,
-            "fingerprint": "chrome",
-            "pinnedPeerCertSha256": "",
-            "serverName": "imafake.locker",
-            "show": false
-          }
-        },
-        "tag": "prox-3"
-      },
-      {
-        "protocol": "vmess",
-        "settings": {
-          "vnext": [
-            {
               "address": "185.248.33.173",
               "port": 61287,
               "users": [
@@ -930,7 +843,7 @@
             "show": false
           }
         },
-        "tag": "prox-4"
+        "tag": "prox-1"
       },
       {
         "protocol": "vmess",
@@ -965,7 +878,77 @@
             "show": false
           }
         },
-        "tag": "prox-5"
+        "tag": "prox-2"
+      },
+      {
+        "protocol": "vmess",
+        "settings": {
+          "vnext": [
+            {
+              "address": "109.61.109.204",
+              "port": 20354,
+              "users": [
+                {
+                  "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
+                  "alterId": 0,
+                  "security": "auto",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "wsSettings": {
+            "host": "imafake.locker",
+            "path": "/speedtest"
+          },
+          "tlsSettings": {
+            "allowInsecure": false,
+            "fingerprint": "chrome",
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
+          }
+        },
+        "tag": "prox-3"
+      },
+      {
+        "protocol": "vmess",
+        "settings": {
+          "vnext": [
+            {
+              "address": "109.61.109.204",
+              "port": 56638,
+              "users": [
+                {
+                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
+                  "alterId": 0,
+                  "security": "auto",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "wsSettings": {
+            "host": "imafake.locker",
+            "path": "/speedtest"
+          },
+          "tlsSettings": {
+            "allowInsecure": false,
+            "fingerprint": "chrome",
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
+          }
+        },
+        "tag": "prox-4"
       },
       {
         "protocol": "vmess",
@@ -977,6 +960,41 @@
               "users": [
                 {
                   "id": "76372e34-4fa4-4685-9a5a-37b676cf9cca",
+                  "alterId": 0,
+                  "security": "auto",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "tls",
+          "wsSettings": {
+            "host": "imafake.locker",
+            "path": "/speedtest"
+          },
+          "tlsSettings": {
+            "allowInsecure": false,
+            "fingerprint": "chrome",
+            "pinnedPeerCertSha256": "",
+            "serverName": "imafake.locker",
+            "show": false
+          }
+        },
+        "tag": "prox-5"
+      },
+      {
+        "protocol": "vmess",
+        "settings": {
+          "vnext": [
+            {
+              "address": "77.90.60.29",
+              "port": 41284,
+              "users": [
+                {
+                  "id": "bbb7f08e-6730-4262-af03-562d4a13dab8",
                   "alterId": 0,
                   "security": "auto",
                   "level": 8
@@ -1129,27 +1147,32 @@
     "dns": {
       "servers": [
         {
-          "address": "https://doh.opennic.org/dns-query",
+          "address": "tcp://194.242.2.2:53",
+          "port": 853,
           "tag": "remote-dns-1"
         },
         {
-          "address": "https://unfiltered.adguard-dns.com/dns-query",
+          "address": "quic://dns.nextdns.io:853",
+          "port": 784,
           "tag": "remote-dns-2"
         },
         {
-          "address": "https://dns11.quad9.net/dns-query",
+          "address": "tcp://77.88.8.88:53",
+          "port": 853,
           "tag": "remote-dns-3"
         },
         {
-          "address": "https://doh.opendns.com/dns-query",
+          "address": "tcp://91.239.100.100:53",
+          "port": 853,
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://dns.alidns.com/dns-query",
+          "address": "tcp://216.218.225.15:53",
+          "port": 853,
           "tag": "remote-dns-5"
         },
         {
-          "address": "156.154.70.1",
+          "address": "194.242.2.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1159,7 +1182,7 @@
           "skipFallback": false
         },
         {
-          "address": "94.140.14.141",
+          "address": "45.90.28.0",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1169,7 +1192,7 @@
           "skipFallback": false
         },
         {
-          "address": "149.112.112.11",
+          "address": "77.88.8.2",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1179,7 +1202,7 @@
           "skipFallback": false
         },
         {
-          "address": "185.121.177.177",
+          "address": "89.233.43.71",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1189,7 +1212,7 @@
           "skipFallback": false
         },
         {
-          "address": "119.29.29.29",
+          "address": "216.218.225.210",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1199,16 +1222,9 @@
           "skipFallback": false
         },
         {
-          "address": "156.154.70.1",
+          "address": "194.242.2.2",
           "domains": [
-            "full:www.visa.com.br"
-          ],
-          "skipFallback": true
-        },
-        {
-          "address": "156.154.70.1",
-          "domains": [
-            "full:23andme.com"
+            "full:www.speedtest.net"
           ],
           "skipFallback": true
         }
@@ -1252,36 +1268,6 @@
         "settings": {
           "vnext": [
             {
-              "address": "193.9.49.119",
-              "port": 80,
-              "users": [
-                {
-                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
-                  "encryption": "none",
-                  "level": 8
-                }
-              ]
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "vless",
-        "settings": {
-          "vnext": [
-            {
               "address": "104.16.9.215",
               "port": 8080,
               "users": [
@@ -1305,14 +1291,14 @@
             "path": "/?ed=2560"
           }
         },
-        "tag": "prox-2"
+        "tag": "prox-1"
       },
       {
         "protocol": "vless",
         "settings": {
           "vnext": [
             {
-              "address": "www.visa.com.br",
+              "address": "162.159.142.8",
               "port": 8880,
               "users": [
                 {
@@ -1335,6 +1321,36 @@
             "path": "/?ed=2560"
           }
         },
+        "tag": "prox-2"
+      },
+      {
+        "protocol": "vless",
+        "settings": {
+          "vnext": [
+            {
+              "address": "104.17.2.112",
+              "port": 80,
+              "users": [
+                {
+                  "id": "a3c51f71-ffb5-4c80-a136-cee4b36d6e85",
+                  "encryption": "none",
+                  "level": 8
+                }
+              ]
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "none",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv",
+            "path": "/?ed=2560"
+          }
+        },
         "tag": "prox-3"
       },
       {
@@ -1342,7 +1358,7 @@
         "settings": {
           "vnext": [
             {
-              "address": "23andme.com",
+              "address": "www.speedtest.net",
               "port": 2052,
               "users": [
                 {
@@ -1494,27 +1510,30 @@
     "dns": {
       "servers": [
         {
-          "address": "https://doh.opennic.org/dns-query",
+          "address": "tcp://76.76.2.0:53",
+          "port": 853,
           "tag": "remote-dns-1"
         },
         {
-          "address": "https://dns.adguard-dns.com/dns-query",
+          "address": "https://8.8.8.8/dns-query",
           "tag": "remote-dns-2"
         },
         {
-          "address": "https://freedns.afraid.org/dns-query",
+          "address": "tcp://80.67.169.12:53",
+          "port": 853,
           "tag": "remote-dns-3"
         },
         {
-          "address": "https://doh.opendns.com/dns-query",
+          "address": "https://doh.dns.sb/dns-query",
           "tag": "remote-dns-4"
         },
         {
-          "address": "https://dns.quad9.net/dns-query",
+          "address": "tcp://185.121.177.177:53",
+          "port": 853,
           "tag": "remote-dns-5"
         },
         {
-          "address": "156.154.70.1",
+          "address": "76.76.10.0",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1524,7 +1543,7 @@
           "skipFallback": false
         },
         {
-          "address": "94.140.15.15",
+          "address": "8.8.8.8",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1534,7 +1553,7 @@
           "skipFallback": false
         },
         {
-          "address": "37.235.1.177",
+          "address": "80.67.169.40",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1544,7 +1563,7 @@
           "skipFallback": false
         },
         {
-          "address": "208.67.222.123",
+          "address": "45.90.28.0",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1554,7 +1573,7 @@
           "skipFallback": false
         },
         {
-          "address": "9.9.9.9",
+          "address": "169.239.202.202",
           "domains": [
             "geosite:category-ir"
           ],
@@ -1564,9 +1583,9 @@
           "skipFallback": false
         },
         {
-          "address": "156.154.70.1",
+          "address": "76.76.10.0",
           "domains": [
-            "full:www.speedtest.net"
+            "full:transferwise.com"
           ],
           "skipFallback": true
         }
@@ -1610,32 +1629,7 @@
         "settings": {
           "servers": [
             {
-              "address": "63.141.128.232",
-              "port": 2082,
-              "password": "GABTmlZTPGtULi",
-              "level": 8
-            }
-          ]
-        },
-        "streamSettings": {
-          "network": "ws",
-          "security": "none",
-          "sockopt": {
-            "domainStrategy": "UseIPv4v6"
-          },
-          "wsSettings": {
-            "host": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
-            "path": "/?ed=2560"
-          }
-        },
-        "tag": "prox-1"
-      },
-      {
-        "protocol": "trojan",
-        "settings": {
-          "servers": [
-            {
-              "address": "www.speedtest.net",
+              "address": "172.64.48.15",
               "port": 2086,
               "password": "krOXKzNRRIROWi",
               "level": 8
@@ -1650,6 +1644,31 @@
           },
           "wsSettings": {
             "host": "kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV",
+            "path": "/?ed=2560"
+          }
+        },
+        "tag": "prox-1"
+      },
+      {
+        "protocol": "trojan",
+        "settings": {
+          "servers": [
+            {
+              "address": "transferwise.com",
+              "port": 2082,
+              "password": "GABTmlZTPGtULi",
+              "level": 8
+            }
+          ]
+        },
+        "streamSettings": {
+          "network": "ws",
+          "security": "none",
+          "sockopt": {
+            "domainStrategy": "UseIPv4v6"
+          },
+          "wsSettings": {
+            "host": "KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv",
             "path": "/?ed=2560"
           }
         },
