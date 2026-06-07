@@ -9,7 +9,8 @@ from urllib.parse import urlparse, unquote, parse_qs
 
 # Configuration URLs
 CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/Cloudflare-IPs.txt"
-DNS_SOURCE_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/DNS.txt"
+DNS_TOP_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/DNS-TOP.txt"
+DNS_MAIN_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/DNS.txt"
 
 # Cloudflare clear distinct port definitions
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
@@ -52,7 +53,7 @@ def fetch_remote_dns(url):
         print(f"✅ Successfully loaded {len(dns_list)} DNS lines.")
         return dns_list
     except Exception as e:
-        print(f"⚠️ Warning: Could not fetch remote DNS ({e}). Using structural fallbacks.")
+        print(f"⚠️ Warning: Could not fetch remote DNS from {url} ({e}).")
         return []
 
 def extract_explicit_port(url_str):
@@ -231,7 +232,22 @@ def get_identity_key(srv):
     except Exception:
         return srv
 
-def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
+def parse_dns_source(pool_dns_servers):
+    """Converts a flat text line source into structural paired dictionary groupings."""
+    paired = []
+    current_pair = {}
+    for item in pool_dns_servers:
+        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
+            current_pair["server"] = item
+        elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item):
+            current_pair["ip"] = item
+            
+        if "server" in current_pair and "ip" in current_pair:
+            paired.append(current_pair)
+            current_pair = {}
+    return paired
+
+def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
@@ -247,51 +263,57 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"server": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
 
-    paired_doh = []
-    paired_others = []
-    current_pair = {}
-    
-    # Process inputs into separate DoH vs Non-DoH paired structures
-    for item in pool_dns_servers:
-        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
-            current_pair["server"] = item
-        elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item):
-            current_pair["ip"] = item
-            
-        if "server" in current_pair and "ip" in current_pair:
-            if current_pair["server"].startswith("https://"):
-                paired_doh.append(current_pair)
-            else:
-                paired_others.append(current_pair)
-            current_pair = {}
+    # Structure lines into pairs
+    pairs_top = parse_dns_source(pool_top_dns)
+    pairs_main = parse_dns_source(pool_main_dns)
 
-    random.shuffle(paired_doh)
-    random.shuffle(paired_others)
+    # Filter out DoH servers
+    doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
+    doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
+
+    random.shuffle(doh_top)
+    random.shuffle(doh_main)
 
     chosen_providers = []
     seen_identifiers = set()
 
-    # 1. Lock a completely randomized DoH server explicitly into the first spot
-    for provider in paired_doh:
+    # Slot 1: Locked to DoH from DNS-TOP
+    for provider in doh_top:
         ident = get_identity_key(provider["server"])
         seen_identifiers.add(ident)
         chosen_providers.append(provider)
         break
 
-    # If no custom DoH provider exists in file list pool, draw from fallback template list options
+    # Top up Slot 1 from backends if DNS-TOP has no DoH
     if not chosen_providers:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
-                ident = get_identity_key(fb["server"])
+                seen_identifiers.add(get_identity_key(fb["server"]))
+                chosen_providers.append(fb)
+                break
+
+    # Slot 2: Locked to DoH from DNS-MAIN (Ensure unique provider identity)
+    for provider in doh_main:
+        ident = get_identity_key(provider["server"])
+        if ident not in seen_identifiers:
+            seen_identifiers.add(ident)
+            chosen_providers.append(provider)
+            break
+
+    # Top up Slot 2 from fallback defaults if DNS-MAIN failed to match uniquely
+    if len(chosen_providers) < 2:
+        for fb in fallback_providers:
+            ident = get_identity_key(fb["server"])
+            if fb["server"].startswith("https://") and ident not in seen_identifiers:
                 seen_identifiers.add(ident)
                 chosen_providers.append(fb)
                 break
 
-    # 2. Randomly fill the remaining 4 spots with completely unique providers left in the pool
-    combined_pool = paired_others + [p for p in paired_doh if get_identity_key(p["server"]) not in seen_identifiers]
-    random.shuffle(combined_pool)
+    # Slots 3, 4, 5: Fully random draw combining leftover items from BOTH pools
+    combined_remaining = [p for p in (pairs_top + pairs_main) if get_identity_key(p["server"]) not in seen_identifiers]
+    random.shuffle(combined_remaining)
 
-    for provider in combined_pool:
+    for provider in combined_remaining:
         if len(chosen_providers) == 5:
             break
         ident = get_identity_key(provider["server"])
@@ -299,7 +321,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
 
-    # Secondary structural fallbacks safely checks and tops up lists if sample pool underperforms
+    # Safety final check backup to ensure exactly 5 structural unique pairs exist
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -312,7 +334,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
     dns_servers_config = []
     inbound_tags = []
     
-    # Generate Output Configuration Array Object Layers
+    # Generate Server Engine Objects Arrays
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
@@ -420,7 +442,8 @@ def main():
         return
 
     clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
-    pool_dns_servers = fetch_remote_dns(DNS_SOURCE_URL)
+    pool_top_dns = fetch_remote_dns(DNS_TOP_URL)
+    pool_main_dns = fetch_remote_dns(DNS_MAIN_URL)
 
     tls_counter = [0]
     non_tls_counter = [0]
@@ -477,7 +500,7 @@ def main():
     
     for remark, key in mapping:
         if groups[key]:
-            final_output.append(build_v2rayng_template(remark, groups[key], pool_dns_servers))
+            final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
             
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
