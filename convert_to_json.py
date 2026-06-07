@@ -213,7 +213,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Structural fallback list in case remote source has insufficient unique elements
     fallback_providers = [
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
@@ -225,7 +224,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
     paired_providers = []
     current_pair = {}
     
-    # Process text arrays into clean dictionary pairs
+    # Identify protocol addresses vs rule routing fallback IPs
     for item in pool_dns_servers:
         if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
             current_pair["server"] = item
@@ -236,10 +235,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             paired_providers.append(current_pair)
             current_pair = {}
 
-    # Shuffle the provider pool completely to enable random rotation
     random.shuffle(paired_providers)
 
-    # Filter to isolate 5 unique, completely non-repeating providers
+    # De-duplicate to guarantee exactly 5 unique providers based on domain or base IP mapping
     chosen_providers = []
     seen_identifiers = set()
 
@@ -248,11 +246,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         try:
             if srv.startswith("https://"):
                 domain = urlparse(srv).netloc
-            elif srv.startswith("tcp:") or srv.startswith("quic:"):
-                domain = srv.split(":", 1)[1].split(":")[0]
             else:
-                # Clean up udp entry variants like 'udp://127.0.0.1:53' or 'udp:127.0.0.1' down to raw IP
-                domain = srv.replace("udp:", "").replace("//", "").split(":")[0]
+                # Clean prefix tags, dual slashes, and training ports to accurately pull unique domains
+                domain = srv.replace("tcp:", "").replace("quic:", "").replace("udp:", "").replace("//", "").split(":")[0]
                 
             domain_parts = domain.split('.')
             identity_key = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
@@ -266,7 +262,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         if len(chosen_providers) == 5:
             break
 
-    # Apply fallback structural elements if target counts underperform
+    # Fill up with fallback options if unique pairs fall below 5
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -283,24 +279,33 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
     dns_servers_config = []
     inbound_tags = []
     
-    # 1. First block layout formatting: Process 5 completely unique secure server instances
+    # 1. Output Server Block (Strictly formatted syntax for Xray Core)
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
         
         srv_address = provider["server"]
+        
         if srv_address.startswith("tcp:"):
-            dns_servers_config.append({"address": srv_address, "port": 853, "tag": tag_name})
+            # Strip protocol tag, extra slashes, and trailing port. Prefix with 'tcp:' for DoT
+            clean_host = srv_address.replace("tcp:", "").replace("//", "").split(":")[0]
+            dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
+            
         elif srv_address.startswith("quic:"):
-            dns_servers_config.append({"address": srv_address, "port": 784, "tag": tag_name})
+            # Strip protocol tag, extra slashes, and trailing port. Prefix with 'quic:' for DoQ
+            clean_host = srv_address.replace("quic:", "").replace("//", "").split(":")[0]
+            dns_servers_config.append({"address": f"quic:{clean_host}", "port": 784, "tag": tag_name})
+            
         elif srv_address.startswith("udp:"):
-            # Rigorously strip protocol tags, extra slashes, and training ports for standard Xray UDP compliance
-            clean_udp_ip = srv_address.replace("udp:", "").replace("//", "").split(":")[0]
-            dns_servers_config.append({"address": clean_udp_ip, "port": 53, "tag": tag_name})
+            # Standard unencrypted UDP uses only a raw IP or domain string
+            clean_host = srv_address.replace("udp:", "").replace("//", "").split(":")[0]
+            dns_servers_config.append({"address": clean_host, "port": 53, "tag": tag_name})
+            
         else:
+            # Handle standard HTTPS DoH structure strings perfectly
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Second block layout formatting: Map regional domestic routing objects
+    # 2. Output Matching Domestic Routing Fallback Objects
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -309,7 +314,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             "skipFallback": False
         })
         
-    # Extract structural configuration details out of current outbounds lists
+    # Gather configuration routing fields out of outbounds nodes
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -327,7 +332,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Third block layout formatting: Establish dynamic tracking using the first chosen IP
+    # 3. Dynamic layout rule targeting outbound configuration domains using first server's fallback IP
     first_provider_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
