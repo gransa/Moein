@@ -251,8 +251,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             elif srv.startswith("tcp:") or srv.startswith("quic:"):
                 domain = srv.split(":", 1)[1].split(":")[0]
             else:
-                # For plain UDP servers, use the IP directly as the matching identifier key
-                domain = srv.replace("udp:", "")
+                # Clean up udp entry variants like 'udp://127.0.0.1:53' or 'udp:127.0.0.1' down to raw IP
+                domain = srv.replace("udp:", "").replace("//", "").split(":")[0]
                 
             domain_parts = domain.split('.')
             identity_key = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
@@ -294,7 +294,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         elif srv_address.startswith("quic:"):
             dns_servers_config.append({"address": srv_address, "port": 784, "tag": tag_name})
         elif srv_address.startswith("udp:"):
-            clean_udp_ip = srv_address.replace("udp:", "")
+            # Rigorously strip protocol tags, extra slashes, and training ports for standard Xray UDP compliance
+            clean_udp_ip = srv_address.replace("udp:", "").replace("//", "").split(":")[0]
             dns_servers_config.append({"address": clean_udp_ip, "port": 53, "tag": tag_name})
         else:
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
