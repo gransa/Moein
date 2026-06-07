@@ -722,6 +722,206 @@ def build_bpb_non_tls_template(base_vless_non_tls_node, clean_addresses):
         "stats": {}
     }
 
+def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
+    """Constructs the third standalone template (☘️ 4 - BPB - Fragment 🔥) using a completely random IP from Cloudflare-IPs.txt."""
+    vnext_info = base_vless_tls_node["settings"]["vnext"][0]
+    stream_info = base_vless_tls_node["streamSettings"]
+    
+    if clean_addresses:
+        node_address = random.choice(clean_addresses)
+    else:
+        node_address = vnext_info["address"]
+        
+    node_port = vnext_info["port"]
+    user_id = vnext_info["users"][0]["id"]
+    
+    network_type = stream_info.get("network", "ws")
+    security_type = stream_info.get("security", "tls")
+    
+    tls_settings = stream_info.get("tlsSettings", {})
+    ws_settings = stream_info.get("wsSettings", {})
+    
+    fingerprint_val = tls_settings.get("fingerprint", "chrome")
+    sni_server_name = tls_settings.get("serverName", "")
+    
+    ws_host = ws_settings.get("host", sni_server_name)
+    ws_path = ws_settings.get("path", "/?ed=2560")
+
+    return {
+        "remarks": "☘️ 4 - BPB - Fragment 🔥",
+        "dns": {
+            "hosts": {
+                "domain:googleapis.cn": "googleapis.com"
+            },
+            "servers": [
+                "8.8.8.8"
+            ]
+        },
+        "inbounds": [
+            {
+                "listen": "127.0.0.1",
+                "port": 10808,
+                "protocol": "socks",
+                "settings": {
+                    "auth": "noauth",
+                    "udp": True,
+                    "userLevel": 8
+                },
+                "sniffing": {
+                    "destOverride": [],
+                    "enabled": False
+                },
+                "tag": "socks"
+            },
+            {
+                "listen": "127.0.0.1",
+                "port": 10809,
+                "protocol": "http",
+                "settings": {
+                    "userLevel": 8
+                },
+                "tag": "http"
+            }
+        ],
+        "log": {
+            "access": "none",
+            "loglevel": "warning"
+        },
+        "outbounds": [
+            {
+                "protocol": "vless",
+                "settings": {
+                    "fragment": {
+                        "interval": "1-3",
+                        "length": "5-10",
+                        "packets": "tlshello",
+                        "status": "ON for TLS"
+                    },
+                    "vnext": [
+                        {
+                            "address": node_address,
+                            "port": node_port,
+                            "users": [
+                                {
+                                    "encryption": "none",
+                                    "flow": "",
+                                    "id": user_id,
+                                    "level": 8,
+                                    "security": "auto"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": network_type,
+                    "security": security_type,
+                    "tlsSettings": {
+                        "allowInsecure": False,
+                        "echConfigList": "",
+                        "echForceQuery": "",
+                        "echServerKeys": "",
+                        "fingerprint": fingerprint_val,
+                        "publicKey": "",
+                        "serverName": sni_server_name,
+                        "shortId": "",
+                        "show": False,
+                        "spiderX": ""
+                    },
+                    "wsSettings": {
+                        "headers": {
+                            "Host": ws_host
+                        },
+                        "path": ws_path
+                    },
+                    "sockopt": {
+                        "dialerProxy": "fragment",
+                        "tcpKeepAliveIdle": 100,
+                        "mark": 255
+                    }
+                },
+                "tag": "proxy"
+            },
+            {
+                "protocol": "freedom",
+                "settings": {},
+                "tag": "direct"
+            },
+            {
+                "protocol": "blackhole",
+                "settings": {
+                    "response": {
+                        "type": "http"
+                    }
+                },
+                "tag": "block"
+            },
+            {
+                "tag": "fragment",
+                "protocol": "freedom",
+                "settings": {
+                    "fragment": {
+                        "packets": "tlshello",
+                        "length": "5-10",
+                        "interval": "1-3"
+                    }
+                },
+                "streamSettings": {
+                    "sockopt": {
+                        "TcpNoDelay": True,
+                        "tcpKeepAliveIdle": 100,
+                        "mark": 255
+                    }
+                }
+            }
+        ],
+        "policy": {
+            "levels": {
+                "8": {
+                    "connIdle": 300,
+                    "downlinkOnly": 1,
+                    "handshake": 4,
+                    "uplinkOnly": 1
+                }
+            },
+            "system": {
+                "statsOutboundUplink": True,
+                "statsOutboundDownlink": True
+            }
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": [
+                {
+                    "ip": [
+                        "8.8.8.8"
+                    ],
+                    "outboundTag": "proxy",
+                    "port": "53",
+                    "type": "field"
+                },
+                {
+                    "domain": [
+                        "domain:ir",
+                        "geosite:category-ir",
+                        "geosite:private"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                },
+                {
+                    "ip": [
+                        "geoip:ir",
+                        "geoip:private"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                }
+            ]
+        },
+        "stats": {}
+    }
+
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
@@ -983,6 +1183,14 @@ def main():
         print("🎲 Randomly mixed dynamic Cloudflare IP address assigned into BPB Non-TLS profile layout.")
     else:
         print("⚠️ Warning: No VLESS Non-TLS configurations loaded. Standalone BPB Non-TLS creation skipped.")
+        
+    # Standalone Profile 3: BPB Fragment (☘️ 4 - BPB - Fragment 🔥)
+    if groups["vless_tls"]:
+        random_fragment_node = random.choice(groups["vless_tls"])
+        final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
+        print("🎲 Randomly mixed dynamic Cloudflare IP address assigned into BPB Fragment profile layout.")
+    else:
+        print("⚠️ Warning: No VLESS TLS configurations loaded. Standalone BPB Fragment creation skipped.")
             
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
