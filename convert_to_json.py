@@ -500,7 +500,7 @@ def build_bpb_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_bpb_non_tls_template(base_vless_non_tls_node, clean_addresses):
-    """Constructs the second standalone template (🌵 3 - BPB AI - CF CDN 🤖) using a completely random IP from Cloudflare-IPs.txt."""
+    """Constructs the second standalone template (🌵 3 - BPB AI - CF CDN 🤖) using a completely random IP from Cloudflare-IPs.txt and dynamic structural parameters."""
     vnext_info = base_vless_non_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_non_tls_node["streamSettings"]
     
