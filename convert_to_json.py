@@ -37,7 +37,7 @@ def fetch_clean_addresses(url):
         return []
 
 def fetch_remote_dns(url):
-    """Fetches list of DoH / DoT / DoQ entries from remote repository."""
+    """Fetches list of DoH / DoT / DoQ / UDP entries from remote repository."""
     try:
         print(f"📡 Fetching remote DNS from: {url}")
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -213,7 +213,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Static fallbacks if the remote document parsing yields insufficient provider results
+    # Structural fallback list in case remote source has insufficient unique elements
     fallback_providers = [
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
@@ -225,9 +225,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
     paired_providers = []
     current_pair = {}
     
-    # Group encrypted protocols together with their following backend fallback IP address
+    # Process text arrays into clean dictionary pairs
     for item in pool_dns_servers:
-        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:"):
+        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
             current_pair["server"] = item
         elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item):
             current_pair["ip"] = item
@@ -236,35 +236,37 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             paired_providers.append(current_pair)
             current_pair = {}
 
-    # Fully randomize all matched pairs
+    # Shuffle the provider pool completely to enable random rotation
     random.shuffle(paired_providers)
 
-    # Pick 5 unique, completely non-repeating providers
+    # Filter to isolate 5 unique, completely non-repeating providers
     chosen_providers = []
-    seen_domains = set()
+    seen_identifiers = set()
 
     for provider in paired_providers:
         srv = provider["server"]
         try:
             if srv.startswith("https://"):
                 domain = urlparse(srv).netloc
-            else:
-                # Strip 'tcp:' or 'quic:' prefix to pull the domain address
+            elif srv.startswith("tcp:") or srv.startswith("quic:"):
                 domain = srv.split(":", 1)[1].split(":")[0]
+            else:
+                # For plain UDP servers, use the IP directly as the matching identifier key
+                domain = srv.replace("udp:", "")
                 
             domain_parts = domain.split('.')
-            base_domain = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
+            identity_key = ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
         except Exception:
-            base_domain = srv
+            identity_key = srv
 
-        if base_domain not in seen_domains:
-            seen_domains.add(base_domain)
+        if identity_key not in seen_identifiers:
+            seen_identifiers.add(identity_key)
             chosen_providers.append(provider)
         
         if len(chosen_providers) == 5:
             break
 
-    # Apply fallbacks if pool has fewer than 5 unique providers
+    # Apply fallback structural elements if target counts underperform
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -274,30 +276,30 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             except Exception:
                 fb_domain = fb["server"]
                 
-            if fb_domain not in seen_domains:
-                seen_domains.add(fb_domain)
+            if fb_domain not in seen_identifiers:
+                seen_identifiers.add(fb_domain)
                 chosen_providers.append(fb)
 
     dns_servers_config = []
     inbound_tags = []
     
-    # 1. First block: Output the 5 distinct secure server definitions
+    # 1. First block layout formatting: Process 5 completely unique secure server instances
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
         
         srv_address = provider["server"]
         if srv_address.startswith("tcp:"):
-            # Handle DoT format layout requirements
             dns_servers_config.append({"address": srv_address, "port": 853, "tag": tag_name})
         elif srv_address.startswith("quic:"):
-            # Handle DoQ format layout requirements
             dns_servers_config.append({"address": srv_address, "port": 784, "tag": tag_name})
+        elif srv_address.startswith("udp:"):
+            clean_udp_ip = srv_address.replace("udp:", "")
+            dns_servers_config.append({"address": clean_udp_ip, "port": 53, "tag": tag_name})
         else:
-            # Handle standard DoH layout requirements
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Second block: Map the domestic matching IP rules from those same 5 unique providers
+    # 2. Second block layout formatting: Map regional domestic routing objects
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -306,7 +308,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
             "skipFallback": False
         })
         
-    # Extract structural unique backend nodes domains for routing assignments
+    # Extract structural configuration details out of current outbounds lists
     extracted_domains = []
     for node in outbound_nodes:
         addr = None
@@ -324,7 +326,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_dns_servers):
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Third block: Target structural full domain profiles using the first provider's matching IP
+    # 3. Third block layout formatting: Establish dynamic tracking using the first chosen IP
     first_provider_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
