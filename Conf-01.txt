@@ -9,3 +9,15 @@ vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@104.16.9.215:2083?security=tls&sni=
 trojan://GABTmlZTPGtULi@www.visa.com.br:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#Trojan-Worker-05%20-%202087
 
 trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#Trojan-Worker-06%20-%202096
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@iplocation.net:443?security=tls&sni=vS.Lb-1.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/pyip%3Datena-01.dynamic-dns.net&host=vs.lb-1.dns-dynamic.net&encryption=none#Vless-Worker-LB-1
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@digitalocean.com:443?security=tls&sni=vS.Lb-2.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/pyip%3Dmaryam-02.dynamic-dns.net&host=vs.lb-2.dns-dynamic.net&encryption=none#Vless-Worker-LB-2
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sni=vS.Lb-3.cLoUdNs.pRo&fp=chrome&type=ws&path=/pyip%3Dleila-03.dynamic-dns.net&host=vs.lb-3.cloudns.pro&encryption=none#Vless-Worker-LB-3
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@www.speedtest.net:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/pyip%3Datena-01.dynamic-dns.net&host=vs.lb-4.cloudns.club&encryption=none#Vless-Worker-LB-4
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@check-host.net:443?security=tls&sni=lB-5-Vs.lB-5.WoRkErS.DeV&fp=chrome&type=ws&path=/pyip%3Dmaryam-02.dynamic-dns.net&host=lb-5-vs.lb-5.workers.dev&encryption=none#Vless-Worker-LB-5
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@fonts.net:443?security=tls&sni=lB-6-Vs.lB-6.WoRkErS.DeV&fp=chrome&type=ws&path=/pyip%3Dleila-03.dynamic-dns.net&host=lb-6-vs.lb-6.workers.dev&encryption=none#Vless-Worker-LB-6
