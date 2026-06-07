@@ -262,7 +262,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
         {"server": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
-    # Completely randomize the fallback list so Quad9 isn't always chosen first
     random.shuffle(fallback_providers)
 
     # Structure text lists into clean pairs
@@ -273,21 +272,30 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # Shuffle everything before picking positions
     random.shuffle(doh_top)
     random.shuffle(doh_main)
 
     chosen_providers = []
     seen_identifiers = set()
 
-    # Slot 1: Grab random DoH from DNS-TOP
+    # --- SLOT 1: remote-dns-1 Selection ---
+    # Choice A: Try random DoH from DNS-TOP
     for provider in doh_top:
         ident = get_identity_key(provider["server"])
         seen_identifiers.add(ident)
         chosen_providers.append(provider)
         break
 
-    # If DNS-TOP has no valid entries, get a random item from our shuffled fallback list
+    # Choice B: If DNS-TOP has no DoH pairs, try random DoH from DNS-MAIN instead of generic lists
+    if not chosen_providers:
+        for provider in doh_main:
+            ident = get_identity_key(provider["server"])
+            seen_identifiers.add(ident)
+            chosen_providers.append(provider)
+            doh_main.remove(provider) # Remove so Slot 2 doesn't duplicate it
+            break
+
+    # Choice C: Complete fallback to shuffled hardcoded list if both remote URLs are blank
     if not chosen_providers:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
@@ -295,7 +303,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # Slot 2: Grab random DoH from DNS-MAIN
+    # --- SLOT 2: remote-dns-2 Selection ---
+    # Choice A: Grab random unique DoH from DNS-MAIN pool
     for provider in doh_main:
         ident = get_identity_key(provider["server"])
         if ident not in seen_identifiers:
@@ -303,7 +312,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             chosen_providers.append(provider)
             break
 
-    # If DNS-MAIN has no valid/unique entries, select another random shuffled fallback option
+    # Choice B: If DNS-MAIN failed or isn't unique, select another random shuffled default
     if len(chosen_providers) < 2:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
@@ -312,7 +321,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # Slots 3, 4, 5: Merge leftovers and grab completely random servers from either source
+    # --- SLOTS 3, 4, 5: General Random Mix ---
     combined_remaining = [p for p in (pairs_top + pairs_main) if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
 
@@ -324,7 +333,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
 
-    # Final top-up loop using the shuffled backup list to reach exactly 5 entries
+    # Top-up using the shuffled default backends list to reach exactly 5 entries
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
