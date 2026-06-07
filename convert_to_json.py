@@ -233,18 +233,39 @@ def get_identity_key(srv):
         return srv
 
 def parse_dns_source(pool_dns_servers):
-    """Converts a flat text line source into structural paired dictionary groupings."""
+    """Converts a flat text line source into structural paired dictionary groupings cleanly."""
     paired = []
-    current_pair = {}
-    for item in pool_dns_servers:
+    i = 0
+    while i < len(pool_dns_servers):
+        item = pool_dns_servers[i].strip()
+        if not item:
+            i += 1
+            continue
+
         if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
-            current_pair["server"] = item
-        elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item):
-            current_pair["ip"] = item
+            server_url = item
+            ip_address = None
             
-        if "server" in current_pair and "ip" in current_pair:
-            paired.append(current_pair)
-            current_pair = {}
+            # Check if immediate following line matches an explicit IP layout
+            if i + 1 < len(pool_dns_servers):
+                next_item = pool_dns_servers[i + 1].strip()
+                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item):
+                    ip_address = next_item
+                    i += 1 # Forward counter past verified IP line
+            
+            # If no IP was found right underneath, provide a safe, smart default contextually
+            if not ip_address:
+                if "quad9" in server_url:
+                    ip_address = "9.9.9.9"
+                elif "adguard" in server_url:
+                    ip_address = "94.140.14.14"
+                elif "opendns" in server_url:
+                    ip_address = "208.67.222.222"
+                else:
+                    ip_address = "9.9.9.9" # Safe default fallback context away from Cloudflare
+                    
+            paired.append({"server": server_url, "ip": ip_address})
+        i += 1
     return paired
 
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
@@ -255,10 +276,10 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
+    # Safe alternative defaults pool completely free of any standard Cloudflare addresses
     fallback_providers = [
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
-        {"server": "https://unfiltered.com.cloudflare-dns.com/dns-query", "ip": "1.1.1.1"},
         {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
         {"server": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
     ]
@@ -278,14 +299,14 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     chosen_providers = []
     seen_identifiers = set()
 
-    # --- SLOT 1: remote-dns-1 Selection (STRICTLY FROM DNS-TOP) ---
+    # --- SLOT 1: remote-dns-1 Selection (STRICTLY FROM DNS-TOP.txt ONLY) ---
     for provider in doh_top:
         ident = get_identity_key(provider["server"])
         seen_identifiers.add(ident)
         chosen_providers.append(provider)
         break
 
-    # Absolute Emergency Fallback Only if DNS-TOP file contains 0 valid DoH configurations
+    # Absolute Emergency Fallback ONLY if DNS-TOP.txt downloaded 100% empty
     if not chosen_providers:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
@@ -293,7 +314,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
-    # --- SLOT 2: remote-dns-2 Selection (STRICTLY FROM DNS-MAIN) ---
+    # --- SLOT 2: remote-dns-2 Selection (STRICTLY FROM DNS.txt ONLY) ---
     for provider in doh_main:
         ident = get_identity_key(provider["server"])
         if ident not in seen_identifiers:
@@ -301,8 +322,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             chosen_providers.append(provider)
             break
 
-    # Backup logic for Slot 2 if DNS-MAIN is blank or non-unique
-    if len(chosen_providers) < 2:
+    # Backup logic for Slot 2 ONLY if DNS.txt failed or isn't unique
+    if len(chosen_providers) < 2 and len(chosen_providers) == 1:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
             if fb["server"].startswith("https://") and ident not in seen_identifiers:
@@ -310,8 +331,12 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers.append(fb)
                 break
 
+    # Remove the strictly assigned nodes from the leftover pool to prevent back-pollution
+    remaining_top = [p for p in pairs_top if get_identity_key(p["server"]) not in seen_identifiers]
+    remaining_main = [p for p in pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
+    
     # --- SLOTS 3, 4, 5: General Random Pool Mix (Leftovers from BOTH Sources) ---
-    combined_remaining = [p for p in (pairs_top + pairs_main) if get_identity_key(p["server"]) not in seen_identifiers]
+    combined_remaining = remaining_top + remaining_main
     random.shuffle(combined_remaining)
 
     for provider in combined_remaining:
@@ -322,7 +347,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             seen_identifiers.add(ident)
             chosen_providers.append(provider)
 
-    # Top-up using structural defaults if 5 unique providers weren't collected
+    # General top-up using alternative backup elements if 5 unique providers weren't reached
     if len(chosen_providers) < 5:
         for fb in fallback_providers:
             if len(chosen_providers) == 5:
@@ -346,8 +371,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
         elif srv_address.startswith("quic:"):
             clean_host = clean_dns_address(srv_address, "quic:")
-            quic_port = 853 if "one.one.one.one" in clean_host or "1.1.1." in clean_host else 784
-            dns_servers_config.append({"address": f"quic:{clean_host}", "port": quic_port, "tag": tag_name})
+            dns_servers_config.append({"address": f"quic:{clean_host}", "port": 784, "tag": tag_name})
         elif srv_address.startswith("udp:"):
             clean_host = clean_dns_address(srv_address, "udp:")
             dns_servers_config.append({"address": clean_host, "port": 53, "tag": tag_name})
