@@ -723,7 +723,7 @@ def build_bpb_non_tls_template(base_vless_non_tls_node, clean_addresses):
     }
 
 def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
-    """Constructs the third standalone template (☘️ 4 - BPB - Fragment 🔥) using a completely random IP from Cloudflare-IPs.txt."""
+    """Constructs the third standalone template (☘️ 4 - BPB - Fragment 🔥) using a random dynamic inline VLESS-TLS node configuration mapping."""
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
@@ -743,6 +743,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     
     fingerprint_val = tls_settings.get("fingerprint", "chrome")
     sni_server_name = tls_settings.get("serverName", "")
+    cert_fingerprint = tls_settings.get("pinnedPeerCertSha256", "")
     
     ws_host = ws_settings.get("host", sni_server_name)
     ws_path = ws_settings.get("path", "/?ed=2560")
@@ -822,6 +823,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
                         "echForceQuery": "",
                         "echServerKeys": "",
                         "fingerprint": fingerprint_val,
+                        "pinnedPeerCertSha256": cert_fingerprint,
                         "publicKey": "",
                         "serverName": sni_server_name,
                         "shortId": "",
@@ -1188,7 +1190,7 @@ def main():
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
-        print("🎲 Randomly mixed dynamic Cloudflare IP address assigned into BPB Fragment profile layout.")
+        print("🎲 Randomly mixed dynamic Cloudflare IP and dynamic inline VLESS-TLS (with PCS validation) mapped into Fragment structure.")
     else:
         print("⚠️ Warning: No VLESS TLS configurations loaded. Standalone BPB Fragment creation skipped.")
             
