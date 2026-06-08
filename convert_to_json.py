@@ -220,20 +220,15 @@ def clean_dns_address(srv_str, prefix):
 def get_identity_key(srv):
     """Extracts base registration domain string or raw host string for uniqueness tracking."""
     try:
-        if srv.startswith("https://"):
-            domain = urlparse(srv).netloc
-        elif srv.startswith("tcp:"):
-            domain = clean_dns_address(srv, "tcp:")
-        elif srv.startswith("quic:"):
-            domain = clean_dns_address(srv, "quic:")
-        elif srv.startswith("udp:"):
-            domain = clean_dns_address(srv, "udp:")
-        else:
-            domain = srv
-            
-        domain = domain.replace("[", "").replace("]", "").split(':')[0]
+        # Strip all transport prefixes cleanly first
+        for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+            if srv.startswith(prefix):
+                srv = srv.replace(prefix, "").replace("//", "").strip()
+                
+        # Drop bracket formatting and split ports out
+        domain = srv.replace("[", "").replace("]", "").split(':')[0].split('/')[0]
         
-        # If it's an IP address, return it directly as the unique key
+        # If it matches an IP literal structure, use it natively
         try:
             ipaddress.ip_address(domain)
             return domain
@@ -255,13 +250,17 @@ def parse_dns_source(pool_dns_servers):
             i += 1
             continue
 
-        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item) or item.startswith("["):
+        # Pattern match definitions for valid URL structures or IP targets
+        if (item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or 
+            item.startswith("udp:") or item.startswith("[") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item)):
+            
             server_url = item
             ip_address = None
             
+            # Look ahead for explicit override IPs
             if i + 1 < len(pool_dns_servers):
                 next_item = pool_dns_servers[i + 1].strip()
-                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item):
+                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item) or (next_item.startswith("[") and next_item.endswith("]")):
                     ip_address = next_item
                     i += 1
             
@@ -273,18 +272,22 @@ def parse_dns_source(pool_dns_servers):
                     ip_address = "94.140.14.14"
                 elif "google" in lower_url or "8.8.8.8" in lower_url:
                     ip_address = "8.8.8.8"
-                elif "cloudflare" in lower_url or "1.1.1.1" in lower_url or "1.0.0.1" in lower_url:
-                    ip_address = "1.1.1.1"
+                elif "cloudflare" in lower_url or "1.1.1.1" in lower_url or "1.1.1.2" in lower_url or "1.0.0.1" in lower_url:
+                    ip_address = "1.1.1.2" if "1.1.1.2" in lower_url else "1.1.1.1"
                 elif "yandex" in lower_url or "77.88.8.1" in lower_url:
                     ip_address = "77.88.8.1"
                 elif "opendns" in lower_url:
                     ip_address = "208.67.222.222"
                 else:
-                    # Parse out plain IP strings if the upstream itself was a bare IP string
-                    clean_ip = server_url.replace("tcp:", "").replace("udp:", "").split(":")[0].replace("[", "").replace("]", "")
+                    # Strip down to clean bare host string to check if it's a raw IP
+                    clean_ip = server_url
+                    for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+                        clean_ip = clean_ip.replace(prefix, "").replace("//", "")
+                    clean_ip = clean_ip.split(":")[0].split("/")[0]
+                    
                     try:
-                        ipaddress.ip_address(clean_ip)
-                        ip_address = clean_ip if "." in clean_ip else "9.9.9.9"
+                        ipaddress.ip_address(clean_ip.replace("[", "").replace("]", ""))
+                        ip_address = clean_ip  # Keeps brackets if IPv6
                     except ValueError:
                         ip_address = "9.9.9.9"
                     
@@ -538,14 +541,14 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
         {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
         {"server": "1.1.1.1", "ip": "1.1.1.1"},
-        {"server": "1.0.0.1", "ip": "1.0.0.1"}
+        {"server": "1.0.0.1", "ip": "1.0.0.1"},
+        {"server": "1.1.1.2", "ip": "1.1.1.2"}
     ]
     random.shuffle(fallback_providers)
 
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    # Filter into DoH/DoT/Direct lists
     doh_top = [p for p in pairs_top]
     doh_main = [p for p in pairs_main]
 
@@ -616,7 +619,10 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         
         if srv_address.startswith("tcp:"):
             clean_host = clean_dns_address(srv_address, "tcp:")
-            dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
+            if clean_host.startswith("[") and clean_host.endswith("]"):
+                dns_servers_config.append({"address": clean_host, "port": 853, "tag": tag_name})
+            else:
+                dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
         elif srv_address.startswith("quic:"):
             clean_host = clean_dns_address(srv_address, "quic:")
             dns_servers_config.append({"address": f"quic:{clean_host}", "port": 784, "tag": tag_name})
@@ -656,7 +662,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             
         if addr:
             try:
-                ipaddress.ip_address(addr)
+                ipaddress.ip_address(addr.replace("[", "").replace("]", ""))
             except ValueError:
                 domain_entry = f"full:{addr}"
                 if domain_entry not in extracted_domains:
@@ -816,7 +822,6 @@ def main():
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
             
-    # Process unmapped or leftover protocols if any exist
     if groups["other_protocols"]:
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
