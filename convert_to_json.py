@@ -337,10 +337,9 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with randomized VLESS TLS configs labeled sequentially from prox-1 to prox-N."""
+    """Generates a structural configuration completely filled with randomized VLESS TLS configs labeled sequentially from prox-1 to prox-N with explicit fingerprint pinning tracking."""
     outbounds = []
     
-    # Shuffle a deep copy of nodes so prox-1, prox-2... get completely random configs every time
     shuffled_nodes = copy.deepcopy(vless_tls_nodes)
     random.shuffle(shuffled_nodes)
     
@@ -367,7 +366,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
                 "security": "tls",
                 "tlsSettings": {
                     "fingerprint": tls_settings.get("fingerprint", "chrome"),
-                    "pinnedPeerCertSha256": tls_settings.get("pinnedPeerCertSha256", ""),
+                    "pinnedPeerCertSha256": tls_settings.get("pinnedPeerCertSha256", ""), # FIX: Directly map cert fingerprint (pcs)
                     "serverName": tls_settings.get("serverName", ""),
                     "show": False
                 },
@@ -426,7 +425,6 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
     """Generates a structural configuration completely filled with randomized VLESS Non-TLS configs labeled sequentially from prox-1 to prox-N."""
     outbounds = []
     
-    # Shuffle a deep copy of nodes so prox-1, prox-2... get completely random configs every time
     shuffled_nodes = copy.deepcopy(vless_ntls_nodes)
     random.shuffle(shuffled_nodes)
     
