@@ -5,6 +5,7 @@ import ipaddress
 import re
 import urllib.request
 import random
+import copy
 from urllib.parse import urlparse, unquote, parse_qs
 
 # Configuration URLs
@@ -186,7 +187,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
             "sockopt": {"domainStrategy": "UseIPv4v6"}
         }
         
-        # Keep track of original SNI/address fallback explicitly for the header profile builders
         outbound["_original_address"] = original_address
         
         if net_type == "ws":
@@ -337,12 +337,14 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with ALL available VLESS TLS configs."""
+    """Generates a structural configuration completely filled with randomized VLESS TLS configs labeled sequentially from prox-1 to prox-N."""
     outbounds = []
-    seq_numbers = list(range(1, len(vless_tls_nodes) + 1))
-    random.shuffle(seq_numbers)
     
-    for idx, node in enumerate(vless_tls_nodes):
+    # Shuffle a deep copy of nodes so prox-1, prox-2... get completely random configs every time
+    shuffled_nodes = copy.deepcopy(vless_tls_nodes)
+    random.shuffle(shuffled_nodes)
+    
+    for idx, node in enumerate(shuffled_nodes):
         vnext = node["settings"]["vnext"][0]
         stream = node["streamSettings"]
         tls_settings = stream.get("tlsSettings", {})
@@ -374,7 +376,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
                     "path": ws_settings.get("path", "/?ed=2560")
                 }
             },
-            "tag": f"prox-{seq_numbers[idx]}"
+            "tag": f"prox-{idx + 1}"
         })
         
     outbounds.extend([
@@ -421,18 +423,19 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
     }
 
 def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with ALL available VLESS Non-TLS configs with dynamic missing Host tracking fallback rules."""
+    """Generates a structural configuration completely filled with randomized VLESS Non-TLS configs labeled sequentially from prox-1 to prox-N."""
     outbounds = []
-    seq_numbers = list(range(1, len(vless_ntls_nodes) + 1))
-    random.shuffle(seq_numbers)
     
-    for idx, node in enumerate(vless_ntls_nodes):
+    # Shuffle a deep copy of nodes so prox-1, prox-2... get completely random configs every time
+    shuffled_nodes = copy.deepcopy(vless_ntls_nodes)
+    random.shuffle(shuffled_nodes)
+    
+    for idx, node in enumerate(shuffled_nodes):
         vnext = node["settings"]["vnext"][0]
         ws_settings = node["streamSettings"].get("wsSettings", {})
         
         addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
         
-        # FIX: Fallback to the original configuration target address domain if query parameter host is empty
         extracted_host = ws_settings.get("host", "").strip()
         if not extracted_host:
             extracted_host = node.get("_original_address", "")
@@ -454,7 +457,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
                     "path": ws_settings.get("path", "/?ed=2560")
                 }
             },
-            "tag": f"prox-{seq_numbers[idx]}"
+            "tag": f"prox-{idx + 1}"
         })
         
     outbounds.extend([
@@ -476,7 +479,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             "servers": [
                 "https://8.8.8.8/dns-query",
                 {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True},
-                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "lenovo"], "skipFallback": True}
+                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True}
             ],
             "tag": "dns-module"
         },
