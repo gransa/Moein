@@ -268,460 +268,6 @@ def parse_dns_source(pool_dns_servers):
         i += 1
     return paired
 
-def build_bpb_template(base_vless_tls_node, clean_addresses):
-    """Constructs the first standalone template (VLESS TLS) using a completely random IP from Cloudflare-IPs.txt."""
-    vnext_info = base_vless_tls_node["settings"]["vnext"][0]
-    stream_info = base_vless_tls_node["streamSettings"]
-    
-    if clean_addresses:
-        node_address = random.choice(clean_addresses)
-    else:
-        node_address = vnext_info["address"]
-        
-    node_port = vnext_info["port"]
-    user_id = vnext_info["users"][0]["id"]
-    
-    network_type = stream_info.get("network", "ws")
-    security_type = stream_info.get("security", "tls")
-    
-    tls_settings = stream_info.get("tlsSettings", {})
-    ws_settings = stream_info.get("wsSettings", {})
-    
-    fingerprint_val = tls_settings.get("fingerprint", "chrome")
-    sni_server_name = tls_settings.get("serverName", "")
-    cert_fingerprint = tls_settings.get("pinnedPeerCertSha256", "")
-    
-    ws_host = ws_settings.get("host", sni_server_name)
-    ws_path = ws_settings.get("path", "/")
-
-    return {
-        "remarks": "🌴 5 - BPB - CF Vless 🤖",
-        "dns": {
-            "hosts": {
-                "domain:googleapis.cn": "googleapis.com",
-                "tcp://8.8.8.8": [
-                    "8.8.8.8",
-                    "8.8.4.4",
-                    "2001:4860:4860::8888",
-                    "2001:4860:4860::8844"
-                ],
-                "udp://1.1.1.1": [
-                    "1.1.1.1",
-                    "1.0.0.1",
-                    "2606:4700:4700::1111",
-                    "2606:4700:4700::1001"
-                ],
-                "https://8.8.8.8/dns-query": [
-                    "8.8.8.8",
-                    "8.8.4.4",
-                    "2001:4860:4860::8888",
-                    "2001:4860:4860::8844"
-                ],
-                "https://1.1.1.1/dns-query": [
-                    "1.1.1.1",
-                    "1.0.0.1",
-                    "2606:4700:4700::1111",
-                    "2606:4700:4700::1001"
-                ]
-            },
-            "servers": [
-                "https://8.8.8.8/dns-query",
-                {
-                    "address": "78.157.42.100",
-                    "domains": [
-                        "geosite:openai",
-                        "geosite:microsoft",
-                        "geosite:oracle",
-                        "geosite:docker",
-                        "geosite:adobe",
-                        "geosite:epicgames",
-                        "geosite:intel",
-                        "geosite:amd",
-                        "geosite:nvidia",
-                        "geosite:asus",
-                        "geosite:hp",
-                        "geosite:lenovo"
-                    ],
-                    "skipFallback": True
-                },
-                {
-                    "address": "78.157.42.101",
-                    "domains": [
-                        "geosite:openai",
-                        "geosite:microsoft",
-                        "geosite:oracle",
-                        "geosite:docker",
-                        "geosite:adobe",
-                        "geosite:epicgames",
-                        "geosite:intel",
-                        "geosite:amd",
-                        "geosite:nvidia",
-                        "geosite:asus",
-                        "geosite:hp",
-                        "geosite:lenovo"
-                    ],
-                    "skipFallback": True
-                }
-            ],
-            "tag": "dns-module"
-        },
-        "inbounds": [
-            {
-                "listen": "127.0.0.1",
-                "port": 10808,
-                "protocol": "socks",
-                "settings": {
-                    "auth": "noauth",
-                    "udp": True,
-                    "userLevel": 8
-                },
-                "sniffing": {
-                    "destOverride": [
-                        "fakedns"
-                    ],
-                    "enabled": True,
-                    "routeOnly": False
-                },
-                "tag": "socks"
-            }
-        ],
-        "log": {
-            "loglevel": "warning"
-        },
-        "outbounds": [
-            {
-                "mux": {
-                    "concurrency": -1,
-                    "enabled": False
-                },
-                "protocol": "vless",
-                "settings": {
-                    "vnext": [
-                        {
-                            "address": node_address,
-                            "port": node_port,
-                            "users": [
-                                {
-                                    "encryption": "none",
-                                    "id": user_id,
-                                    "level": 8
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "streamSettings": {
-                    "network": network_type,
-                    "security": security_type,
-                    "tlsSettings": {
-                        "fingerprint": fingerprint_val,
-                        "pinnedPeerCertSha256": cert_fingerprint,
-                        "serverName": sni_server_name,
-                        "show": False
-                    },
-                    "wsSettings": {
-                        "headers": {
-                            "Host": ws_host
-                        },
-                        "path": ws_path
-                    }
-                },
-                "tag": "proxy"
-            },
-            {
-                "protocol": "freedom",
-                "settings": {
-                    "domainStrategy": "UseIP"
-                },
-                "tag": "direct"
-            },
-            {
-                "protocol": "blackhole",
-                "settings": {
-                    "response": {
-                        "type": "http"
-                    }
-                },
-                "tag": "block"
-            }
-        ],
-        "policy": {
-            "levels": {
-                "8": {
-                    "connIdle": 300,
-                    "downlinkOnly": 1,
-                    "handshake": 4,
-                    "uplinkOnly": 1
-                }
-            },
-            "system": {
-                "statsOutboundUplink": True,
-                "statsOutboundDownlink": True
-            }
-        },
-        "routing": {
-            "domainStrategy": "AsIs",
-            "rules": [
-                {
-                    "inboundTag": [
-                        "domestic-dns"
-                    ],
-                    "outboundTag": "direct",
-                    "type": "field"
-                },
-                {
-                    "inboundTag": [
-                        "dns-module"
-                    ],
-                    "outboundTag": "proxy",
-                    "type": "field"
-                },
-                {
-                    "type": "field",
-                    "domain": [
-                        "geosite:openai",
-                        "geosite:microsoft",
-                        "geosite:oracle",
-                        "geosite:docker",
-                        "geosite:adobe",
-                        "geosite:epicgames",
-                        "geosite:intel",
-                        "geosite:amd",
-                        "geosite:nvidia",
-                        "geosite:asus",
-                        "geosite:hp",
-                        "geosite:lenovo"
-                    ],
-                    "outboundTag": "direct"
-                }
-            ]
-        },
-        "stats": {}
-    }
-
-def build_bpb_non_tls_template(base_vless_non_tls_node, clean_addresses):
-    """Constructs the second standalone template (🌵 3 - BPB AI - CF CDN 🤖) using a completely random IP from Cloudflare-IPs.txt and dynamic structural parameters."""
-    vnext_info = base_vless_non_tls_node["settings"]["vnext"][0]
-    stream_info = base_vless_non_tls_node["streamSettings"]
-    
-    if clean_addresses:
-        node_address = random.choice(clean_addresses)
-    else:
-        node_address = vnext_info["address"]
-        
-    node_port = vnext_info["port"]
-    user_id = vnext_info["users"][0]["id"]
-    network_type = stream_info.get("network", "ws")
-    
-    ws_settings = stream_info.get("wsSettings", {})
-    ws_host = ws_settings.get("host", "")
-    ws_path = ws_settings.get("path", "/")
-
-    return {
-        "remarks": "🌵 3 - BPB AI - CF CDN 🤖",
-        "dns": {
-            "hosts": {
-                "domain:googleapis.cn": "googleapis.com",
-                "tcp://8.8.8.8": [
-                    "8.8.8.8",
-                    "8.8.4.4",
-                    "2001:4860:4860::8888",
-                    "2001:4860:4860::8844"
-                ],
-                "udp://1.1.1.1": [
-                    "1.1.1.1",
-                    "1.0.0.1",
-                    "2606:4700:4700::1111",
-                    "2606:4700:4700::1001"
-                ],
-                "https://1.1.1.1/dns-query": [
-                    "104.16.132.229",
-                    "104.16.133.229",
-                    "2606:4700::6810:84e5",
-                    "2606:4700::6810:85e5"
-                ],
-                "https://8.8.8.8/dns-query": [
-                    "8.8.8.8",
-                    "8.8.4.4",
-                    "2001:4860:4860::8888",
-                    "2001:4860:4860::8844"
-                ],
-                "https://9.9.9.9/dns-query": [
-                    "9.9.9.9",
-                    "149.112.112.112",
-                    "2620:fe::fe",
-                    "2620:fe::9"
-                ]
-            },
-            "servers": [
-                "https://8.8.8.8/dns-query",
-                {
-                    "address": "78.157.42.100",
-                    "domains": [
-                        "geosite:openai",
-                        "geosite:microsoft",
-                        "geosite:oracle",
-                        "geosite:docker",
-                        "geosite:adobe",
-                        "geosite:epicgames",
-                        "geosite:intel",
-                        "geosite:amd",
-                        "geosite:nvidia",
-                        "geosite:asus",
-                        "geosite:hp",
-                        "geosite:lenovo"
-                    ],
-                    "skipFallback": True
-                },
-                {
-                    "address": "78.157.42.101",
-                    "domains": [
-                        "geosite:openai",
-                        "geosite:microsoft",
-                        "geosite:oracle",
-                        "geosite:docker",
-                        "geosite:adobe",
-                        "geosite:epicgames",
-                        "geosite:intel",
-                        "geosite:amd",
-                        "geosite:nvidia",
-                        "geosite:asus",
-                        "geosite:hp",
-                        "geosite:lenovo"
-                    ],
-                    "skipFallback": True
-                }
-            ],
-            "tag": "dns-module"
-        },
-        "inbounds": [
-            {
-                "listen": "127.0.0.1",
-                "port": 10808,
-                "protocol": "socks",
-                "settings": {
-                    "auth": "noauth",
-                    "udp": True,
-                    "userLevel": 8
-                },
-                "sniffing": {
-                    "destOverride": [
-                        "fakedns"
-                    ],
-                    "enabled": True,
-                    "routeOnly": False
-                },
-                "tag": "socks"
-            }
-        ],
-        "log": {
-            "loglevel": "warning"
-        },
-        "outbounds": [
-            {
-                "mux": {
-                    "concurrency": -1,
-                    "enabled": False
-                },
-                "protocol": "vless",
-                "settings": {
-                    "vnext": [
-                        {
-                            "address": node_address,
-                            "port": node_port,
-                            "users": [
-                                {
-                                    "encryption": "none",
-                                    "flow": "",
-                                    "id": user_id,
-                                    "level": 8
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "streamSettings": {
-                    "network": network_type,
-                    "wsSettings": {
-                        "headers": {
-                            "Host": ws_host
-                        },
-                        "path": ws_path
-                    }
-                },
-                "tag": "proxy"
-            },
-            {
-                "protocol": "freedom",
-                "settings": {
-                    "domainStrategy": "UseIP"
-                },
-                "tag": "direct"
-            },
-            {
-                "protocol": "blackhole",
-                "settings": {
-                    "response": {
-                        "type": "http"
-                    }
-                },
-                "tag": "block"
-            }
-        ],
-        "policy": {
-            "levels": {
-                "8": {
-                    "connIdle": 300,
-                    "downlinkOnly": 1,
-                    "handshake": 4,
-                    "uplinkOnly": 1
-                }
-            },
-            "system": {
-                "statsOutboundUplink": True,
-                "statsOutboundDownlink": True
-            }
-        },
-        "routing": {
-            "domainStrategy": "AsIs",
-            "rules": [
-                {
-                    "inboundTag": [
-                        "domestic-dns"
-                    ],
-                    "outboundTag": "direct",
-                    "type": "field"
-                },
-                {
-                    "inboundTag": [
-                        "dns-module"
-                    ],
-                    "outboundTag": "proxy",
-                    "type": "field"
-                },
-                {
-                    "type": "field",
-                    "domain": [
-                        "geosite:openai",
-                        "geosite:microsoft",
-                        "geosite:oracle",
-                        "geosite:docker",
-                        "geosite:adobe",
-                        "geosite:epicgames",
-                        "geosite:intel",
-                        "geosite:amd",
-                        "geosite:nvidia",
-                        "geosite:asus",
-                        "geosite:hp",
-                        "geosite:lenovo"
-                    ],
-                    "outboundTag": "direct"
-                }
-            ]
-        },
-        "stats": {}
-    }
-
 def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     """Constructs the third standalone template (☘️ 4 - BPB - Fragment 🔥) using a random dynamic inline VLESS-TLS node configuration mapping."""
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
@@ -922,6 +468,158 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
             ]
         },
         "stats": {}
+    }
+
+def build_combined_bpb_template(base_tls_node, base_ntls_node, clean_addresses):
+    """Generates the combined layout featuring a randomized numbering multi-outbound architecture using dynamic items from clean Cloudflare source."""
+    # Extract TLS node settings
+    tls_vnext = base_tls_node["settings"]["vnext"][0]
+    tls_stream = base_tls_node["streamSettings"]
+    tls_settings = tls_stream.get("tlsSettings", {})
+    tls_ws = tls_stream.get("wsSettings", {})
+    
+    # Assign completely random addresses from Cloudflare source if available
+    addr_1 = random.choice(clean_addresses) if clean_addresses else tls_vnext["address"]
+    port_1 = tls_vnext["port"]
+    id_1 = tls_vnext["users"][0]["id"]
+    fp_1 = tls_settings.get("fingerprint", "chrome")
+    pcs_1 = tls_settings.get("pinnedPeerCertSha256", "")
+    sni_1 = tls_settings.get("serverName", "")
+    host_1 = tls_ws.get("headers", {}).get("Host", sni_1)
+    path_1 = tls_ws.get("path", "/?ed=2560")
+
+    # Extract Non-TLS node settings
+    ntls_vnext = base_ntls_node["settings"]["vnext"][0]
+    ntls_stream = base_ntls_node["streamSettings"]
+    ntls_ws = ntls_stream.get("wsSettings", {})
+    
+    addr_2 = random.choice(clean_addresses) if clean_addresses else ntls_vnext["address"]
+    port_2 = ntls_vnext["port"]
+    id_2 = ntls_vnext["users"][0]["id"]
+    host_2 = ntls_ws.get("headers", {}).get("Host", "")
+    path_2 = ntls_ws.get("path", "/?ed=2560")
+
+    # Generate a dynamic target key string for proxy pairing order
+    num_seq = [1, 2]
+    random.shuffle(num_seq)
+    
+    outbound_1 = {
+        "mux": {"concurrency": -1, "enabled": False},
+        "protocol": "vless",
+        "settings": {
+            "vnext": [{
+                "address": addr_1,
+                "port": port_1,
+                "users": [{"encryption": "none", "id": id_1, "level": 8}]
+            }]
+        },
+        "streamSettings": {
+            "network": "ws",
+            "security": "tls",
+            "tlsSettings": {
+                "fingerprint": fp_1,
+                "pinnedPeerCertSha256": pcs_1,
+                "serverName": sni_1,
+                "show": False
+            },
+            "wsSettings": {
+                "headers": {"Host": host_1},
+                "path": path_1
+            }
+        },
+        "tag": f"prox-{num_seq[0]}"
+    }
+
+    outbound_2 = {
+        "mux": {"concurrency": -1, "enabled": False},
+        "protocol": "vless",
+        "settings": {
+            "vnext": [{
+                "address": addr_2,
+                "port": port_2,
+                "users": [{"encryption": "none", "flow": "", "id": id_2, "level": 8}]
+            }]
+        },
+        "streamSettings": {
+            "network": "ws",
+            "wsSettings": {
+                "headers": {"Host": host_2},
+                "path": path_2
+            }
+        },
+        "tag": f"prox-{num_seq[1]}"
+    }
+
+    return {
+        "remarks": "🌴 5 - BPB - CF Vless + 🌵 3 - BPB AI - CF CDN 🤖",
+        "dns": {
+            "hosts": {
+                "domain:googleapis.cn": "googleapis.com",
+                "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
+                "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
+                "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
+                "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
+                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]
+            },
+            "servers": [
+                "https://8.8.8.8/dns-query",
+                {
+                    "address": "78.157.42.100",
+                    "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"],
+                    "skipFallback": True
+                },
+                {
+                    "address": "78.157.42.101",
+                    "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"],
+                    "skipFallback": True
+                }
+            ],
+            "tag": "dns-module"
+        },
+        "inbounds": [
+            {
+                "listen": "127.0.0.1",
+                "port": 10808,
+                "protocol": "socks",
+                "settings": {"auth": "noauth", "udp": True, "userLevel": 8},
+                "sniffing": {"destOverride": ["fakedns"], "enabled": True, "routeOnly": False},
+                "tag": "socks"
+            }
+        ],
+        "log": {"loglevel": "warning"},
+        "outbounds": [
+            outbound_1,
+            outbound_2,
+            {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+            {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
+        ],
+        "policy": {
+            "levels": {"8": {"connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1}},
+            "system": {"statsOutboundUplink": True, "statsOutboundDownlink": True}
+        },
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": [
+                {"inboundTag": ["domestic-dns"], "outboundTag": "direct", "type": "field"},
+                {"inboundTag": ["dns-module"], "balancerTag": "all", "type": "field"},
+                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "outboundTag": "direct"}
+            ],
+            "balancers": [
+                {
+                    "tag": "all",
+                    "selector": ["prox"],
+                    "strategy": {"type": "leastPing"},
+                    "fallbackTag": "prox-1"
+                }
+            ]
+        },
+        "stats": {},
+        "observatory": {
+            "subjectSelector": ["prox"],
+            "probeUrl": "https://www.gstatic.com/generate_204",
+            "probeInterval": "30s",
+            "enableConcurrency": True
+        }
     }
 
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
@@ -1172,28 +870,27 @@ def main():
         if groups[key]:
             final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
             
-    # Standalone Profile 1: BPB VLESS-TLS
-    if groups["vless_tls"]:
-        random_vless_tls_node = random.choice(groups["vless_tls"])
-        final_output.append(build_bpb_template(random_vless_tls_node, clean_addresses))
-        print("🎲 Randomly mixed dynamic Cloudflare IP address assigned into BPB TLS profile layout.")
-        
-    # Standalone Profile 2: BPB VLESS Non-TLS (🌵 3 - BPB AI - CF CDN 🤖)
-    if groups["vless_n_tls"]:
-        random_vless_ntls_node = random.choice(groups["vless_n_tls"])
-        final_output.append(build_bpb_non_tls_template(random_vless_ntls_node, clean_addresses))
-        print("🎲 Randomly mixed dynamic Cloudflare IP address assigned into BPB Non-TLS profile layout.")
+    # New Combined Profile: TLS + Non-TLS Balanced Architecture
+    if groups["vless_tls"] and groups["vless_n_tls"]:
+        random_tls = random.choice(groups["vless_tls"])
+        random_ntls = random.choice(groups["vless_n_tls"])
+        final_output.append(build_combined_bpb_template(random_tls, random_ntls, clean_addresses))
+        print("✅ Added combined profile: '🌴 5 - BPB - CF Vless + 🌵 3 - BPB AI - CF CDN 🤖'")
     else:
-        print("⚠️ Warning: No VLESS Non-TLS configurations loaded. Standalone BPB Non-TLS creation skipped.")
-        
-    # Standalone Profile 3: BPB Fragment (☘️ 4 - BPB - Fragment 🔥)
+        print("⚠️ Warning: Combined profile skipped due to missing VLESS TLS or Non-TLS nodes.")
+            
+    # Standalone Profile: BPB Fragment (☘️ 4 - BPB - Fragment 🔥)
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
-        print("🎲 Randomly mixed dynamic Cloudflare IP and dynamic inline VLESS-TLS (with PCS validation) mapped into Fragment structure.")
+        print("🎲 Randomly mixed dynamic Cloudflare IP and dynamic inline VLESS-TLS mapped into Fragment structure.")
     else:
         print("⚠️ Warning: No VLESS TLS configurations loaded. Standalone BPB Fragment creation skipped.")
             
+    # Completely randomize final output order across every build execution
+    random.shuffle(final_output)
+    print("🔀 Completely randomized config structural ordering inside final file.")
+
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
