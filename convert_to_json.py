@@ -337,7 +337,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
-    """Generates a structural configuration filled with randomized VLESS TLS configs from prox-1 to prox-N with explicit fingerprint pinning."""
+    """Generates configuration layout for VLESS TLS AI Collection."""
     outbounds = []
     
     shuffled_nodes = copy.deepcopy(vless_tls_nodes)
@@ -422,7 +422,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
     }
 
 def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with randomized VLESS Non-TLS configs labeled sequentially from prox-1 to prox-N."""
+    """Generates configuration layout for VLESS Non-TLS AI Collection."""
     outbounds = []
     
     shuffled_nodes = copy.deepcopy(vless_ntls_nodes)
@@ -735,39 +735,58 @@ def main():
                 
     final_output = []
     
-    # Process load balancers with explicit new names and order tags
-    mapping = [
-        ("🌴 1 VLESS - TLS LB 🔥", "vless_tls"),
-        ("☘️ 3 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
-        ("🌳 5 TROJAN - TLS LB 🔥", "trojan_tls"),
-        ("🌳 6 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
-        ("🍀 7 VMESS - TLS LB 🔥", "vmess_tls")
-    ]
-    
-    for remark, key in mapping:
-        if groups[key]:
-            for idx, item in enumerate(groups[key]):
-                item["tag"] = f"prox-{idx + 1}"
-            final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
+    # 1. 🌴 1 VLESS - TLS LB 🔥
+    if groups["vless_tls"]:
+        for idx, item in enumerate(groups["vless_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns))
             
-    # Dedicated Profile 2: VLESS TLS AI Collection
+    # 2. 🌴 2 VLESS - TLS AI 🤖
     if groups["vless_tls"]:
         final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], clean_addresses))
-        print("✅ Embedded dedicated full collection profile: '🌴 2 VLESS - TLS AI 🤖'")
         
-    # Dedicated Profile 4: VLESS Non-TLS AI Collection
+    # 3. ☘️ 3 VLESS - Non-TLS LB 🔥
+    if groups["vless_n_tls"]:
+        for idx, item in enumerate(groups["vless_n_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns))
+
+    # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
     if groups["vless_n_tls"]:
         final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], clean_addresses))
-        print("✅ Embedded dedicated full collection profile: '☘️ 4 VLESS - Non-TLS AI 🤖'")
             
-    # Standalone Profile 8: BPB Fragment
+    # 5. 🌳 5 TROJAN - TLS LB 🔥
+    if groups["trojan_tls"]:
+        for idx, item in enumerate(groups["trojan_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns))
+
+    # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
+    if groups["trojan_n_tls"]:
+        for idx, item in enumerate(groups["trojan_n_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns))
+
+    # 7. 🍀 7 VMESS - TLS LB 🔥
+    if groups["vmess_tls"]:
+        for idx, item in enumerate(groups["vmess_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns))
+
+    # 8. 🌵 8 VLESS - Fragment 🔥
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
-        print("✅ Embedded dedicated configuration structure: '🌵 8 VLESS - Fragment 🔥'")
             
+    # Process unmapped or leftover protocols if any exist
+    if groups["other_protocols"]:
+        for idx, item in enumerate(groups["other_protocols"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
+
+    # CRITICAL FIX: We shuffle the configurations AFTER assigning explicit sequence strings
     random.shuffle(final_output)
-    print("🔀 Completely randomized config structural ordering inside final file.")
+    print("🔀 Completely randomized config blocks inside the output array.")
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
