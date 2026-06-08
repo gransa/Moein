@@ -218,7 +218,7 @@ def clean_dns_address(srv_str, prefix):
     return clean.split(":")[0]
 
 def get_identity_key(srv):
-    """Extracts base registration domain string for unique identifier matching."""
+    """Extracts base registration domain string or raw host string for uniqueness tracking."""
     try:
         if srv.startswith("https://"):
             domain = urlparse(srv).netloc
@@ -230,13 +230,23 @@ def get_identity_key(srv):
             domain = clean_dns_address(srv, "udp:")
         else:
             domain = srv
-        domain_parts = domain.replace("[", "").replace("]", "").split('.')
+            
+        domain = domain.replace("[", "").replace("]", "").split(':')[0]
+        
+        # If it's an IP address, return it directly as the unique key
+        try:
+            ipaddress.ip_address(domain)
+            return domain
+        except ValueError:
+            pass
+            
+        domain_parts = domain.split('.')
         return ".".join(domain_parts[-2:]) if len(domain_parts) >= 2 else domain
     except Exception:
         return srv
 
 def parse_dns_source(pool_dns_servers):
-    """Converts text lines into paired dictionary groupings, providing safe dummy routing IPs for standalone links."""
+    """Converts text lines into paired dictionary groupings with smart local resolution fallback matching."""
     paired = []
     i = 0
     while i < len(pool_dns_servers):
@@ -245,7 +255,7 @@ def parse_dns_source(pool_dns_servers):
             i += 1
             continue
 
-        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:"):
+        if item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or item.startswith("udp:") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item) or item.startswith("["):
             server_url = item
             ip_address = None
             
@@ -256,14 +266,27 @@ def parse_dns_source(pool_dns_servers):
                     i += 1
             
             if not ip_address:
-                if "quad9" in server_url:
+                lower_url = server_url.lower()
+                if "quad9" in lower_url or "9.9.9.9" in lower_url:
                     ip_address = "9.9.9.9"
-                elif "adguard" in server_url:
+                elif "adguard" in lower_url or "94.140.14.14" in lower_url:
                     ip_address = "94.140.14.14"
-                elif "opendns" in server_url:
+                elif "google" in lower_url or "8.8.8.8" in lower_url:
+                    ip_address = "8.8.8.8"
+                elif "cloudflare" in lower_url or "1.1.1.1" in lower_url or "1.0.0.1" in lower_url:
+                    ip_address = "1.1.1.1"
+                elif "yandex" in lower_url or "77.88.8.1" in lower_url:
+                    ip_address = "77.88.8.1"
+                elif "opendns" in lower_url:
                     ip_address = "208.67.222.222"
                 else:
-                    ip_address = "9.9.9.9"
+                    # Parse out plain IP strings if the upstream itself was a bare IP string
+                    clean_ip = server_url.replace("tcp:", "").replace("udp:", "").split(":")[0].replace("[", "").replace("]", "")
+                    try:
+                        ipaddress.ip_address(clean_ip)
+                        ip_address = clean_ip if "." in clean_ip else "9.9.9.9"
+                    except ValueError:
+                        ip_address = "9.9.9.9"
                     
             paired.append({"server": server_url, "ip": ip_address})
         i += 1
@@ -510,18 +533,21 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     ])
     
     fallback_providers = [
+        {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"},
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
         {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
-        {"server": "https://doh.cleanbrowsing.org/doh/security-filter", "ip": "185.228.168.9"}
+        {"server": "1.1.1.1", "ip": "1.1.1.1"},
+        {"server": "1.0.0.1", "ip": "1.0.0.1"}
     ]
     random.shuffle(fallback_providers)
 
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
-    doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
+    # Filter into DoH/DoT/Direct lists
+    doh_top = [p for p in pairs_top]
+    doh_main = [p for p in pairs_main]
 
     random.shuffle(doh_top)
     random.shuffle(doh_main)
@@ -537,10 +563,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
 
     if not chosen_providers:
         for fb in fallback_providers:
-            if fb["server"].startswith("https://"):
-                seen_identifiers.add(get_identity_key(fb["server"]))
-                chosen_providers.append(fb)
-                break
+            seen_identifiers.add(get_identity_key(fb["server"]))
+            chosen_providers.append(fb)
+            break
 
     for provider in doh_main:
         ident = get_identity_key(provider["server"])
@@ -552,7 +577,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     if len(chosen_providers) < 2 and len(chosen_providers) == 1:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
-            if fb["server"].startswith("https://") and ident not in seen_identifiers:
+            if ident not in seen_identifiers:
                 seen_identifiers.add(ident)
                 chosen_providers.append(fb)
                 break
@@ -598,8 +623,18 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         elif srv_address.startswith("udp:"):
             clean_host = clean_dns_address(srv_address, "udp:")
             dns_servers_config.append({"address": clean_host, "port": 53, "tag": tag_name})
-        else:
+        elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
+        else:
+            # Handle plain raw IP upstreams cleanly
+            if srv_address.startswith("[") and srv_address.endswith("]"):
+                dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
+            else:
+                try:
+                    ipaddress.ip_address(srv_address)
+                    dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
+                except ValueError:
+                    dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
     # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
     for provider in chosen_providers:
@@ -787,7 +822,6 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
 
-    # STICKY RULE: Enforces absolute structural position mapping (No shuffling)
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
