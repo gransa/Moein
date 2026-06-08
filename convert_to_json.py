@@ -220,15 +220,12 @@ def clean_dns_address(srv_str, prefix):
 def get_identity_key(srv):
     """Extracts base registration domain string or raw host string for uniqueness tracking."""
     try:
-        # Strip all transport prefixes cleanly first
         for prefix in ["tcp:", "udp:", "quic:", "https:"]:
             if srv.startswith(prefix):
                 srv = srv.replace(prefix, "").replace("//", "").strip()
                 
-        # Drop bracket formatting and split ports out
         domain = srv.replace("[", "").replace("]", "").split(':')[0].split('/')[0]
         
-        # If it matches an IP literal structure, use it natively
         try:
             ipaddress.ip_address(domain)
             return domain
@@ -256,7 +253,6 @@ def parse_dns_source(pool_dns_servers):
             server_url = item
             ip_address = None
             
-            # Look ahead for explicit override IPs
             if i + 1 < len(pool_dns_servers):
                 next_item = pool_dns_servers[i + 1].strip()
                 if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item) or (next_item.startswith("[") and next_item.endswith("]")):
@@ -278,33 +274,29 @@ def parse_dns_source(pool_dns_servers):
                 elif "opendns" in lower_url:
                     ip_address = "208.67.222.222"
                 else:
-                    # Strip down to clean bare host string to check if it's a raw IP literal
                     clean_ip = server_url
                     for prefix in ["tcp:", "udp:", "quic:", "https:"]:
                         clean_ip = clean_ip.replace(prefix, "").replace("//", "")
                     clean_ip = clean_ip.split(":")[0].split("/")[0]
                     
                     try:
-                        # Extract string inside brackets if present
                         ip_to_test = clean_ip.replace("[", "").replace("]", "")
                         ipaddress.ip_address(ip_to_test)
-                        ip_address = clean_ip  # Retains original formatting layout
+                        ip_address = clean_ip
                     except ValueError:
-                        # If it's a real unlisted DoH domain (e.g. libredns, rethinkdns), resolve to its host string
                         parsed_doh = urlparse(server_url if "://" in server_url else f"https://{server_url}")
                         doh_host = parsed_doh.netloc.split(':')[0]
                         try:
                             ipaddress.ip_address(doh_host.replace("[", "").replace("]", ""))
                             ip_address = doh_host
                         except ValueError:
-                            ip_address = server_url # Fallback target to itself instead of 9.9.9.9
+                            ip_address = server_url
                     
             paired.append({"server": server_url, "ip": ip_address})
         i += 1
     return paired
 
 def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
-    """Constructs the standalone template (🌵 8 VLESS - Fragment 🔥)."""
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
@@ -371,9 +363,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
-    """Generates configuration layout for VLESS TLS AI Collection."""
     outbounds = []
-    
     shuffled_nodes = copy.deepcopy(vless_tls_nodes)
     random.shuffle(shuffled_nodes)
     
@@ -382,7 +372,6 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
         stream = node["streamSettings"]
         tls_settings = stream.get("tlsSettings", {})
         ws_settings = stream.get("wsSettings", {})
-        
         addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
         
         outbounds.append({
@@ -456,16 +445,13 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
     }
 
 def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
-    """Generates configuration layout for VLESS Non-TLS AI Collection."""
     outbounds = []
-    
     shuffled_nodes = copy.deepcopy(vless_ntls_nodes)
     random.shuffle(shuffled_nodes)
     
     for idx, node in enumerate(shuffled_nodes):
         vnext = node["settings"]["vnext"][0]
         ws_settings = node["streamSettings"].get("wsSettings", {})
-        
         addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
         
         extracted_host = ws_settings.get("host", "").strip()
@@ -557,64 +543,75 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    doh_top = [p for p in pairs_top]
-    doh_main = [p for p in pairs_main]
+    # Filter out only valid DoH configurations from the main pool
+    doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    random.shuffle(doh_top)
-    random.shuffle(doh_main)
-
-    chosen_providers = []
+    chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    for provider in doh_top:
-        ident = get_identity_key(provider["server"])
-        seen_identifiers.add(ident)
-        chosen_providers.append(provider)
-        break
-
-    if not chosen_providers:
-        for fb in fallback_providers:
-            seen_identifiers.add(get_identity_key(fb["server"]))
-            chosen_providers.append(fb)
+    # Slot 2 (index 1): MUST be a DoH from DNS.txt
+    slot2_assigned = False
+    if doh_only_main:
+        random.shuffle(doh_only_main)
+        for provider in doh_only_main:
+            ident = get_identity_key(provider["server"])
+            seen_identifiers.add(ident)
+            chosen_providers[1] = provider
+            slot2_assigned = True
             break
 
-    for provider in doh_main:
+    if not slot2_assigned:
+        for fb in fallback_providers:
+            if fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                seen_identifiers.add(ident)
+                chosen_providers[1] = fb
+                slot2_assigned = True
+                break
+
+    # Slot 1 (index 0): Pick from DNS-TOP.txt
+    shuffled_top = list(pairs_top)
+    random.shuffle(shuffled_top)
+    slot1_assigned = False
+    for provider in shuffled_top:
         ident = get_identity_key(provider["server"])
         if ident not in seen_identifiers:
             seen_identifiers.add(ident)
-            chosen_providers.append(provider)
+            chosen_providers[0] = provider
+            slot1_assigned = True
             break
 
-    if len(chosen_providers) < 2 and len(chosen_providers) == 1:
+    if not slot1_assigned:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
             if ident not in seen_identifiers:
                 seen_identifiers.add(ident)
-                chosen_providers.append(fb)
+                chosen_providers[0] = fb
                 break
 
-    remaining_top = [p for p in pairs_top if get_identity_key(p["server"]) not in seen_identifiers]
-    remaining_main = [p for p in pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
-    
-    combined_remaining = remaining_top + remaining_main
+    # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
+    remaining_slots = [2, 3, 4]
+    combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
 
     for provider in combined_remaining:
-        if len(chosen_providers) == 5:
+        if not remaining_slots:
             break
         ident = get_identity_key(provider["server"])
         if ident not in seen_identifiers:
             seen_identifiers.add(ident)
-            chosen_providers.append(provider)
+            target_slot = remaining_slots.pop(0)
+            chosen_providers[target_slot] = provider
 
-    if len(chosen_providers) < 5:
-        for fb in fallback_providers:
-            if len(chosen_providers) == 5:
-                break
-            ident = get_identity_key(fb["server"])
-            if ident not in seen_identifiers:
-                seen_identifiers.add(ident)
-                chosen_providers.append(fb)
+    # Emergency fallback check for unfilled slots
+    for slot_idx in range(5):
+        if chosen_providers[slot_idx] is None:
+            for fb in fallback_providers:
+                ident = get_identity_key(fb["server"])
+                if ident not in seen_identifiers:
+                    seen_identifiers.add(ident)
+                    chosen_providers[slot_idx] = fb
+                    break
 
     dns_servers_config = []
     inbound_tags = []
