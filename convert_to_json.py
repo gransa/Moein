@@ -186,6 +186,9 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
             "sockopt": {"domainStrategy": "UseIPv4v6"}
         }
         
+        # Keep track of original SNI/address fallback explicitly for the header profile builders
+        outbound["_original_address"] = original_address
+        
         if net_type == "ws":
             outbound["streamSettings"]["wsSettings"] = {"host": params.get("host", ""), "path": params.get("path", "")}
             
@@ -334,10 +337,8 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with ALL available VLESS TLS configs using random endpoints and randomized sequential numbering tags."""
+    """Generates a structural configuration completely filled with ALL available VLESS TLS configs."""
     outbounds = []
-    
-    # Shuffle indices to guarantee completely random numbering mappings per iteration build
     seq_numbers = list(range(1, len(vless_tls_nodes) + 1))
     random.shuffle(seq_numbers)
     
@@ -369,7 +370,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
                     "show": False
                 },
                 "wsSettings": {
-                    "headers": {"Host": ws_settings.get("headers", {}).get("Host", "")},
+                    "headers": {"Host": ws_settings.get("headers", {}).get("Host", tls_settings.get("serverName", ""))},
                     "path": ws_settings.get("path", "/?ed=2560")
                 }
             },
@@ -420,9 +421,8 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
     }
 
 def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with ALL available VLESS Non-TLS configs using random endpoints and randomized sequential numbering tags."""
+    """Generates a structural configuration completely filled with ALL available VLESS Non-TLS configs with dynamic missing Host tracking fallback rules."""
     outbounds = []
-    
     seq_numbers = list(range(1, len(vless_ntls_nodes) + 1))
     random.shuffle(seq_numbers)
     
@@ -431,6 +431,11 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         ws_settings = node["streamSettings"].get("wsSettings", {})
         
         addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
+        
+        # FIX: Fallback to the original configuration target address domain if query parameter host is empty
+        extracted_host = ws_settings.get("host", "").strip()
+        if not extracted_host:
+            extracted_host = node.get("_original_address", "")
         
         outbounds.append({
             "mux": {"concurrency": -1, "enabled": False},
@@ -445,7 +450,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             "streamSettings": {
                 "network": "ws",
                 "wsSettings": {
-                    "headers": {"Host": ws_settings.get("headers", {}).get("Host", "")},
+                    "headers": {"Host": extracted_host},
                     "path": ws_settings.get("path", "/?ed=2560")
                 }
             },
@@ -471,7 +476,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             "servers": [
                 "https://8.8.8.8/dns-query",
                 {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True},
-                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True}
+                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "lenovo"], "skipFallback": True}
             ],
             "tag": "dns-module"
         },
@@ -725,12 +730,11 @@ def main():
             proto_key = "other_protocols"
             
         if node_data and proto_key:
-            # Dynamic sequencing tags are applied via the full pool builders
             groups[proto_key].append(node_data)
                 
     final_output = []
     
-    # Process original legacy load balancers
+    # Process original load balancers
     mapping = [
         ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
         ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
@@ -743,17 +747,16 @@ def main():
     
     for remark, key in mapping:
         if groups[key]:
-            # Injecting explicit layout tags back safely for legacy entries
             for idx, item in enumerate(groups[key]):
                 item["tag"] = f"prox-{idx + 1}"
             final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
             
-    # New Dedicated Profile 1: Full VLESS TLS Collection
+    # Dedicated Profile 1: Full VLESS TLS Collection
     if groups["vless_tls"]:
         final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], clean_addresses))
         print("✅ Embedded dedicated full collection profile: '🌴VLESS - TLS AI 🤖'")
         
-    # New Dedicated Profile 2: Full VLESS Non-TLS Collection
+    # Dedicated Profile 2: Full VLESS Non-TLS Collection
     if groups["vless_n_tls"]:
         final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], clean_addresses))
         print("✅ Embedded dedicated full collection profile: '🌴 VLESS - Non-TLS AI 🤖'")
@@ -764,7 +767,6 @@ def main():
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
         print("🎲 Randomly mixed dynamic Cloudflare IP into Fragment structure.")
             
-    # Completely shuffle the file contents cross-build executions
     random.shuffle(final_output)
     print("🔀 Completely randomized config structural ordering inside final file.")
 
