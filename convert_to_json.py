@@ -250,7 +250,6 @@ def parse_dns_source(pool_dns_servers):
             i += 1
             continue
 
-        # Pattern match definitions for valid URL structures or IP targets
         if (item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or 
             item.startswith("udp:") or item.startswith("[") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item)):
             
@@ -268,10 +267,10 @@ def parse_dns_source(pool_dns_servers):
                 lower_url = server_url.lower()
                 if "quad9" in lower_url or "9.9.9.9" in lower_url:
                     ip_address = "9.9.9.9"
-                elif "adguard" in lower_url or "94.140.14.14" in lower_url:
-                    ip_address = "94.140.14.14"
-                elif "google" in lower_url or "8.8.8.8" in lower_url:
-                    ip_address = "8.8.8.8"
+                elif "adguard" in lower_url or "94.140.14.14" in lower_url or "94.140.15.15" in lower_url:
+                    ip_address = "94.140.15.15" if "94.140.15.15" in lower_url else "94.140.14.14"
+                elif "google" in lower_url or "8.8.8.8" in lower_url or "8.8.4.4" in lower_url:
+                    ip_address = "8.8.4.4" if "8.8.4.4" in lower_url else "8.8.8.8"
                 elif "cloudflare" in lower_url or "1.1.1.1" in lower_url or "1.1.1.2" in lower_url or "1.0.0.1" in lower_url:
                     ip_address = "1.1.1.2" if "1.1.1.2" in lower_url else "1.1.1.1"
                 elif "yandex" in lower_url or "77.88.8.1" in lower_url:
@@ -279,17 +278,26 @@ def parse_dns_source(pool_dns_servers):
                 elif "opendns" in lower_url:
                     ip_address = "208.67.222.222"
                 else:
-                    # Strip down to clean bare host string to check if it's a raw IP
+                    # Strip down to clean bare host string to check if it's a raw IP literal
                     clean_ip = server_url
                     for prefix in ["tcp:", "udp:", "quic:", "https:"]:
                         clean_ip = clean_ip.replace(prefix, "").replace("//", "")
                     clean_ip = clean_ip.split(":")[0].split("/")[0]
                     
                     try:
-                        ipaddress.ip_address(clean_ip.replace("[", "").replace("]", ""))
-                        ip_address = clean_ip  # Keeps brackets if IPv6
+                        # Extract string inside brackets if present
+                        ip_to_test = clean_ip.replace("[", "").replace("]", "")
+                        ipaddress.ip_address(ip_to_test)
+                        ip_address = clean_ip  # Retains original formatting layout
                     except ValueError:
-                        ip_address = "9.9.9.9"
+                        # If it's a real unlisted DoH domain (e.g. libredns, rethinkdns), resolve to its host string
+                        parsed_doh = urlparse(server_url if "://" in server_url else f"https://{server_url}")
+                        doh_host = parsed_doh.netloc.split(':')[0]
+                        try:
+                            ipaddress.ip_address(doh_host.replace("[", "").replace("]", ""))
+                            ip_address = doh_host
+                        except ValueError:
+                            ip_address = server_url # Fallback target to itself instead of 9.9.9.9
                     
             paired.append({"server": server_url, "ip": ip_address})
         i += 1
@@ -632,7 +640,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
         else:
-            # Handle plain raw IP upstreams cleanly
             if srv_address.startswith("[") and srv_address.endswith("]"):
                 dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
             else:
