@@ -270,7 +270,7 @@ def parse_dns_source(pool_dns_servers):
     return paired
 
 def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
-    """Constructs the standalone template (☘️ 4 - BPB - Fragment 🔥)."""
+    """Constructs the standalone template (🌵 8 VLESS - Fragment 🔥)."""
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
@@ -288,11 +288,11 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     sni_server_name = tls_settings.get("serverName", "")
     cert_fingerprint = tls_settings.get("pinnedPeerCertSha256", "")
     
-    ws_host = ws_settings.get("host", sni_server_name)
+    ws_host = ws_settings.get("headers", {}).get("Host", sni_server_name) if isinstance(ws_settings.get("headers"), dict) else ws_settings.get("host", sni_server_name)
     ws_path = ws_settings.get("path", "/?ed=2560")
 
     return {
-        "remarks": "☘️ 4 - BPB - Fragment 🔥",
+        "remarks": "🌵 8 VLESS - Fragment 🔥",
         "dns": {
             "hosts": {"domain:googleapis.cn": "googleapis.com"},
             "servers": ["8.8.8.8"]
@@ -337,7 +337,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     }
 
 def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
-    """Generates a structural configuration completely filled with randomized VLESS TLS configs labeled sequentially from prox-1 to prox-N with explicit fingerprint pinning tracking."""
+    """Generates a structural configuration filled with randomized VLESS TLS configs from prox-1 to prox-N with explicit fingerprint pinning."""
     outbounds = []
     
     shuffled_nodes = copy.deepcopy(vless_tls_nodes)
@@ -366,12 +366,12 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
                 "security": "tls",
                 "tlsSettings": {
                     "fingerprint": tls_settings.get("fingerprint", "chrome"),
-                    "pinnedPeerCertSha256": tls_settings.get("pinnedPeerCertSha256", ""), # FIX: Directly map cert fingerprint (pcs)
+                    "pinnedPeerCertSha256": tls_settings.get("pinnedPeerCertSha256", ""),
                     "serverName": tls_settings.get("serverName", ""),
                     "show": False
                 },
                 "wsSettings": {
-                    "headers": {"Host": ws_settings.get("headers", {}).get("Host", tls_settings.get("serverName", ""))},
+                    "headers": {"Host": ws_settings.get("headers", {}).get("Host", tls_settings.get("serverName", "")) if isinstance(ws_settings.get("headers"), dict) else tls_settings.get("serverName", "")},
                     "path": ws_settings.get("path", "/?ed=2560")
                 }
             },
@@ -384,7 +384,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
     ])
 
     return {
-        "remarks": "🌴VLESS - TLS AI 🤖",
+        "remarks": "🌴 2 VLESS - TLS AI 🤖",
         "dns": {
             "hosts": {
                 "domain:googleapis.cn": "googleapis.com",
@@ -464,7 +464,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
     ])
 
     return {
-        "remarks": "🌴 VLESS - Non-TLS AI 🤖",
+        "remarks": "☘️ 4 VLESS - Non-TLS AI 🤖",
         "dns": {
             "hosts": {
                 "domain:googleapis.cn": "googleapis.com",
@@ -735,15 +735,13 @@ def main():
                 
     final_output = []
     
-    # Process original load balancers
+    # Process load balancers with explicit new names and order tags
     mapping = [
-        ("🌳 VLESS - TLS LB 🔥", "vless_tls"),
-        ("🌳 TROJAN - TLS LB 🔥", "trojan_tls"),
-        ("🌳 VMESS - TLS LB 🔥", "vmess_tls"),
-        ("🌳 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
-        ("🌳 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
-        ("🌳 VMESS - Non-TLS LB 🔥", "vmess_n_tls"),
-        ("🌳 OTHER PROTOCOLS LB 🔥", "other_protocols")
+        ("🌴 1 VLESS - TLS LB 🔥", "vless_tls"),
+        ("☘️ 3 VLESS - Non-TLS LB 🔥", "vless_n_tls"),
+        ("🌳 5 TROJAN - TLS LB 🔥", "trojan_tls"),
+        ("🌳 6 TROJAN - Non-TLS LB 🔥", "trojan_n_tls"),
+        ("🍀 7 VMESS - TLS LB 🔥", "vmess_tls")
     ]
     
     for remark, key in mapping:
@@ -752,21 +750,21 @@ def main():
                 item["tag"] = f"prox-{idx + 1}"
             final_output.append(build_v2rayng_template(remark, groups[key], pool_top_dns, pool_main_dns))
             
-    # Dedicated Profile 1: Full VLESS TLS Collection
+    # Dedicated Profile 2: VLESS TLS AI Collection
     if groups["vless_tls"]:
         final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], clean_addresses))
-        print("✅ Embedded dedicated full collection profile: '🌴VLESS - TLS AI 🤖'")
+        print("✅ Embedded dedicated full collection profile: '🌴 2 VLESS - TLS AI 🤖'")
         
-    # Dedicated Profile 2: Full VLESS Non-TLS Collection
+    # Dedicated Profile 4: VLESS Non-TLS AI Collection
     if groups["vless_n_tls"]:
         final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], clean_addresses))
-        print("✅ Embedded dedicated full collection profile: '🌴 VLESS - Non-TLS AI 🤖'")
+        print("✅ Embedded dedicated full collection profile: '☘️ 4 VLESS - Non-TLS AI 🤖'")
             
-    # Standalone Profile: BPB Fragment (☘️ 4 - BPB - Fragment 🔥)
+    # Standalone Profile 8: BPB Fragment
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
-        print("🎲 Randomly mixed dynamic Cloudflare IP into Fragment structure.")
+        print("✅ Embedded dedicated configuration structure: '🌵 8 VLESS - Fragment 🔥'")
             
     random.shuffle(final_output)
     print("🔀 Completely randomized config structural ordering inside final file.")
