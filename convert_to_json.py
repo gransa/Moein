@@ -396,8 +396,8 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
             },
             "servers": [
                 "https://8.8.8.8/dns-query",
-                {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True},
-                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True}
+                {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True},
+                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}
             ],
             "tag": "dns-module"
         },
@@ -413,7 +413,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
             "rules": [
                 {"inboundTag": ["domestic-dns"], "outboundTag": "direct", "type": "field"},
                 {"inboundTag": ["dns-module"], "balancerTag": "all", "type": "field"},
-                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "outboundTag": "direct"}
+                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "outboundTag": "direct"}
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
@@ -476,8 +476,8 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             },
             "servers": [
                 "https://8.8.8.8/dns-query",
-                {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True},
-                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "skipFallback": True}
+                {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True},
+                {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}
             ],
             "tag": "dns-module"
         },
@@ -493,7 +493,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             "rules": [
                 {"inboundTag": ["domestic-dns"], "outboundTag": "direct", "type": "field"},
                 {"inboundTag": ["dns-module"], "balancerTag": "all", "type": "field"},
-                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "geosite:hp", "geosite:lenovo"], "outboundTag": "direct"}
+                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "outboundTag": "direct"}
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
@@ -784,14 +784,12 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
 
-    # CRITICAL FIX: We shuffle the configurations AFTER assigning explicit sequence strings
-    random.shuffle(final_output)
-    print("🔀 Completely randomized config blocks inside the output array.")
+    # REMOVED random.shuffle(final_output) TO ENFORCE STRICT INDEX POSITIONS
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Compiled cleanly into single layout destination: '{output_file}'")
+    print(f"🎉 Compiled cleanly with strict sequence order in destination: '{output_file}'")
 
 if __name__ == "__main__":
     main()
