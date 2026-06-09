@@ -546,18 +546,18 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Added protocol variety to fallbacks (TCP, TLS, QUIC, UDP) to guarantee distinct types for slots 3, 4, 5
+    # Use domains in fallbacks to guarantee variety and prevent raw IP endpoints for slots 3,4,5
     fallback_providers = [
         {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"},
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
-        {"server": "tcp://8.8.8.8:853", "ip": "8.8.8.8"},
-        {"server": "tcp://1.1.1.1:853", "ip": "1.1.1.1"},
-        {"server": "tls://8.8.4.4:853", "ip": "8.8.4.4"},
-        {"server": "tls://9.9.9.9:853", "ip": "9.9.9.9"},
-        {"server": "udp://8.8.8.8:53", "ip": "8.8.8.8"},
-        {"server": "udp://1.1.1.1:53", "ip": "1.1.1.1"},
+        {"server": "tcp://dns.google:853", "ip": "8.8.8.8"},
+        {"server": "tcp://dns.quad9.net:853", "ip": "9.9.9.9"},
+        {"server": "tls://dns.google:853", "ip": "8.8.8.8"},
+        {"server": "tls://dns.quad9.net:853", "ip": "9.9.9.9"},
         {"server": "quic://dns.adguard-dns.com", "ip": "94.140.14.14"},
         {"server": "quic://dns.nextdns.io", "ip": "45.90.30.0"},
+        {"server": "udp://dns.google:53", "ip": "8.8.8.8"},
+        {"server": "udp://dns.quad9.net:53", "ip": "9.9.9.9"},
         # Bare IPs kept at the bottom strictly for fallback geosite/geoip resolution rules
         {"server": "1.1.1.1", "ip": "1.1.1.1"},
         {"server": "1.0.0.1", "ip": "1.0.0.1"},
@@ -571,33 +571,38 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     doh_only_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # Robust Helper: A "raw IP" is ONLY a bare address without a protocol scheme (e.g. 1.1.1.1)
-    # tcp://8.8.8.8 or tls://1.1.1.1 ARE accepted because they specify a protocol wrapper.
-    def is_raw_ip(server_str):
+    # Robust Helper: checks if the actual host target resolves to an IP address
+    # This blocks "udp://223.6.6.6:53" from sneaking into slots 3,4,5
+    def is_endpoint_ip(server_str):
         s = server_str.strip()
-        # If it starts with a protocol scheme, it's NOT considered a raw IP in this context
-        if re.match(r'^(https?|tcp|udp|tls|quic)://', s, re.IGNORECASE):
-            return False
-        if s.startswith(("tcp:", "udp:", "quic:", "tls:")):
+        host = ""
+        
+        # Extract hostname from standard scheme://host:port
+        if "://" in s:
+            try:
+                host = urlparse(s).hostname or ""
+            except:
+                host = ""
+        # Extract from tcp:host:port
+        elif s.startswith(("tcp:", "udp:", "quic:", "tls:")):
+            host = s.split(':', 1)[1].replace("//", "").split(':')[0]
+        # Bare host:port or host
+        else:
+            host = s.split(':')[0]
+            
+        # Strip bracket for IPv6
+        if host.startswith("[") and host.endswith("]"):
+            host = host[1:-1]
+            
+        if not host: 
             return False
             
-        # Bare bracketed IPv6
-        if s.startswith("[") and s.endswith("]"):
-            try:
-                ipaddress.ip_address(s[1:-1])
-                return True
-            except ValueError:
-                pass
-                
-        # Bare IPv4 with optional port
-        parts = s.split(":")
-        if len(parts) <= 2:
-            try:
-                ipaddress.ip_address(parts[0])
-                return True
-            except ValueError:
-                pass
-        return False
+        # Check if host is an IP
+        try:
+            ipaddress.ip_address(host)
+            return True
+        except ValueError:
+            return False
 
     # Helper: determine DNS type for grouping variety
     def get_dns_type(server_str):
@@ -655,7 +660,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     break
 
     # ── Slots 3, 4, 5 (indices 2, 3, 4): Exactly one of each type (DoH, TCP, UDP, TLS/QUIC) ──
-    combined_remaining = [p for p in pairs_top + pairs_main if not is_raw_ip(p["server"])]
+    # Filter out any server whose host is strictly an IP Address
+    combined_remaining = [p for p in pairs_top + pairs_main if not is_endpoint_ip(p["server"])]
     combined_remaining = [p for p in combined_remaining if get_identity_key(p["server"]) not in seen_identifiers]
     
     # Group by type
@@ -685,7 +691,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         
     # If we still have less than 3, try filling from fallbacks that provide NEW types
     if len(slot_345_providers) < 3:
-        non_ip_fallbacks = [fb for fb in fallback_providers if not is_raw_ip(fb["server"])]
+        non_ip_fallbacks = [fb for fb in fallback_providers if not is_endpoint_ip(fb["server"])]
         random.shuffle(non_ip_fallbacks)
         
         for fb in non_ip_fallbacks:
@@ -730,11 +736,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                         chosen_providers[slot_idx] = fb
                         break
 
-    # Emergency fallback for slots 2, 3, 4 (any except raw IP)
+    # Emergency fallback for slots 2, 3, 4 (any except IP endpoint)
     for slot_idx in [2, 3, 4]:
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
-                if not is_raw_ip(fb["server"]):
+                if not is_endpoint_ip(fb["server"]):
                     ident = get_identity_key(fb["server"])
                     if ident not in seen_identifiers:
                         seen_identifiers.add(ident)
