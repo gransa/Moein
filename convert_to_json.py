@@ -566,22 +566,40 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     # Filter DoH-only from DNS.txt for remote-dns-2
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # Helper: check if a server string is a raw IPv4/IPv6 (without any protocol prefix)
+    # Robust Helper: check if a server string connects to an actual IPv4/IPv6 address
     def is_raw_ip(server_str):
         s = server_str.strip()
-        # If it starts with any protocol prefix, it's NOT a raw IP
-        if s.startswith(("https://", "http://", "tcp://", "tcp:", "quic://", "quic:", "udp://", "udp:")):
+        host = s
+        
+        # Handle scheme:// formats (https://, tcp://, quic://, udp://)
+        if "://" in s:
+            try:
+                host = urlparse(s).hostname or ""
+            except Exception:
+                host = ""
+        # Handle tcp:, udp:, quic: without //
+        elif s.startswith(("tcp:", "udp:", "quic:")):
+            host = s.split(':', 1)[1].replace("//", "").split(':')[0]
+            if host.startswith("[") and host.endswith("]"):
+                host = host[1:-1]
+        else:
+            # Bare addresses like [IPv6] or 1.1.1.1
+            if host.startswith("[") and host.endswith("]"):
+                host = host[1:-1]
+            else:
+                # Might be IPv4:port
+                parts = host.split(":")
+                if len(parts) == 2 and parts[1].isdigit():
+                    host = parts[0]
+                
+        if not host:
             return False
-        # Bare IPv6 in brackets
-        if s.startswith("[") and s.endswith("]"):
-            return True
-        # Bare IPv4
+            
         try:
-            ipaddress.ip_address(s)
+            ipaddress.ip_address(host)
             return True
         except ValueError:
-            pass
-        return False
+            return False
 
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
@@ -664,6 +682,12 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                         seen_identifiers.add(ident)
                         chosen_providers[slot_idx] = fb
                         break
+
+    # Final failsafe: prevent None crashes by duplicating valid entries if all fallbacks ran out
+    valid_fallback = chosen_providers[0] or chosen_providers[1] or {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"}
+    for slot_idx in range(5):
+        if chosen_providers[slot_idx] is None:
+            chosen_providers[slot_idx] = valid_fallback
 
     dns_servers_config = []
     inbound_tags = []
