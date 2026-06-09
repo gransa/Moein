@@ -1,0 +1,34 @@
+name: Convert Domains to A-Records
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+jobs:
+  run-converter:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Run Conversion Script
+      run: python convert.py
+
+    - name: Commit and Push changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add a_records.txt
+        if git diff --cached --quiet; then
+          echo "No changes found in the resolved IPs."
+        else
+          git commit -m "Automated update: Refreshed A-records list"
+          git push
+        fi
