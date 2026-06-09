@@ -578,10 +578,21 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             chosen_providers[0] = fb
             break
 
-    # Slot 2: Strictly IPv4
-    ipv4_only_main = [p for p in pairs_main if not p["server"].startswith("https://") and not p["server"].startswith("tcp:") and not p["server"].startswith("quic:") and not p["server"].startswith("udp:") and not p["server"].startswith("[")]
+    # ================= STRICT SLOT 2 IPV4 FILTERING =================
+    ipv4_only_main = []
+    for p in pairs_main:
+        srv_str = p["server"]
+        # Skip string indicators that point to IPv6 or protocols completely
+        if any(srv_str.startswith(x) for x in ["https://", "tcp:", "quic:", "udp:", "["]):
+            continue
+        try:
+            # Enforce native python evaluation to ensure it qualifies strictly as an IPv4 address
+            if isinstance(ipaddress.ip_address(srv_str), ipaddress.IPv4Address):
+                ipv4_only_main.append(p)
+        except ValueError:
+            continue
+
     slot2_assigned = False
-    
     if ipv4_only_main:
         random.shuffle(ipv4_only_main)
         for provider in ipv4_only_main:
@@ -592,15 +603,20 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 slot2_assigned = True
                 break
 
+    # Absolute fallback assurance if no custom safe IPv4 exists in the repository
     if not slot2_assigned:
         for fb in fallback_providers:
-            if not fb["server"].startswith("https://"):
-                ident = get_identity_key(fb["server"])
-                if ident not in seen_identifiers:
-                    seen_identifiers.add(ident)
-                    chosen_providers[1] = {"server": fb["ip"], "ip": fb["ip"]}
-                    slot2_assigned = True
-                    break
+            try:
+                if isinstance(ipaddress.ip_address(fb["ip"]), ipaddress.IPv4Address):
+                    ident = get_identity_key(fb["server"])
+                    if ident not in seen_identifiers:
+                        seen_identifiers.add(ident)
+                        chosen_providers[1] = {"server": fb["ip"], "ip": fb["ip"]}
+                        slot2_assigned = True
+                        break
+            except ValueError:
+                continue
+    # =================================================================
 
     # Slots 3, 4, 5
     remaining_slots = [2, 3, 4]
@@ -658,14 +674,13 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for bypass rules (SAFE EXTRACTOR FOR BOTH IPv4 AND IPv6 BRACKETS)
+    # 2. Dynamic 1-to-1 matching for bypass rules
     for provider in chosen_providers:
         fallback_ip = provider["ip"]
         for prefix in ["tcp:", "udp:", "quic:", "https:"]:
             if fallback_ip.startswith(prefix):
                 fallback_ip = fallback_ip.replace(prefix, "").replace("//", "")
         
-        # Safe isolation checks: preserves IPv6 bracket groupings instead of blind colons splitting
         if fallback_ip.startswith("[") and "]" in fallback_ip:
             fallback_ip = fallback_ip.split("]")[0] + "]"
         else:
