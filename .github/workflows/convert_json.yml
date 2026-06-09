@@ -25,22 +25,26 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Debug Inputs
-        run: |
-          echo "Checking Configs.txt presence and hash..."
-          ls -lh Configs.txt
-          sha256sum Configs.txt || echo "Configs.txt not found"
-
       - name: Compile Profile Array Layouts
         run: |
+          echo "--- Pre-Run Cleanup ---"
+          # Force removal of the old output to ensure a clean slate
+          rm -f NG-JSON-Configs.txt
+          
+          echo "--- Input File Preview ---"
+          head -n 10 Configs.txt
+          
+          echo "--- Running Conversion ---"
           python convert_to_json.py
           
-          # Validation: Ensure the script actually produced a file
+          # Validation
           if [ ! -s NG-JSON-Configs.txt ]; then
             echo "::error::Output file NG-JSON-Configs.txt is empty or missing!"
             exit 1
           fi
-          echo "File generated successfully."
+          
+          echo "--- Post-Run Check ---"
+          ls -lh NG-JSON-Configs.txt
 
       - name: Commit and Push
         run: |
@@ -50,12 +54,12 @@ jobs:
           # Stage the file
           git add NG-JSON-Configs.txt
           
-          # Check for changes and provide detailed feedback
+          # Check for changes
           if git diff --cached --quiet; then
             echo "SUCCESS: The generated JSON matches the existing version."
-            echo "No changes were detected by Git."
+            echo "No new changes to commit."
           else
-            echo "CHANGES DETECTED: Committing new changes..."
+            echo "CHANGES DETECTED: Committing..."
             git commit -m "Automated Sync: Update compiled v2rayNG profiles layout block"
             git push
           fi
