@@ -1,54 +1,110 @@
-63.141.128.232
-193.9.49.119
-172.64.32.19
-104.16.9.215
-208.103.161.249
-162.159.142.8
-172.64.48.15
-104.17.2.112
-iplocation.net
-digitalocean.com
-sourceforge.net
-www.speedtest.net
-www.visa.com.tw
-check-host.net
-jquery.com
-www.visasoutheasteurope.com
-cdnjs.com
-www.visaeurope.ch
-www.visa.com.br
-medium.com
-change.org
-al-akhbar.com
-alhilal.com
-androidauthority.com
-bitpay.com
-glassdoor.com
-1password.com
-tfl.gov.uk
-poloniex.com
-codepen.io
-laravel.com
-laracasts.com
-seriouseats.com
-feedly.com
-irccloud.com
-23andme.com
-transferwise.com
-kraken.com
-mybb.com
-adf.ly
-patient.co.uk
-smosh.com
-ns1.cloudflare.com
-ns2.cloudflare.com
-ns3.cloudflare.com
-ns4.cloudflare.com
-ns5.cloudflare.com
-ns6.cloudflare.com
-ns7.cloudflare.com
-www.nslookup.io
-grok.com
-feedback.spotify.com
-www.hcaptcha.com
-nodejs.org
+104.16.9.215                   IN  A  104.16.9.215
+104.17.2.112                   IN  A  104.17.2.112
+162.159.142.8                  IN  A  162.159.142.8
+172.64.32.19                   IN  A  172.64.32.19
+172.64.48.15                   IN  A  172.64.48.15
+193.9.49.119                   IN  A  193.9.49.119
+1password.com.                 IN  A  162.159.141.147
+1password.com.                 IN  A  172.66.1.143
+208.103.161.249                IN  A  208.103.161.249
+23andme.com.                   IN  A  104.16.182.73
+23andme.com.                   IN  A  104.16.183.73
+63.141.128.232                 IN  A  63.141.128.232
+adf.ly.                        IN  A  172.66.40.139
+adf.ly.                        IN  A  172.66.43.117
+al-akhbar.com.                 IN  A  104.26.10.180
+al-akhbar.com.                 IN  A  104.26.11.180
+al-akhbar.com.                 IN  A  172.67.75.168
+alhilal.com.                   IN  A  104.26.12.21
+alhilal.com.                   IN  A  104.26.13.21
+alhilal.com.                   IN  A  172.67.68.132
+androidauthority.com.          IN  A  172.66.133.107
+androidauthority.com.          IN  A  172.66.138.120
+bitpay.com.                    IN  A  104.18.78.118
+bitpay.com.                    IN  A  104.18.79.118
+cdnjs.com.                     IN  A  104.24.196.20
+cdnjs.com.                     IN  A  104.24.197.20
+cdnjs.com.                     IN  A  172.67.66.177
+change.org.                    IN  A  65.8.54.107
+change.org.                    IN  A  65.8.54.33
+change.org.                    IN  A  65.8.54.85
+change.org.                    IN  A  65.8.54.99
+check-host.net.                IN  A  104.21.74.214
+check-host.net.                IN  A  172.67.163.103
+codepen.io.                    IN  A  104.16.147.32
+codepen.io.                    IN  A  104.16.163.32
+digitalocean.com.              IN  A  104.19.173.68
+digitalocean.com.              IN  A  104.19.174.68
+feedback.spotify.com.          IN  A  104.21.10.136
+feedback.spotify.com.          IN  A  172.67.131.125
+feedly.com.                    IN  A  104.20.2.36
+feedly.com.                    IN  A  172.66.128.81
+glassdoor.com.                 IN  A  104.16.25.46
+glassdoor.com.                 IN  A  104.17.64.70
+grok.com.                      IN  A  104.18.28.234
+grok.com.                      IN  A  104.18.29.234
+iplocation.net.                IN  A  104.26.6.214
+iplocation.net.                IN  A  104.26.7.214
+iplocation.net.                IN  A  172.67.68.240
+irccloud.com.                  IN  A  172.66.134.117
+irccloud.com.                  IN  A  172.66.138.156
+jquery.com.                    IN  A  104.18.155.119
+jquery.com.                    IN  A  104.18.156.119
+kraken.com.                    IN  A  104.17.185.205
+kraken.com.                    IN  A  104.17.186.205
+kraken.com.                    IN  A  104.17.187.205
+kraken.com.                    IN  A  104.17.188.205
+kraken.com.                    IN  A  104.17.189.205
+laracasts.com.                 IN  A  104.20.0.64
+laracasts.com.                 IN  A  172.66.128.4
+laravel.com.                   IN  A  104.18.2.81
+laravel.com.                   IN  A  104.18.3.81
+medium.com.                    IN  A  162.159.152.4
+medium.com.                    IN  A  162.159.153.4
+mybb.com.                      IN  A  104.24.30.89
+mybb.com.                      IN  A  104.24.31.89
+mybb.com.                      IN  A  172.67.67.178
+nodejs.org.                    IN  A  104.16.212.131
+nodejs.org.                    IN  A  104.16.213.131
+ns1.cloudflare.com.            IN  A  173.245.58.100
+ns2.cloudflare.com.            IN  A  173.245.59.100
+ns3.cloudflare.com.            IN  A  162.159.0.33
+ns3.cloudflare.com.            IN  A  162.159.7.226
+ns4.cloudflare.com.            IN  A  162.159.1.33
+ns4.cloudflare.com.            IN  A  162.159.8.55
+ns5.cloudflare.com.            IN  A  162.159.2.9
+ns5.cloudflare.com.            IN  A  162.159.9.55
+ns6.cloudflare.com.            IN  A  162.159.3.11
+ns6.cloudflare.com.            IN  A  162.159.5.6
+ns7.cloudflare.com.            IN  A  162.159.4.8
+ns7.cloudflare.com.            IN  A  162.159.6.6
+patient.co.uk.                 IN  A  104.21.29.40
+patient.co.uk.                 IN  A  172.67.148.91
+poloniex.com.                  IN  A  18.155.202.101
+poloniex.com.                  IN  A  18.155.202.113
+poloniex.com.                  IN  A  18.155.202.12
+poloniex.com.                  IN  A  18.155.202.7
+seriouseats.com.               IN  A  162.159.141.224
+seriouseats.com.               IN  A  172.66.1.220
+smosh.com.                     IN  A  23.227.38.32
+sourceforge.net.               IN  A  104.18.12.149
+sourceforge.net.               IN  A  104.18.13.149
+tfl.gov.uk.                    IN  A  104.16.97.104
+tfl.gov.uk.                    IN  A  104.16.98.104
+transferwise.com.              IN  A  104.18.214.66
+transferwise.com.              IN  A  104.18.215.66
+www.hcaptcha.com.              IN  A  104.19.229.21
+www.hcaptcha.com.              IN  A  104.19.230.21
+www.nslookup.io.               IN  A  104.26.8.225
+www.nslookup.io.               IN  A  104.26.9.225
+www.nslookup.io.               IN  A  172.67.70.237
+www.speedtest.net.             IN  A  104.17.147.22
+www.speedtest.net.             IN  A  104.17.148.22
+www.visa.com.br.               IN  A  104.18.12.51
+www.visa.com.br.               IN  A  104.18.13.51
+www.visa.com.tw.               IN  A  104.18.4.250
+www.visa.com.tw.               IN  A  104.18.5.250
+www.visaeurope.ch.             IN  A  104.18.2.26
+www.visaeurope.ch.             IN  A  104.18.3.26
+www.visasoutheasteurope.com.   IN  A  104.18.14.201
+www.visasoutheasteurope.com.   IN  A  104.18.15.201
