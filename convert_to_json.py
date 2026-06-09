@@ -533,7 +533,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"},
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
-        {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
+        {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"}
     ]
     random.shuffle(fallback_providers)
 
@@ -563,22 +563,12 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 slot1_assigned = True
                 break
 
-    # --- Slot 2: ONLY IPv4 Address from DNS.txt ---
-    ipv4_only_main = []
-    for p in pairs_main:
-        srv_str = p["server"]
-        if any(srv_str.startswith(x) for x in ["https://", "tcp:", "quic:", "udp:", "["]):
-            continue
-        try:
-            if isinstance(ipaddress.ip_address(srv_str), ipaddress.IPv4Address):
-                ipv4_only_main.append(p)
-        except ValueError:
-            continue
-
+    # --- Slot 2: ONLY DoH from DNS.txt ---
+    doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
     slot2_assigned = False
-    if ipv4_only_main:
-        random.shuffle(ipv4_only_main)
-        for provider in ipv4_only_main:
+    if doh_main:
+        random.shuffle(doh_main)
+        for provider in doh_main:
             ident = get_identity_key(provider["server"])
             if ident not in seen_identifiers:
                 seen_identifiers.add(ident)
@@ -588,29 +578,32 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
 
     if not slot2_assigned:
         for fb in fallback_providers:
-            try:
-                if isinstance(ipaddress.ip_address(fb["ip"]), ipaddress.IPv4Address):
-                    ident = get_identity_key(fb["server"])
-                    if ident not in seen_identifiers:
-                        seen_identifiers.add(ident)
-                        chosen_providers[1] = {"server": fb["ip"], "ip": fb["ip"]}
-                        slot2_assigned = True
-                        break
-            except ValueError:
-                continue
+            if fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                if ident not in seen_identifiers:
+                    seen_identifiers.add(ident)
+                    chosen_providers[1] = fb
+                    slot2_assigned = True
+                    break
 
-    # --- Slots 3, 4, 5: Mixed Protocols from both addresses (NO RAW IPs) ---
+    # --- Slots 3, 4, 5: Mixed Protocols (Strictly NO RAW IPs, IPv4 or IPv6) ---
     remaining_slots = [2, 3, 4]
-    
     filtered_remaining = []
+    
     for p in (pairs_top + pairs_main):
         srv = p["server"].strip()
+        
+        # If it explicitly has an encrypted/link protocol schema, it is safe to use
         if any(srv.startswith(x) for x in ["https://", "tcp:", "quic:", "udp:"]):
             filtered_remaining.append(p)
         else:
+            # Clean brackets or optional trailing details to properly check for raw IPs
+            clean_test = srv.replace("[", "").replace("]", "").split(":")[0].split("/")[0]
             try:
-                ipaddress.ip_address(srv.replace("[", "").replace("]", ""))
+                # If this converts to any IP address class successfully, it is a raw numerical IP -> Skip it!
+                ipaddress.ip_address(clean_test)
             except ValueError:
+                # If it raises a ValueError, it is an actual non-numeric domain text address -> Safe!
                 filtered_remaining.append(p)
 
     random.shuffle(filtered_remaining)
@@ -624,15 +617,16 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback fill for missing slots using protocol links
+    # Emergency fallback fill using secure encrypted link schema objects if dry
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
-                ident = get_identity_key(fb["server"])
-                if ident not in seen_identifiers:
-                    seen_identifiers.add(ident)
-                    chosen_providers[slot_idx] = fb
-                    break
+                if fb["server"].startswith("https://"):
+                    ident = get_identity_key(fb["server"])
+                    if ident not in seen_identifiers:
+                        seen_identifiers.add(ident)
+                        chosen_providers[slot_idx] = fb
+                        break
 
     dns_servers_config = []
     inbound_tags = []
