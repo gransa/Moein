@@ -2,10 +2,9 @@ name: Convert Domains to A-Records
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    - cron: '0 */6 * * *' # Runs every 6 hours (at minute 0 of hours 0, 6, 12, and 18)
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
-# Add this permissions block to allow the token to write/commit back to your repository
 permissions:
   contents: write
 
@@ -29,10 +28,10 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add a_records.txt
+        git add Cloudflare-IPs.txt
         if git diff --cached --quiet; then
           echo "No changes found in the resolved IPs."
         else
-          git commit -m "Automated update: Refreshed A-records list"
+          git commit -m "Automated update: Refreshed Cloudflare-IPs list"
           git push
         fi
