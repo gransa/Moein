@@ -48,3 +48,7 @@ ns5.cloudflare.com
 ns6.cloudflare.com
 ns7.cloudflare.com
 www.nslookup.io
+grok.com
+feedback.spotify.com
+www.hcaptcha.com
+nodejs.org
