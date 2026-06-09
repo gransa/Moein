@@ -5,7 +5,7 @@ import concurrent.futures
 
 # URL containing the IPs and domains
 URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/CF-For-Convert.txt"
-OUTPUT_FILE = "a_records.txt"
+OUTPUT_FILE = "Cloudflare-IPs.txt"  # <-- Updated output file name
 
 # Simple regex patterns to identify IPv4 and basic domain validation
 IPV4_REGEX = re.compile(r'^([0-9]{1,3}\.){3}[0-9]{1,3}$')
@@ -41,12 +41,10 @@ def resolve_domain(item):
     # If it's a domain name, resolve it
     if DOMAIN_REGEX.match(item):
         try:
-            # getaddrinfo filters out IPv6 if we specify AF_INET
             results = socket.getaddrinfo(item, None, socket.AF_INET, socket.SOCK_STREAM)
             ips = list(set([res[4][0] for res in results])) # Deduplicate IPs for this host
             return [(item, ip) for ip in ips]
         except socket.gaierror:
-            # DNS resolution failed for this host
             return []
             
     return []
@@ -61,7 +59,6 @@ def main():
     print(f"Found {len(items)} entries. Starting DNS resolution...")
     
     records = []
-    # Use ThreadPoolExecutor for faster concurrent DNS requests
     with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
         results = executor.map(resolve_domain, items)
         for res in results:
@@ -70,10 +67,8 @@ def main():
 
     print(f"Writing {len(records)} A-records to {OUTPUT_FILE}...")
     
-    # Write in classic DNS zone file A-record format: domain.com.  IN  A  1.2.3.4
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         for domain, ip in sorted(records):
-            # Ensure the domain ends with a dot for strict standard formatting, or leave as is if it's a raw IP
             record_name = domain if IPV4_REGEX.match(domain) else f"{domain}."
             f.write(f"{record_name:<30} IN  A  {ip}\n")
 
