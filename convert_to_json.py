@@ -534,6 +534,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             elif "servers" in settings and settings["servers"]:
                 settings["servers"][0]["address"] = random.choice(clean_addresses)
 
+    # Clean up the internal helper key '_original_address' so it's excluded from final JSON compilation
+    for node in modified_outbounds:
+        if "_original_address" in node:
+            del node["_original_address"]
+
     base_outbounds = modified_outbounds
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
@@ -842,6 +847,13 @@ def main():
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses))
+
+    # Clean up the internal helper key '_original_address' across all templates before output serialization
+    for template in final_output:
+        if "outbounds" in template:
+            for outbound in template["outbounds"]:
+                if "_original_address" in outbound:
+                    del outbound["_original_address"]
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
