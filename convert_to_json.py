@@ -440,8 +440,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
-        "stats": {},
-        "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
+        "stats": {}
     }
 
 def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
@@ -517,8 +516,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
-        "stats": {},
-        "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
+        "stats": {}
     }
 
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
@@ -556,7 +554,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             break
     if not slot1_assigned:
         for fb in fallback_providers:
-            if fb["server"].startswith("https://"):
+            if fb["server"].startswith("https://"]:
                 ident = get_identity_key(fb["server"])
                 seen_identifiers.add(ident)
                 chosen_providers[0] = fb
@@ -593,18 +591,22 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     for p in (pairs_top + pairs_main):
         srv = p["server"].strip()
         
-        # If it explicitly has an encrypted/link protocol schema, it is safe to use
-        if any(srv.startswith(x) for x in ["https://", "tcp:", "quic:", "udp:"]):
+        # Strip protocol schemas cleanly to find the underlying host address
+        clean_host = srv
+        for prefix in ["https://", "tcp:", "quic:", "udp:"]:
+            if clean_host.startswith(prefix):
+                clean_host = clean_host.replace(prefix, "").replace("//", "")
+                break
+        
+        # Discard trailing paths, options, queries, or custom port endings
+        clean_host = clean_host.replace("[", "").replace("]", "").split(":")[0].split("/")[0].split("?")[0]
+        
+        try:
+            # If the underlying host parses cleanly as a numeric IP address -> Strictly Skip It!
+            ipaddress.ip_address(clean_host)
+        except ValueError:
+            # If it throws a ValueError, it is a valid text-based alpha-domain address -> Safe to Include!
             filtered_remaining.append(p)
-        else:
-            # Clean brackets or optional trailing details to properly check for raw IPs
-            clean_test = srv.replace("[", "").replace("]", "").split(":")[0].split("/")[0]
-            try:
-                # If this converts to any IP address class successfully, it is a raw numerical IP -> Skip it!
-                ipaddress.ip_address(clean_test)
-            except ValueError:
-                # If it raises a ValueError, it is an actual non-numeric domain text address -> Safe!
-                filtered_remaining.append(p)
 
     random.shuffle(filtered_remaining)
 
@@ -617,7 +619,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback fill using secure encrypted link schema objects if dry
+    # Emergency fallback fill using secure encrypted link schema objects if empty
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -661,10 +663,42 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
+    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules (FORCED IPv4)
     for provider in chosen_providers:
+        target_ip = provider["ip"]
+        is_valid_ipv4 = False
+        
+        # Verify if the string is already a true numeric IPv4 address
+        if target_ip:
+            try:
+                if isinstance(ipaddress.ip_address(target_ip.replace("[", "").replace("]", "")), ipaddress.IPv4Address):
+                    is_valid_ipv4 = True
+            except ValueError:
+                pass
+                
+        # If it's a domain name or an IPv6 string, dynamically map a safe IPv4 placeholder
+        if not is_valid_ipv4:
+            lower_srv = provider["server"].lower()
+            if "quad9" in lower_srv or "9.9.9.9" in lower_srv:
+                target_ip = "9.9.9.9"
+            elif "adguard" in lower_srv:
+                target_ip = "94.140.14.14"
+            elif "google" in lower_srv or "8.8.8.8" in lower_srv:
+                target_ip = "8.8.8.8"
+            elif "cloudflare" in lower_srv or "1.1.1.1" in lower_srv:
+                target_ip = "1.1.1.1"
+            elif "opendns" in lower_srv:
+                target_ip = "208.67.222.222"
+            elif "libredns" in lower_srv:
+                target_ip = "116.202.176.26"
+            elif "controld" in lower_srv:
+                target_ip = "76.76.2.2"
+            else:
+                # Absolute panic-mode generic fallback if no text identifiers hit
+                target_ip = "8.8.4.4"
+
         dns_servers_config.append({
-            "address": provider["ip"],
+            "address": target_ip,
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
@@ -689,6 +723,12 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                     
     # 3. Dynamic Assignment for specific outbound node direct mappings
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
+    try:
+        if not isinstance(ipaddress.ip_address(primary_dns_ip.replace("[", "").replace("]", "")), ipaddress.IPv4Address):
+            primary_dns_ip = "9.9.9.9"
+    except ValueError:
+        primary_dns_ip = "9.9.9.9"
+
     for domain in extracted_domains:
         dns_servers_config.append({
             "address": primary_dns_ip,
