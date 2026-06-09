@@ -5,6 +5,10 @@ on:
     - cron: '0 0 * * *' # Runs daily at midnight UTC
   workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
 
+# Add this permissions block to allow the token to write/commit back to your repository
+permissions:
+  contents: write
+
 jobs:
   run-converter:
     runs-on: ubuntu-latest
