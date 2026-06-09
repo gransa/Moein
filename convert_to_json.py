@@ -251,28 +251,28 @@ def parse_dns_source(pool_dns_servers):
             item.startswith("udp:") or item.startswith("[") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item)):
             
             server_url = item
-            ip_address = None
+            ip_address_val = None
             
             if i + 1 < len(pool_dns_servers):
                 next_item = pool_dns_servers[i + 1].strip()
                 if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item) or (next_item.startswith("[") and next_item.endswith("]")):
-                    ip_address = next_item
+                    ip_address_val = next_item
                     i += 1
             
-            if not ip_address:
+            if not ip_address_val:
                 lower_url = server_url.lower()
                 if "quad9" in lower_url or "9.9.9.9" in lower_url:
-                    ip_address = "9.9.9.9"
+                    ip_address_val = "9.9.9.9"
                 elif "adguard" in lower_url or "94.140.14.14" in lower_url or "94.140.15.15" in lower_url:
-                    ip_address = "94.140.15.15" if "94.140.15.15" in lower_url else "94.140.14.14"
+                    ip_address_val = "94.140.15.15" if "94.140.15.15" in lower_url else "94.140.14.14"
                 elif "google" in lower_url or "8.8.8.8" in lower_url or "8.8.4.4" in lower_url:
-                    ip_address = "8.8.4.4" if "8.8.4.4" in lower_url else "8.8.8.8"
+                    ip_address_val = "8.8.4.4" if "8.8.4.4" in lower_url else "8.8.8.8"
                 elif "cloudflare" in lower_url or "1.1.1.1" in lower_url or "1.1.1.2" in lower_url or "1.0.0.1" in lower_url:
-                    ip_address = "1.1.1.2" if "1.1.1.2" in lower_url else "1.1.1.1"
+                    ip_address_val = "1.1.1.2" if "1.1.1.2" in lower_url else "1.1.1.1"
                 elif "yandex" in lower_url or "77.88.8.1" in lower_url:
-                    ip_address = "77.88.8.1"
+                    ip_address_val = "77.88.8.1"
                 elif "opendns" in lower_url:
-                    ip_address = "208.67.222.222"
+                    ip_address_val = "208.67.222.222"
                 else:
                     clean_ip = server_url
                     for prefix in ["tcp:", "udp:", "quic:", "https:"]:
@@ -282,17 +282,17 @@ def parse_dns_source(pool_dns_servers):
                     try:
                         ip_to_test = clean_ip.replace("[", "").replace("]", "")
                         ipaddress.ip_address(ip_to_test)
-                        ip_address = clean_ip
+                        ip_address_val = clean_ip
                     except ValueError:
                         parsed_doh = urlparse(server_url if "://" in server_url else f"https://{server_url}")
                         doh_host = parsed_doh.netloc.split(':')[0]
                         try:
                             ipaddress.ip_address(doh_host.replace("[", "").replace("]", ""))
-                            ip_address = doh_host
+                            ip_address_val = doh_host
                         except ValueError:
-                            ip_address = server_url
+                            ip_address_val = server_url
                     
-            paired.append({"server": server_url, "ip": ip_address})
+            paired.append({"server": server_url, "ip": ip_address_val})
         i += 1
     return paired
 
@@ -560,39 +560,35 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    # Filter out only valid DoH configurations from the main pool
+    # Filter DoH-only from DNS-TOP.txt for remote-dns-1
+    doh_only_top = [p for p in pairs_top if p["server"].startswith("https://")]
+
+    # Filter DoH-only from DNS.txt for remote-dns-2
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
+
+    # Helper: check if a server string is a raw IPv4/IPv6 (no protocol prefix)
+    def is_raw_ip(server_str):
+        s = server_str.strip()
+        if s.startswith(("https://", "tcp://", "tcp:", "quic://", "quic:", "udp://", "udp:")):
+            return False
+        if s.startswith("[") and s.endswith("]"):
+            return True
+        try:
+            ipaddress.ip_address(s.split(":")[0].split("/")[0])
+            return True
+        except ValueError:
+            pass
+        return False
 
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # Slot 2 (index 1): MUST be a DoH from DNS.txt
-    slot2_assigned = False
-    if doh_only_main:
-        random.shuffle(doh_only_main)
-        for provider in doh_only_main:
-            ident = get_identity_key(provider["server"])
-            seen_identifiers.add(ident)
-            chosen_providers[1] = provider
-            slot2_assigned = True
-            break
-
-    if not slot2_assigned:
-        for fb in fallback_providers:
-            if fb["server"].startswith("https://"):
-                ident = get_identity_key(fb["server"])
-                seen_identifiers.add(ident)
-                chosen_providers[1] = fb
-                slot2_assigned = True
-                break
-
-    # Slot 1 (index 0): Pick from DNS-TOP.txt
-    shuffled_top = list(pairs_top)
-    random.shuffle(shuffled_top)
+    # ── Slot 1 (index 0): ONLY DoH from DNS-TOP.txt ──
     slot1_assigned = False
-    for provider in shuffled_top:
-        ident = get_identity_key(provider["server"])
-        if ident not in seen_identifiers:
+    if doh_only_top:
+        random.shuffle(doh_only_top)
+        for provider in doh_only_top:
+            ident = get_identity_key(provider["server"])
             seen_identifiers.add(ident)
             chosen_providers[0] = provider
             slot1_assigned = True
@@ -600,18 +596,42 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
 
     if not slot1_assigned:
         for fb in fallback_providers:
-            ident = get_identity_key(fb["server"])
+            if fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                if ident not in seen_identifiers:
+                    seen_identifiers.add(ident)
+                    chosen_providers[0] = fb
+                    break
+
+    # ── Slot 2 (index 1): ONLY DoH from DNS.txt ──
+    slot2_assigned = False
+    if doh_only_main:
+        random.shuffle(doh_only_main)
+        for provider in doh_only_main:
+            ident = get_identity_key(provider["server"])
             if ident not in seen_identifiers:
                 seen_identifiers.add(ident)
-                chosen_providers[0] = fb
+                chosen_providers[1] = provider
+                slot2_assigned = True
                 break
 
-    # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
-    remaining_slots = [2, 3, 4]
-    combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
-    random.shuffle(combined_remaining)
+    if not slot2_assigned:
+        for fb in fallback_providers:
+            if fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                if ident not in seen_identifiers:
+                    seen_identifiers.add(ident)
+                    chosen_providers[1] = fb
+                    slot2_assigned = True
+                    break
 
-    for provider in combined_remaining:
+    # ── Slots 3, 4, 5 (indices 2, 3, 4): Any type EXCEPT raw IPv4/IPv6, randomly from both pools ──
+    non_raw_ip_combined = [p for p in pairs_top + pairs_main if not is_raw_ip(p["server"])]
+    non_raw_ip_combined = [p for p in non_raw_ip_combined if get_identity_key(p["server"]) not in seen_identifiers]
+    random.shuffle(non_raw_ip_combined)
+
+    remaining_slots = [2, 3, 4]
+    for provider in non_raw_ip_combined:
         if not remaining_slots:
             break
         ident = get_identity_key(provider["server"])
@@ -620,15 +640,27 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback check for unfilled slots
-    for slot_idx in range(5):
+    # Emergency fallback for slots 0, 1 (DoH only)
+    for slot_idx in [0, 1]:
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
-                ident = get_identity_key(fb["server"])
-                if ident not in seen_identifiers:
-                    seen_identifiers.add(ident)
-                    chosen_providers[slot_idx] = fb
-                    break
+                if fb["server"].startswith("https://"):
+                    ident = get_identity_key(fb["server"])
+                    if ident not in seen_identifiers:
+                        seen_identifiers.add(ident)
+                        chosen_providers[slot_idx] = fb
+                        break
+
+    # Emergency fallback for slots 2, 3, 4 (any except raw IP)
+    for slot_idx in [2, 3, 4]:
+        if chosen_providers[slot_idx] is None:
+            for fb in fallback_providers:
+                if not is_raw_ip(fb["server"]):
+                    ident = get_identity_key(fb["server"])
+                    if ident not in seen_identifiers:
+                        seen_identifiers.add(ident)
+                        chosen_providers[slot_idx] = fb
+                        break
 
     dns_servers_config = []
     inbound_tags = []
