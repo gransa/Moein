@@ -706,3 +706,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             ]
         }
     }
+# Add this logic to the end of your script
+with open("NG-JSON-Configs.txt", "w") as f:
+    json.dump(your_final_data_structure, f, indent=4)
