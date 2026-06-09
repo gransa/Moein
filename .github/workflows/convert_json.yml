@@ -2,8 +2,6 @@ name: Generate JSON Client Configs
 
 on:
   schedule:
-    # Triggers automatically every hour at 23 minutes past the hour.
-    # Shifting away from ':00' avoids delayed or dropped actions caused by heavy server traffic.
     - cron: '23 * * * *'
   push:
     paths:
@@ -17,31 +15,41 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout Repository Codebase
+      - name: Checkout Repository
         uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0 # Ensure we have history to detect changes
 
-      - name: Set up Runtime Python Environment
+      - name: Set up Python
         uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
 
-      - name: Compile Profile Array Layouts
-        run: python convert_to_json.py
-
-      - name: Commit and Push Compiled Client Artifact
+      - name: Run Conversion Script
         run: |
+          python convert_to_json.py
+          # Verification: Check if file exists and has content
           if [ ! -s NG-JSON-Configs.txt ]; then
-            echo "⚠️ Empty asset generated. Aborting sync cycle."
-            exit 0
+            echo "::error::Output file is empty or missing!"
+            exit 1
           fi
+          echo "File generation complete. Current size:"
+          ls -lh NG-JSON-Configs.txt
 
+      - name: Commit and Push
+        run: |
           git config user.name "JSON Compiler Engine"
           git config user.email "action@github.com"
+          
+          # Add the file
           git add NG-JSON-Configs.txt
           
+          # Check for changes
           if git diff --staged --quiet; then
-            echo "No pipeline formatting adjustments required."
+            echo "No changes detected between current file and last commit."
+            echo "This means the script output matches the existing file exactly."
           else
+            echo "Changes detected. Committing..."
             git commit -m "Automated Sync: Update compiled v2rayNG profiles layout block"
             git push
           fi
