@@ -17,6 +17,15 @@ DNS_MAIN_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/D
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
+def is_valid_ip(ip_str):
+    """Helper to safely check if a string is a valid IPv4 or IPv6 address"""
+    s = ip_str.strip().replace("[", "").replace("]", "")
+    try:
+        ipaddress.ip_address(s)
+        return True
+    except ValueError:
+        return False
+
 def fetch_clean_addresses(url):
     """Fetches clean IPs/Domains from the remote repository."""
     try:
@@ -50,7 +59,6 @@ def fetch_remote_dns(url):
             line = line.strip()
             if not line:
                 continue
-            # We don't skip lines starting with # here, because the IP might be on the next line starting with #
             dns_list.append(line)
         print(f"✅ Successfully loaded {len(dns_list)} DNS lines.")
         return dns_list
@@ -261,7 +269,6 @@ def parse_dns_source(pool_dns_servers):
             continue
 
         # Check if there's a comment with an IP at the end of the line
-        # e.g., "https://dns.google/dns-query # 8.8.8.8"
         comment_parts = item.split("#")
         main_part = comment_parts[0].strip()
         comment_ip = comment_parts[1].strip() if len(comment_parts) > 1 else None
@@ -270,16 +277,8 @@ def parse_dns_source(pool_dns_servers):
         ip_address = None
         
         # If there was an IP in the comment
-        if comment_ip:
-            clean_ip = comment_ip.replace("[", "").replace("]", "").split(':')[0]
-            if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', clean_ip):
-                ip_address = clean_ip
-            elif comment_ip.startswith("[") and comment_ip.endswith("]"):
-                try:
-                    ipaddress.ip_address(comment_ip[1:-1])
-                    ip_address = comment_ip
-                except ValueError:
-                    pass
+        if comment_ip and is_valid_ip(comment_ip):
+            ip_address = comment_ip
 
         # If no inline IP, check the next line
         if not ip_address and i + 1 < len(pool_dns_servers):
@@ -290,18 +289,9 @@ def parse_dns_source(pool_dns_servers):
             
             if next_item:
                 next_clean = next_item.split("#")[0].strip()
-                clean_test_ip = next_clean.replace("[", "").replace("]", "").split(':')[0]
-                
-                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', clean_test_ip):
-                    ip_address = clean_test_ip
+                if is_valid_ip(next_clean):
+                    ip_address = next_clean
                     i += 1
-                elif next_clean.startswith("[") and next_clean.endswith("]"):
-                    try:
-                        ipaddress.ip_address(next_clean[1:-1])
-                        ip_address = next_clean
-                        i += 1
-                    except ValueError:
-                        pass
             
         if not ip_address:
             lower_url = server_url.lower()
@@ -323,17 +313,14 @@ def parse_dns_source(pool_dns_servers):
                     clean_ip = clean_ip.replace(prefix, "").replace("//", "")
                 clean_ip = clean_ip.split(":")[0].split("/")[0]
                 
-                try:
-                    ip_to_test = clean_ip.replace("[", "").replace("]", "")
-                    ipaddress.ip_address(ip_to_test)
+                if is_valid_ip(clean_ip):
                     ip_address = clean_ip
-                except ValueError:
+                else:
                     parsed_doh = urlparse(server_url if "://" in server_url else f"https://{server_url}")
                     doh_host = parsed_doh.netloc.split(':')[0]
-                    try:
-                        ipaddress.ip_address(doh_host.replace("[", "").replace("]", ""))
+                    if is_valid_ip(doh_host):
                         ip_address = doh_host
-                    except ValueError:
+                    else:
                         ip_address = server_url
                     
         paired.append({"server": server_url, "ip": ip_address})
@@ -612,23 +599,33 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
 
     def is_raw_ip(server_str):
         s = server_str.strip()
+        # Any protocol scheme means it's not a "raw" IP
         if re.match(r'^(https?|tcp|udp|tls|quic)://', s, re.IGNORECASE):
             return False
         if s.startswith(("tcp:", "udp:", "quic:", "tls:")):
             return False
-        if s.startswith("[") and s.endswith("]"):
-            try:
-                ipaddress.ip_address(s[1:-1])
-                return True
-            except ValueError:
-                pass
-        parts = s.split(":")
-        if len(parts) <= 2:
-            try:
-                ipaddress.ip_address(parts[0])
-                return True
-            except ValueError:
-                pass
+            
+        host = s
+        if "://" in s:
+            try: host = urlparse(s).hostname or ""
+            except: pass
+        elif s.startswith(("tcp:", "udp:", "quic:", "tls:")):
+            host = s.split(':', 1)[1].replace("//", "").split(':')[0]
+            
+        clean_host = host.replace("[", "").replace("]", "")
+        try:
+            ipaddress.ip_address(clean_host)
+            return True
+        except ValueError:
+            pass
+            
+        # Try parsing the whole string as an IPv6 (e.g., 2a01:4f8:141:316d::117)
+        try:
+            ipaddress.ip_address(s)
+            return True
+        except ValueError:
+            pass
+            
         return False
 
     def get_dns_type(server_str):
