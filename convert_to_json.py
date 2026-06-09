@@ -162,7 +162,7 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
         else:
             target_address = original_address
             
-        net_type = params.get("type", "tcp")
+        network_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
         cert_hash = params.get("pcs", params.get("pinnedPeerCertSha256", params.get("certfp", params.get("sha256", ""))))
         
@@ -183,13 +183,13 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
             outbound["settings"] = {"servers": [{"address": target_address, "port": final_port}]}
             
         outbound["streamSettings"] = {
-            "network": net_type, "security": "tls" if is_tls else "none",
+            "network": network_type, "security": "tls" if is_tls else "none",
             "sockopt": {"domainStrategy": "UseIPv4v6"}
         }
         
         outbound["_original_address"] = original_address
         
-        if net_type == "ws":
+        if network_type == "ws":
             outbound["streamSettings"]["wsSettings"] = {"host": params.get("host", ""), "path": params.get("path", "")}
             
         if is_tls:
@@ -587,6 +587,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             if ident not in seen_identifiers:
                 seen_identifiers.add(ident)
                 chosen_providers[0] = fb
+                slot1_assigned = True
                 break
 
     # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
@@ -668,36 +669,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             try:
                 ipaddress.ip_address(addr.replace("[", "").replace("]", ""))
             except ValueError:
-                domain_entry = f"full:{addr}"
-                if domain_entry not in extracted_domains:
-                    extracted_domains.append(domain_entry)
-
-    # Append routing-rule domain bypass for the outbounds
-    if extracted_domains:
-        dns_servers_config.append({
-            "address": "1.1.1.1",
-            "domains": extracted_domains,
-            "skipFallback": False
-        })
-
-    # Standard default fallback rules
-    dns_servers_config.extend([
-        {
-            "address": "1.1.1.1",
-            "domains": ["geosite:proxy"],
-            "skipFallback": False
-        },
-        {
-            "address": "9.9.9.9",
-            "domains": ["geosite:category-ir"],
-            "expectIPs": ["geoip:ir"],
-            "skipFallback": False
-        },
-        {
-            "address": "1.1.1.1",
-            "port": 53
-        }
-    ])
+                extracted_domains.append(f"domain:{addr}")
 
     return {
         "remarks": remarks,
@@ -709,66 +681,22 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             {
                 "port": 10808,
                 "protocol": "socks",
-                "settings": {
-                    "auth": "noauth",
-                    "udp": True,
-                    "userLevel": 8
-                },
-                "sniffing": {
-                    "destOverride": ["http", "tls"],
-                    "enabled": True
-                },
+                "settings": {"auth": "noauth", "udp": True, "userLevel": 8},
+                "sniffing": {"destOverride": ["http", "tls"], "enabled": True},
                 "tag": "socks"
-            },
-            {
-                "port": 10809,
-                "protocol": "http",
-                "settings": {
-                    "userLevel": 8
-                },
-                "tag": "http"
             }
         ],
         "outbounds": base_outbounds,
         "policy": {
-            "levels": {
-                "8": {
-                    "connIdle": 300,
-                    "downlinkOnly": 1,
-                    "handshake": 4,
-                    "uplinkOnly": 1
-                }
-            },
-            "system": {
-                "statsOutboundUplink": True,
-                "statsOutboundDownlink": True
-            }
+            "levels": {"8": {"connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1}},
+            "system": {"statsOutboundUplink": True, "statsOutboundDownlink": True}
         },
         "routing": {
             "domainStrategy": "AsIs",
             "rules": [
-                {
-                    "ip": ["1.1.1.1", "9.9.9.9", "8.8.8.8", "94.140.14.14", "208.67.222.222"],
-                    "outboundTag": "proxy",
-                    "port": "53",
-                    "type": "field"
-                },
-                {
-                    "domain": ["domain:ir", "geosite:category-ir", "geosite:private"],
-                    "outboundTag": "direct",
-                    "type": "field"
-                },
-                {
-                    "ip": ["geoip:ir", "geoip:private"],
-                    "outboundTag": "direct",
-                    "type": "field"
-                },
-                {
-                    "network": "udp",
-                    "outboundTag": "block",
-                    "port": "443",
-                    "type": "field"
-                }
+                {"ip": ["8.8.8.8"], "outboundTag": "proxy", "port": "53", "type": "field"},
+                {"domain": ["domain:ir", "geosite:category-ir", "geosite:private"], "outboundTag": "direct", "type": "field"},
+                {"ip": ["geoip:ir", "geoip:private"], "outboundTag": "direct", "type": "field"}
             ]
         }
     }
