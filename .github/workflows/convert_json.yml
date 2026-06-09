@@ -18,38 +18,44 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0 # Ensure we have history to detect changes
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
 
-      - name: Run Conversion Script
+      - name: Debug Inputs
+        run: |
+          echo "Checking Configs.txt presence and hash..."
+          ls -lh Configs.txt
+          sha256sum Configs.txt || echo "Configs.txt not found"
+
+      - name: Compile Profile Array Layouts
         run: |
           python convert_to_json.py
-          # Verification: Check if file exists and has content
+          
+          # Validation: Ensure the script actually produced a file
           if [ ! -s NG-JSON-Configs.txt ]; then
-            echo "::error::Output file is empty or missing!"
+            echo "::error::Output file NG-JSON-Configs.txt is empty or missing!"
             exit 1
           fi
-          echo "File generation complete. Current size:"
-          ls -lh NG-JSON-Configs.txt
+          echo "File generated successfully."
 
       - name: Commit and Push
         run: |
           git config user.name "JSON Compiler Engine"
           git config user.email "action@github.com"
           
-          # Add the file
+          # Stage the file
           git add NG-JSON-Configs.txt
           
-          # Check for changes
-          if git diff --staged --quiet; then
-            echo "No changes detected between current file and last commit."
-            echo "This means the script output matches the existing file exactly."
+          # Check for changes and provide detailed feedback
+          if git diff --cached --quiet; then
+            echo "SUCCESS: The generated JSON matches the existing version."
+            echo "No changes were detected by Git."
           else
-            echo "Changes detected. Committing..."
+            echo "CHANGES DETECTED: Committing new changes..."
             git commit -m "Automated Sync: Update compiled v2rayNG profiles layout block"
             git push
           fi
