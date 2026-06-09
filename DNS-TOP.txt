@@ -35,9 +35,6 @@ https://common.dot.dns.yandex.net/dns-query
 https://77.88.8.1/dns-query
 https://77.88.8.8/dns-query
 https://odvr.nic.cz/dns-query
-https://doh.libredns.gr/dns-query
-https://doh.libredns.gr/noads
-https://doh.libredns.gr/ads
 https://doh.rethinkdns.com/dns-query
 https://doh.max.rethinkdns.com/dns-query
 https://dns.nextdns.io/dns-query
