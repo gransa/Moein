@@ -6,6 +6,7 @@ import re
 import urllib.request
 import random
 import copy
+import socket
 from urllib.parse import urlparse, unquote, parse_qs
 
 # Configuration URLs
@@ -17,26 +18,127 @@ DNS_MAIN_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/D
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
+def is_cloudflare_node(outbound):
+    """Detects if a node is utilizing Cloudflare infrastructure by scanning its 
+
+    host, sni, or serverName properties for Cloudflare-specific configurations.
+    """
+    if not isinstance(outbound, dict):
+        return False
+        
+    stream_settings = outbound.get("streamSettings", {})
+    if not isinstance(stream_settings, dict):
+        return False
+
+    # Check WebSocket settings Host header
+    ws_settings = stream_settings.get("wsSettings", {})
+    if isinstance(ws_settings, dict):
+        ws_host = ws_settings.get("headers", {}).get("Host", ws_settings.get("host", "")).lower()
+        if "workers.dev" in ws_host or "dpdns.org" in ws_host or "cloudflare" in ws_host:
+            return True
+
+    # Check TLS / Reality serverName SNI targeting
+    for tls_key in ["tlsSettings", "realitySettings"]:
+        tls_set = stream_settings.get(tls_key, {})
+        if isinstance(tls_set, dict):
+            sni = tls_set.get("serverName", "").lower()
+            if "workers.dev" in sni or "dpdns.org" in sni or "cloudflare" in sni:
+                return True
+
+    return False
+
+def resolve_domain_to_ips(domain_str):
+    """Resolves a given domain name to its corresponding IPv4 (A) and IPv6 (AAAA) records."""
+    resolved_ips = []
+    try:
+        results = socket.getaddrinfo(domain_str, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        for family, _, _, _, sockaddr in results:
+            ip = sockaddr[0]
+            if "%" in ip:
+                ip = ip.split("%")[0]
+            if ip not in resolved_ips:
+                resolved_ips.append(ip)
+    except socket.gaierror:
+        pass
+    return resolved_ips
+
 def fetch_clean_addresses(url):
-    """Fetches clean IPs/Domains from the remote repository."""
+    """Fetches entries from the remote repository and resolves domains to A/AAAA IP records."""
     try:
         print(f"📡 Fetching clean endpoints from: {url}")
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=10) as response:
             content = response.read().decode('utf-8')
-        addresses = []
+        
+        raw_entries = []
         for line in content.splitlines():
             line = line.strip()
             if not line or line.startswith(("#", "//")):
                 continue
             clean_addr = line.split("#")[0].split("//")[0].strip()
             if clean_addr:
-                addresses.append(clean_addr)
-        print(f"✅ Successfully loaded {len(addresses)} clean endpoints.")
-        return addresses
+                raw_entries.append(clean_addr)
+                
+        final_ips = []
+        print("🔍 Checking endpoints and resolving domain text listings to structural A/AAAA records...")
+        for entry in raw_entries:
+            try:
+                ipaddress.ip_address(entry.replace("[", "").replace("]", ""))
+                final_ips.append(entry)
+            except ValueError:
+                ips_from_dns = resolve_domain_to_ips(entry)
+                if ips_from_dns:
+                    final_ips.extend(ips_from_dns)
+                else:
+                    final_ips.append(entry)
+                    
+        final_ips = list(dict.fromkeys(final_ips))
+        print(f"✅ Successfully loaded and compiled {len(final_ips)} raw IP endpoints.")
+        return final_ips
     except Exception as e:
         print(f"⚠️ Warning: Could not fetch remote clean endpoints ({e}). Using link defaults.")
         return []
+
+def randomize_json_addresses(config_obj, clean_addresses):
+    """Deeply inspects the config object and replaces non-local 'address' fields 
+
+    ONLY if the outbound block is detected as a Cloudflare configuration.
+    """
+    if not isinstance(config_obj, dict) or not clean_addresses:
+        return
+    
+    if "outbounds" in config_obj and isinstance(config_obj["outbounds"], list):
+        for outbound in config_obj["outbounds"]:
+            if not isinstance(outbound, dict):
+                continue
+                
+            # STRICT GUARD: Skip modification completely if it's not a Cloudflare node
+            if not is_cloudflare_node(outbound):
+                continue
+
+            settings = outbound.get("settings", {})
+            if not isinstance(settings, dict):
+                continue
+                
+            # Target VMESS / VLESS configurations
+            if "vnext" in settings and isinstance(settings["vnext"], list):
+                for node in settings["vnext"]:
+                    if isinstance(node, dict) and "address" in node:
+                        if node["address"] not in ["127.0.0.1", "localhost"]:
+                            selected_ip = random.choice(clean_addresses)
+                            if ":" in selected_ip and not selected_ip.startswith("["):
+                                selected_ip = f"[{selected_ip}]"
+                            node["address"] = selected_ip
+                            
+            # Target Trojan / Shadowsocks configurations
+            if "servers" in settings and isinstance(settings["servers"], list):
+                for node in settings["servers"]:
+                    if isinstance(node, dict) and "address" in node:
+                        if node["address"] not in ["127.0.0.1", "localhost"]:
+                            selected_ip = random.choice(clean_addresses)
+                            if ":" in selected_ip and not selected_ip.startswith("["):
+                                selected_ip = f"[{selected_ip}]"
+                            node["address"] = selected_ip
 
 def fetch_remote_dns(url):
     """Fetches list of DoH / DoT / DoQ / UDP entries from remote repository."""
@@ -156,11 +258,8 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
         
-        if clean_addresses:
-            target_address = clean_addresses[ip_counter[0] % len(clean_addresses)]
-            ip_counter[0] += 1
-        else:
-            target_address = original_address
+        # Keep original logic as an immediate fallback configuration address assignment
+        target_address = original_address
             
         net_type = params.get("type", "tcp")
         fp_val = params.get("fp", "chrome")
@@ -210,7 +309,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
         return None, False
 
 def clean_dns_address(srv_str, prefix):
-    """Strips prefixes, leading slashes, and trailing ports perfectly."""
     clean = srv_str.replace(prefix, "").replace("//", "").strip()
     if clean.startswith("[") and "]" in clean:
         parts = clean.split("]")
@@ -218,7 +316,6 @@ def clean_dns_address(srv_str, prefix):
     return clean.split(":")[0]
 
 def get_identity_key(srv):
-    """Extracts base registration domain string or raw host string for uniqueness tracking."""
     try:
         for prefix in ["tcp:", "udp:", "quic:", "https:"]:
             if srv.startswith(prefix):
@@ -238,7 +335,6 @@ def get_identity_key(srv):
         return srv
 
 def parse_dns_source(pool_dns_servers):
-    """Converts text lines into paired dictionary groupings with smart local resolution fallback matching."""
     paired = []
     i = 0
     while i < len(pool_dns_servers):
@@ -300,10 +396,17 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
-    node_address = random.choice(clean_addresses) if clean_addresses else vnext_info["address"]
+    # Conditional implementation based on infrastructure target types
+    if is_cloudflare_node(base_vless_tls_node) and clean_addresses:
+        node_address = random.choice(clean_addresses)
+    else:
+        node_address = vnext_info["address"]
+
+    if ":" in node_address and not node_address.startswith("["):
+        node_address = f"[{node_address}]"
+        
     node_port = vnext_info["port"]
     user_id = vnext_info["users"][0]["id"]
-    
     network_type = stream_info.get("network", "ws")
     security_type = stream_info.get("security", "tls")
     
@@ -372,7 +475,14 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
         stream = node["streamSettings"]
         tls_settings = stream.get("tlsSettings", {})
         ws_settings = stream.get("wsSettings", {})
-        addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
+        
+        if is_cloudflare_node(node) and clean_addresses:
+            addr = random.choice(clean_addresses)
+        else:
+            addr = vnext["address"]
+
+        if ":" in addr and not addr.startswith("["):
+            addr = f"[{addr}]"
         
         outbounds.append({
             "mux": {"concurrency": -1, "enabled": False},
@@ -452,7 +562,14 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
     for idx, node in enumerate(shuffled_nodes):
         vnext = node["settings"]["vnext"][0]
         ws_settings = node["streamSettings"].get("wsSettings", {})
-        addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
+        
+        if is_cloudflare_node(node) and clean_addresses:
+            addr = random.choice(clean_addresses)
+        else:
+            addr = vnext["address"]
+
+        if ":" in addr and not addr.startswith("["):
+            addr = f"[{addr}]"
         
         extracted_host = ws_settings.get("host", "").strip()
         if not extracted_host:
@@ -542,14 +659,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
 
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
-
-    # Filter out only valid DoH configurations from the main pool
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # Slot 2 (index 1): MUST be a DoH from DNS.txt
     slot2_assigned = False
     if doh_only_main:
         random.shuffle(doh_only_main)
@@ -569,7 +683,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 slot2_assigned = True
                 break
 
-    # Slot 1 (index 0): Pick from DNS-TOP.txt
     shuffled_top = list(pairs_top)
     random.shuffle(shuffled_top)
     slot1_assigned = False
@@ -589,7 +702,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers[0] = fb
                 break
 
-    # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
     remaining_slots = [2, 3, 4]
     combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
@@ -603,7 +715,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback check for unfilled slots
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -616,7 +727,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     dns_servers_config = []
     inbound_tags = []
     
-    # 1. Map Selected DNS Servers with Tags
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
@@ -646,7 +756,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -672,7 +781,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
                     
-    # 3. Dynamic Assignment for specific outbound node direct mappings
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for domain in extracted_domains:
         dns_servers_config.append({
@@ -830,6 +938,10 @@ def main():
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
+
+    # Run the structural conditional randomization over final data structures
+    for config_profile in final_output:
+        randomize_json_addresses(config_profile, clean_addresses)
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
