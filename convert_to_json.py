@@ -521,12 +521,12 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
-def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, clean_addresses=None):
+def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, clean_addresses=None, is_cloudflare=True):
     # Deep copy the incoming outbound nodes so we safely modify addresses without side effects elsewhere
     modified_outbounds = copy.deepcopy(list(outbound_nodes))
     
-    # Randomly assign a clean Cloudflare IP address to each node's settings configuration if the pool is available
-    if clean_addresses:
+    # Randomly assign a clean Cloudflare IP address to each node's settings configuration if pool is available AND it is a cloudflare group
+    if clean_addresses and is_cloudflare:
         for node in modified_outbounds:
             settings = node.get("settings", {})
             if "vnext" in settings and settings["vnext"]:
@@ -804,7 +804,7 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, clean_addresses))
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
             
     # 2. 🌴 2 VLESS - TLS AI 🤖
     if groups["vless_tls"]:
@@ -814,7 +814,7 @@ def main():
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, clean_addresses))
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
 
     # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
     if groups["vless_n_tls"]:
@@ -824,29 +824,30 @@ def main():
     if groups["trojan_tls"]:
         for idx, item in enumerate(groups["trojan_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, clean_addresses))
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
 
     # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
     if groups["trojan_n_tls"]:
         for idx, item in enumerate(groups["trojan_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, clean_addresses))
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
 
-    # 7. 🍀 7 VMESS - TLS LB 🔥
+    # 7. 🍀 7 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, clean_addresses))
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
 
     # 8. 🌵 8 VLESS - Fragment 🔥
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
             
+    # Other Protocols Group (Non-Cloudflare group: keeps original IPs/Domains)
     if groups["other_protocols"]:
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses))
+        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
 
     # Clean up the internal helper key '_original_address' across all templates before output serialization
     for template in final_output:
