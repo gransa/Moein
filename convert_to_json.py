@@ -601,6 +601,16 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         except ValueError:
             return False
 
+    # Helper: determine DNS type for grouping variety
+    def get_dns_type(server_str):
+        s = server_str.strip().lower()
+        if s.startswith("https://"): return "doh"
+        if s.startswith("tcp://") or s.startswith("tcp:"): return "tcp"
+        if s.startswith("quic://") or s.startswith("quic:"): return "quic"
+        if s.startswith("udp://") or s.startswith("udp:"): return "udp"
+        # Fallback classification
+        return "other"
+
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
@@ -646,20 +656,52 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     slot2_assigned = True
                     break
 
-    # ── Slots 3, 4, 5 (indices 2, 3, 4): Any type EXCEPT raw IPv4/IPv6, randomly from both pools ──
-    non_raw_ip_combined = [p for p in pairs_top + pairs_main if not is_raw_ip(p["server"])]
-    non_raw_ip_combined = [p for p in non_raw_ip_combined if get_identity_key(p["server"]) not in seen_identifiers]
-    random.shuffle(non_raw_ip_combined)
-
-    remaining_slots = [2, 3, 4]
-    for provider in non_raw_ip_combined:
-        if not remaining_slots:
+    # ── Slots 3, 4, 5 (indices 2, 3, 4): Exactly one of each type (DoH, TCP, UDP, TLS/QUIC) ──
+    combined_remaining = [p for p in pairs_top + pairs_main if not is_raw_ip(p["server"])]
+    combined_remaining = [p for p in combined_remaining if get_identity_key(p["server"]) not in seen_identifiers]
+    
+    # Group by type
+    type_groups = {}
+    for p in combined_remaining:
+        t = get_dns_type(p["server"])
+        if t not in type_groups:
+            type_groups[t] = []
+        type_groups[t].append(p)
+        
+    # Shuffle within each type group
+    for t in type_groups:
+        random.shuffle(type_groups[t])
+        
+    # We want one from distinct types for slots 3, 4, 5
+    slot_345_providers = []
+    available_types = list(type_groups.keys())
+    random.shuffle(available_types) # Randomize which types get priority if >3 types exist
+    
+    # Pick one from each distinct type
+    for t in available_types:
+        if len(slot_345_providers) >= 3:
             break
-        ident = get_identity_key(provider["server"])
-        if ident not in seen_identifiers:
-            seen_identifiers.add(ident)
-            target_slot = remaining_slots.pop(0)
-            chosen_providers[target_slot] = provider
+        chosen_p = type_groups[t].pop(0)
+        slot_345_providers.append(chosen_p)
+        seen_identifiers.add(get_identity_key(chosen_p["server"]))
+        
+    # If we still have less than 3 (e.g., only 2 types available), fill the rest randomly from whatever is left
+    if len(slot_345_providers) < 3:
+        leftovers = []
+        for p_list in type_groups.values():
+            leftovers.extend(p_list)
+        random.shuffle(leftovers)
+        for p in leftovers:
+            if len(slot_345_providers) >= 3:
+                break
+            ident = get_identity_key(p["server"])
+            if ident not in seen_identifiers:
+                seen_identifiers.add(ident)
+                slot_345_providers.append(p)
+                
+    # Assign to chosen_providers
+    for i, p in enumerate(slot_345_providers):
+        chosen_providers[2 + i] = p
 
     # Emergency fallback for slots 0, 1 (DoH only)
     for slot_idx in [0, 1]:
