@@ -658,14 +658,18 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for bypass rules (STRICTLY CLEANED FOR BYPASS ROUTING)
+    # 2. Dynamic 1-to-1 matching for bypass rules (SAFE EXTRACTOR FOR BOTH IPv4 AND IPv6 BRACKETS)
     for provider in chosen_providers:
         fallback_ip = provider["ip"]
-        # Strip prefixes from fallback ip property just in case
         for prefix in ["tcp:", "udp:", "quic:", "https:"]:
             if fallback_ip.startswith(prefix):
                 fallback_ip = fallback_ip.replace(prefix, "").replace("//", "")
-        fallback_ip = fallback_ip.split(":")[0].split("/")[0]
+        
+        # Safe isolation checks: preserves IPv6 bracket groupings instead of blind colons splitting
+        if fallback_ip.startswith("[") and "]" in fallback_ip:
+            fallback_ip = fallback_ip.split("]")[0] + "]"
+        else:
+            fallback_ip = fallback_ip.split(":")[0].split("/")[0]
         
         dns_servers_config.append({
             "address": fallback_ip,
@@ -695,7 +699,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
     for prefix in ["tcp:", "udp:", "quic:", "https:"]:
         primary_dns_ip = primary_dns_ip.replace(prefix, "").replace("//", "")
-    primary_dns_ip = primary_dns_ip.split(":")[0].split("/")[0]
+        
+    if primary_dns_ip.startswith("[") and "]" in primary_dns_ip:
+        primary_dns_ip = primary_dns_ip.split("]")[0] + "]"
+    else:
+        primary_dns_ip = primary_dns_ip.split(":")[0].split("/")[0]
 
     for domain in extracted_domains:
         dns_servers_config.append({
