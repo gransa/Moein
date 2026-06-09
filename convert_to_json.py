@@ -220,7 +220,7 @@ def clean_dns_address(srv_str, prefix):
 def get_identity_key(srv):
     """Extracts base registration domain string or raw host string for uniqueness tracking."""
     try:
-        for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+        for prefix in ["tcp:", "udp:", "quic:", "https:", "tls:"]:
             if srv.startswith(prefix):
                 srv = srv.replace(prefix, "").replace("//", "").strip()
                 
@@ -248,7 +248,7 @@ def parse_dns_source(pool_dns_servers):
             continue
 
         if (item.startswith("https://") or item.startswith("tcp:") or item.startswith("quic:") or 
-            item.startswith("udp:") or item.startswith("[") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item)):
+            item.startswith("udp:") or item.startswith("tls:") or item.startswith("[") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item)):
             
             server_url = item
             ip_address = None
@@ -275,7 +275,7 @@ def parse_dns_source(pool_dns_servers):
                     ip_address = "208.67.222.222"
                 else:
                     clean_ip = server_url
-                    for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+                    for prefix in ["tcp:", "udp:", "quic:", "https:", "tls:"]:
                         clean_ip = clean_ip.replace(prefix, "").replace("//", "")
                     clean_ip = clean_ip.split(":")[0].split("/")[0]
                     
@@ -546,18 +546,19 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Added protocol variety to fallbacks (TCP, QUIC, UDP) to guarantee distinct types for slots 3, 4, 5
+    # Added protocol variety to fallbacks (TCP, TLS, QUIC, UDP) to guarantee distinct types for slots 3, 4, 5
     fallback_providers = [
         {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"},
-        {"server": "tcp://dns.google:853", "ip": "8.8.8.8"},
-        {"server": "quic://dns.adguard-dns.com", "ip": "94.140.14.14"},
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
-        {"server": "tcp://dns.quad9.net:853", "ip": "9.9.9.9"},
+        {"server": "tcp://8.8.8.8:853", "ip": "8.8.8.8"},
+        {"server": "tcp://1.1.1.1:853", "ip": "1.1.1.1"},
+        {"server": "tls://8.8.4.4:853", "ip": "8.8.4.4"},
+        {"server": "tls://9.9.9.9:853", "ip": "9.9.9.9"},
+        {"server": "udp://8.8.8.8:53", "ip": "8.8.8.8"},
+        {"server": "udp://1.1.1.1:53", "ip": "1.1.1.1"},
+        {"server": "quic://dns.adguard-dns.com", "ip": "94.140.14.14"},
         {"server": "quic://dns.nextdns.io", "ip": "45.90.30.0"},
-        {"server": "udp://dns.google:53", "ip": "8.8.8.8"},
-        {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
-        {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
-        # Raw IPs kept at the bottom (will be used for geosite/geoip rules or as last resort)
+        # Bare IPs kept at the bottom strictly for fallback geosite/geoip resolution rules
         {"server": "1.1.1.1", "ip": "1.1.1.1"},
         {"server": "1.0.0.1", "ip": "1.0.0.1"},
         {"server": "1.1.1.2", "ip": "1.1.1.2"}
@@ -570,39 +571,40 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     doh_only_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # Robust Helper: check if a server string connects to an actual IPv4/IPv6 address
+    # Robust Helper: A "raw IP" is ONLY a bare address without a protocol scheme (e.g. 1.1.1.1)
+    # tcp://8.8.8.8 or tls://1.1.1.1 ARE accepted because they specify a protocol wrapper.
     def is_raw_ip(server_str):
         s = server_str.strip()
-        host = s
-        if "://" in s:
+        # If it starts with a protocol scheme, it's NOT considered a raw IP in this context
+        if re.match(r'^(https?|tcp|udp|tls|quic)://', s, re.IGNORECASE):
+            return False
+        if s.startswith(("tcp:", "udp:", "quic:", "tls:")):
+            return False
+            
+        # Bare bracketed IPv6
+        if s.startswith("[") and s.endswith("]"):
             try:
-                host = urlparse(s).hostname or ""
-            except Exception:
-                host = ""
-        elif s.startswith(("tcp:", "udp:", "quic:")):
-            host = s.split(':', 1)[1].replace("//", "").split(':')[0]
-            if host.startswith("[") and host.endswith("]"):
-                host = host[1:-1]
-        else:
-            if host.startswith("[") and host.endswith("]"):
-                host = host[1:-1]
-            else:
-                parts = host.split(":")
-                if len(parts) == 2 and parts[1].isdigit():
-                    host = parts[0]
-        if not host:
-            return False
-        try:
-            ipaddress.ip_address(host)
-            return True
-        except ValueError:
-            return False
+                ipaddress.ip_address(s[1:-1])
+                return True
+            except ValueError:
+                pass
+                
+        # Bare IPv4 with optional port
+        parts = s.split(":")
+        if len(parts) <= 2:
+            try:
+                ipaddress.ip_address(parts[0])
+                return True
+            except ValueError:
+                pass
+        return False
 
     # Helper: determine DNS type for grouping variety
     def get_dns_type(server_str):
         s = server_str.strip().lower()
         if s.startswith("https://"): return "doh"
         if s.startswith("tcp://") or s.startswith("tcp:"): return "tcp"
+        if s.startswith("tls://") or s.startswith("tls:"): return "tls"
         if s.startswith("quic://") or s.startswith("quic:"): return "quic"
         if s.startswith("udp://") or s.startswith("udp:"): return "udp"
         return "other"
@@ -657,7 +659,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     combined_remaining = [p for p in combined_remaining if get_identity_key(p["server"]) not in seen_identifiers]
     
     # Group by type
-    type_groups = {"doh": [], "tcp": [], "quic": [], "udp": [], "other": []}
+    type_groups = {"doh": [], "tcp": [], "tls": [], "quic": [], "udp": [], "other": []}
     for p in combined_remaining:
         t = get_dns_type(p["server"])
         type_groups[t].append(p)
@@ -670,7 +672,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     used_types = set()
 
     # We want one from distinct types for slots 3, 4, 5
-    available_types = [t for t in ["doh", "tcp", "quic", "udp", "other"] if type_groups[t]]
+    available_types = [t for t in ["tcp", "tls", "quic", "udp", "doh", "other"] if type_groups[t]]
     random.shuffle(available_types)
     
     for t in available_types:
@@ -754,16 +756,29 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         inbound_tags.append(tag_name)
         srv_address = provider["server"]
         
-        if srv_address.startswith("tcp://"):
-            dns_servers_config.append({"address": srv_address, "tag": tag_name})
-        elif srv_address.startswith("tcp:"):
-            dns_servers_config.append({"address": srv_address.replace("tcp:", "tcp://", 1), "tag": tag_name})
-        elif srv_address.startswith("quic://"):
-            dns_servers_config.append({"address": srv_address, "tag": tag_name})
-        elif srv_address.startswith("quic:"):
-            dns_servers_config.append({"address": srv_address.replace("quic:", "quic://", 1), "tag": tag_name})
+        # Handle TCP/TLS (usually needs port 853)
+        if srv_address.startswith("tcp://") or srv_address.startswith("tcp:"):
+            addr = srv_address.replace("tcp://", "tcp://").replace("tcp:", "tcp://", 1) if not srv_address.startswith("tcp://") else srv_address
+            if ":" not in addr[6:]: # Append port if missing
+                addr += ":853"
+            dns_servers_config.append({"address": addr, "tag": tag_name})
+            
+        elif srv_address.startswith("tls://") or srv_address.startswith("tls:"):
+            addr = srv_address.replace("tls://", "tls://").replace("tls:", "tls://", 1) if not srv_address.startswith("tls://") else srv_address
+            if ":" not in addr[6:]: # Append port if missing
+                addr += ":853"
+            dns_servers_config.append({"address": addr, "tag": tag_name})
+            
+        # Handle QUIC
+        elif srv_address.startswith("quic://") or srv_address.startswith("quic:"):
+            addr = srv_address.replace("quic://", "quic://").replace("quic:", "quic://", 1) if not srv_address.startswith("quic://") else srv_address
+            dns_servers_config.append({"address": addr, "tag": tag_name})
+            
+        # Handle HTTPS
         elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
+            
+        # Handle UDP (Format as address and port keys for V2Ray)
         elif srv_address.startswith("udp://") or srv_address.startswith("udp:"):
             clean = srv_address.replace("udp://", "").replace("udp:", "").replace("//", "")
             port = 53
@@ -772,14 +787,15 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 bracket_end = clean.find("]")
                 host = clean[:bracket_end+1]
                 rest = clean[bracket_end+1:]
-                if rest.startswith(":") and rest[1:].isdigit():
-                    port = int(rest[1:])
+                if rest.startswith(":") and rest[1:].isdigit(): port = int(rest[1:])
             elif ":" in clean:
                 parts = clean.split(":")
                 if len(parts) == 2 and parts[1].isdigit():
                     host = parts[0]
                     port = int(parts[1])
             dns_servers_config.append({"address": host, "port": port, "tag": tag_name})
+            
+        # Handle Bare fallbacks (IPs)
         else:
             if srv_address.startswith("[") and srv_address.endswith("]"):
                 dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
