@@ -14,36 +14,97 @@ CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/
 DNS_TOP_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/DNS-TOP.txt"
 DNS_MAIN_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/DNS.txt"
 
+# Cloudflare official IP range lists to accurately detect any CF node dynamically
+CF_IPV4_RANGES_URL = "https://www.cloudflare.com/ips-v4"
+CF_IPV6_RANGES_URL = "https://www.cloudflare.com/ips-v6"
+
 # Cloudflare clear distinct port definitions
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
-def is_cloudflare_node(outbound):
-    """Detects if a node is utilizing Cloudflare infrastructure by scanning its 
+# Global cache for Cloudflare structural subnet tracking
+CLOUDFLARE_NETWORKS = []
 
-    host, sni, or serverName properties for Cloudflare-specific configurations.
+def fetch_cloudflare_ranges():
+    """Downloads official Cloudflare subnets to safely detect any proxy nodes
+
+    routed through their network regardless of dynamic DNS domains.
+    """
+    global CLOUDFLARE_NETWORKS
+    networks = []
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    for url in [CF_IPV4_RANGES_URL, CF_IPV6_RANGES_URL]:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as response:
+                content = response.read().decode('utf-8')
+                for line in content.splitlines():
+                    line = line.strip()
+                    if line:
+                        networks.append(ipaddress.ip_network(line))
+        except Exception as e:
+            print(f"⚠️ Could not pull live CF subnets from {url} ({e})")
+            
+    # Fallback to absolute base common CF subnets if remote lookup fails entirely
+    if not networks:
+        print("⚠️ Using static fallback array for base Cloudflare subnets detection.")
+        fallback_cidrs = ["103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18", 
+                          "172.64.0.0/13", "173.245.48.0/20", "190.93.240.0/20", "197.234.240.0/22", 
+                          "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13", "104.24.0.0/14", 
+                          "172.68.0.0/16", "131.0.72.0/22", "2400:cb00::/32", "2606:4700::/32"]
+        networks = [ipaddress.ip_network(cidr) for cidr in fallback_cidrs]
+        
+    CLOUDFLARE_NETWORKS = networks
+    print(f"✅ Active Global Guard loaded: {len(CLOUDFLARE_NETWORKS)} Cloudflare IP subnets cached.")
+
+def is_cloudflare_node(outbound):
+    """Accurately checks if a config node belongs to Cloudflare by resolving its 
+
+    original endpoint connection address and verifying if it fits inside CF's IP Ranges.
     """
     if not isinstance(outbound, dict):
         return False
         
-    stream_settings = outbound.get("streamSettings", {})
-    if not isinstance(stream_settings, dict):
+    # Extract the original endpoint address before any randomization occurred
+    orig_addr = outbound.get("_original_address", "")
+    if not orig_addr:
+        # Fallback to current address property if helper meta parameter is missing
+        settings = outbound.get("settings", {})
+        if "vnext" in settings and settings["vnext"]:
+            orig_addr = settings["vnext"][0].get("address", "")
+        elif "servers" in settings and settings["servers"]:
+            orig_addr = settings["servers"][0].get("address", "")
+
+    if not orig_addr:
         return False
 
-    # Check WebSocket settings Host header
-    ws_settings = stream_settings.get("wsSettings", {})
+    # Check textual fields directly for obvious patterns as an optimized first step
+    ws_settings = outbound.get("streamSettings", {}).get("wsSettings", {})
     if isinstance(ws_settings, dict):
         ws_host = ws_settings.get("headers", {}).get("Host", ws_settings.get("host", "")).lower()
-        if "workers.dev" in ws_host or "dpdns.org" in ws_host or "cloudflare" in ws_host:
+        if "workers.dev" in ws_host or "cloudflare" in ws_host:
             return True
 
-    # Check TLS / Reality serverName SNI targeting
-    for tls_key in ["tlsSettings", "realitySettings"]:
-        tls_set = stream_settings.get(tls_key, {})
-        if isinstance(tls_set, dict):
-            sni = tls_set.get("serverName", "").lower()
-            if "workers.dev" in sni or "dpdns.org" in sni or "cloudflare" in sni:
-                return True
+    # Resolve the original host address to raw IP endpoints to cross-examine against subnets
+    resolved_ips = []
+    try:
+        ip_clean = orig_addr.replace("[", "").replace("]", "")
+        ipaddress.ip_address(ip_clean)
+        resolved_ips.append(ip_clean)
+    except ValueError:
+        # It's a domain name (like www.speedtest.net used as a clean IP endpoint), resolve it
+        resolved_ips = resolve_domain_to_ips(orig_addr)
+
+    # Check if any resolved IP falls inside Cloudflare CIDR blocks
+    for ip_str in resolved_ips:
+        try:
+            ip_obj = ipaddress.ip_address(ip_str)
+            for network in CLOUDFLARE_NETWORKS:
+                if ip_obj in network:
+                    return True
+        except ValueError:
+            continue
 
     return False
 
@@ -102,7 +163,7 @@ def fetch_clean_addresses(url):
 def randomize_json_addresses(config_obj, clean_addresses):
     """Deeply inspects the config object and replaces non-local 'address' fields 
 
-    ONLY if the outbound block is detected as a Cloudflare configuration.
+    ONLY if the outbound block is explicitly verified as a Cloudflare node infrastructure.
     """
     if not isinstance(config_obj, dict) or not clean_addresses:
         return
@@ -112,7 +173,7 @@ def randomize_json_addresses(config_obj, clean_addresses):
             if not isinstance(outbound, dict):
                 continue
                 
-            # STRICT GUARD: Skip modification completely if it's not a Cloudflare node
+            # STRICT GUARD: If it doesn't map to Cloudflare IP ranges/infrastructure, do not touch address!
             if not is_cloudflare_node(outbound):
                 continue
 
@@ -222,6 +283,8 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
                 "serverName": config.get("host", config.get("add")),
                 "show": False
             }
+        
+        outbound["_original_address"] = target_address
         return outbound, is_tls
     except Exception as e:
         print(f"Error filtering VMESS format schema: {e}")
@@ -258,7 +321,6 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
                 final_port = NON_TLS_PORTS[non_tls_counter[0] % len(NON_TLS_PORTS)]
                 non_tls_counter[0] += 1
         
-        # Keep original logic as an immediate fallback configuration address assignment
         target_address = original_address
             
         net_type = params.get("type", "tcp")
@@ -396,7 +458,6 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
-    # Conditional implementation based on infrastructure target types
     if is_cloudflare_node(base_vless_tls_node) and clean_addresses:
         node_address = random.choice(clean_addresses)
     else:
@@ -844,6 +905,9 @@ def main():
         print(f"Source file {input_file} not found.")
         return
 
+    # Initialize IP Range Subnet Caching directly from Cloudflare before parsing maps
+    fetch_cloudflare_ranges()
+
     clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
     pool_top_dns = fetch_remote_dns(DNS_TOP_URL)
     pool_main_dns = fetch_remote_dns(DNS_MAIN_URL)
@@ -939,14 +1003,14 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
 
-    # Run the structural conditional randomization over final data structures
+    # Final randomization block filter runs over compiled structure profiles
     for config_profile in final_output:
         randomize_json_addresses(config_profile, clean_addresses)
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Compiled cleanly with strict sequence order in destination: '{output_file}'")
+    print(f"🎉 Compiled cleanly with accurate dynamic subnet checks in destination: '{output_file}'")
 
 if __name__ == "__main__":
     main()
