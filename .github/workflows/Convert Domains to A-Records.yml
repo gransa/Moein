@@ -2,8 +2,8 @@ name: Convert Domains to A-Records
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Runs every 6 hours (at minute 0 of hours 0, 6, 12, and 18)
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+    - cron: '0 */6 * * *' # Runs every 6 hours
+  workflow_dispatch: # Allows manual trigger from the Actions tab
 
 permissions:
   contents: write
@@ -22,7 +22,8 @@ jobs:
         python-version: '3.10'
 
     - name: Run Conversion Script
-      run: python convert.py
+      # Space characters in file names must be wrapped in quotes
+      run: python "Convert Domains to A-Records.py"
 
     - name: Commit and Push changes
       run: |
@@ -32,6 +33,6 @@ jobs:
         if git diff --cached --quiet; then
           echo "No changes found in the resolved IPs."
         else
-          git commit -m "Automated update: Refreshed Cloudflare-IPs list"
+          git commit -m "Automated update: Refreshed plain Cloudflare-IPs list"
           git push
         fi
