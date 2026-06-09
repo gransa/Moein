@@ -251,28 +251,28 @@ def parse_dns_source(pool_dns_servers):
             item.startswith("udp:") or item.startswith("[") or re.match(r'^\d{1,3}(\.\d{1,3}){3}$', item)):
             
             server_url = item
-            ip_address_val = None
+            ip_address = None
             
             if i + 1 < len(pool_dns_servers):
                 next_item = pool_dns_servers[i + 1].strip()
                 if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item) or (next_item.startswith("[") and next_item.endswith("]")):
-                    ip_address_val = next_item
+                    ip_address = next_item
                     i += 1
             
-            if not ip_address_val:
+            if not ip_address:
                 lower_url = server_url.lower()
                 if "quad9" in lower_url or "9.9.9.9" in lower_url:
-                    ip_address_val = "9.9.9.9"
+                    ip_address = "9.9.9.9"
                 elif "adguard" in lower_url or "94.140.14.14" in lower_url or "94.140.15.15" in lower_url:
-                    ip_address_val = "94.140.15.15" if "94.140.15.15" in lower_url else "94.140.14.14"
+                    ip_address = "94.140.15.15" if "94.140.15.15" in lower_url else "94.140.14.14"
                 elif "google" in lower_url or "8.8.8.8" in lower_url or "8.8.4.4" in lower_url:
-                    ip_address_val = "8.8.4.4" if "8.8.4.4" in lower_url else "8.8.8.8"
+                    ip_address = "8.8.4.4" if "8.8.4.4" in lower_url else "8.8.8.8"
                 elif "cloudflare" in lower_url or "1.1.1.1" in lower_url or "1.1.1.2" in lower_url or "1.0.0.1" in lower_url:
-                    ip_address_val = "1.1.1.2" if "1.1.1.2" in lower_url else "1.1.1.1"
+                    ip_address = "1.1.1.2" if "1.1.1.2" in lower_url else "1.1.1.1"
                 elif "yandex" in lower_url or "77.88.8.1" in lower_url:
-                    ip_address_val = "77.88.8.1"
+                    ip_address = "77.88.8.1"
                 elif "opendns" in lower_url:
-                    ip_address_val = "208.67.222.222"
+                    ip_address = "208.67.222.222"
                 else:
                     clean_ip = server_url
                     for prefix in ["tcp:", "udp:", "quic:", "https:"]:
@@ -282,17 +282,17 @@ def parse_dns_source(pool_dns_servers):
                     try:
                         ip_to_test = clean_ip.replace("[", "").replace("]", "")
                         ipaddress.ip_address(ip_to_test)
-                        ip_address_val = clean_ip
+                        ip_address = clean_ip
                     except ValueError:
                         parsed_doh = urlparse(server_url if "://" in server_url else f"https://{server_url}")
                         doh_host = parsed_doh.netloc.split(':')[0]
                         try:
                             ipaddress.ip_address(doh_host.replace("[", "").replace("]", ""))
-                            ip_address_val = doh_host
+                            ip_address = doh_host
                         except ValueError:
-                            ip_address_val = server_url
+                            ip_address = server_url
                     
-            paired.append({"server": server_url, "ip": ip_address_val})
+            paired.append({"server": server_url, "ip": ip_address})
         i += 1
     return paired
 
@@ -566,19 +566,35 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     # Filter DoH-only from DNS.txt for remote-dns-2
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # Helper: check if a server string is a raw IPv4/IPv6 (no protocol prefix)
+    # Helper: check if a server string resolves to a raw IPv4/IPv6 address
     def is_raw_ip(server_str):
         s = server_str.strip()
-        if s.startswith(("https://", "tcp://", "tcp:", "quic://", "quic:", "udp://", "udp:")):
+        host = s
+        
+        # Handle scheme:// formats
+        if "://" in s:
+            try:
+                host = urlparse(s).hostname or ""
+            except Exception:
+                host = ""
+        # Handle tcp:, udp:, quic: without //
+        elif s.startswith(("tcp:", "udp:", "quic:")):
+            host = s.split(':', 1)[1].replace("//", "").split(':')[0]
+            if host.startswith("[") and host.endswith("]"):
+                host = host[1:-1]
+        else:
+            # Bare addresses like [IPv6] or 1.1.1.1
+            if host.startswith("[") and host.endswith("]"):
+                host = host[1:-1]
+                
+        if not host:
             return False
-        if s.startswith("[") and s.endswith("]"):
-            return True
+            
         try:
-            ipaddress.ip_address(s.split(":")[0].split("/")[0])
+            ipaddress.ip_address(host)
             return True
         except ValueError:
-            pass
-        return False
+            return False
 
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
@@ -671,16 +687,13 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         inbound_tags.append(tag_name)
         srv_address = provider["server"]
         
-        if srv_address.startswith("tcp:"):
+        if srv_address.startswith("tcp:") or srv_address.startswith("tcp://"):
             clean_host = clean_dns_address(srv_address, "tcp:")
-            if clean_host.startswith("[") and clean_host.endswith("]"):
-                dns_servers_config.append({"address": clean_host, "port": 853, "tag": tag_name})
-            else:
-                dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
-        elif srv_address.startswith("quic:"):
+            dns_servers_config.append({"address": f"tcp://{clean_host}:853", "tag": tag_name})
+        elif srv_address.startswith("quic:") or srv_address.startswith("quic://"):
             clean_host = clean_dns_address(srv_address, "quic:")
-            dns_servers_config.append({"address": f"quic:{clean_host}", "port": 784, "tag": tag_name})
-        elif srv_address.startswith("udp:"):
+            dns_servers_config.append({"address": f"quic://{clean_host}:784", "tag": tag_name})
+        elif srv_address.startswith("udp:") or srv_address.startswith("udp://"):
             clean_host = clean_dns_address(srv_address, "udp:")
             dns_servers_config.append({"address": clean_host, "port": 53, "tag": tag_name})
         elif srv_address.startswith("https://"):
