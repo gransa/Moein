@@ -440,7 +440,8 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
-        "stats": {}
+        "stats": {},
+        "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
 def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
@@ -516,7 +517,8 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
-        "stats": {}
+        "stats": {},
+        "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
@@ -531,86 +533,68 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"},
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
-        {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"}
+        {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
+        {"server": "1.1.1.1", "ip": "1.1.1.1"},
+        {"server": "1.0.0.1", "ip": "1.0.0.1"},
+        {"server": "1.1.1.2", "ip": "1.1.1.2"}
     ]
     random.shuffle(fallback_providers)
 
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
+    # Filter out only valid DoH configurations from the main pool
+    doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
+
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # --- Slot 1: ONLY DoH from DNS-TOP.txt ---
-    doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
-    slot1_assigned = False
-    if doh_top:
-        random.shuffle(doh_top)
-        for provider in doh_top:
+    # Slot 2 (index 1): MUST be a DoH from DNS.txt
+    slot2_assigned = False
+    if doh_only_main:
+        random.shuffle(doh_only_main)
+        for provider in doh_only_main:
             ident = get_identity_key(provider["server"])
             seen_identifiers.add(ident)
-            chosen_providers[0] = provider
-            slot1_assigned = True
+            chosen_providers[1] = provider
+            slot2_assigned = True
             break
-    if not slot1_assigned:
-        for fb in fallback_providers:
-            if fb["server"].startswith("https://"]:
-                ident = get_identity_key(fb["server"])
-                seen_identifiers.add(ident)
-                chosen_providers[0] = fb
-                slot1_assigned = True
-                break
-
-    # --- Slot 2: ONLY DoH from DNS.txt ---
-    doh_main = [p for p in pairs_main if p["server"].startswith("https://")]
-    slot2_assigned = False
-    if doh_main:
-        random.shuffle(doh_main)
-        for provider in doh_main:
-            ident = get_identity_key(provider["server"])
-            if ident not in seen_identifiers:
-                seen_identifiers.add(ident)
-                chosen_providers[1] = provider
-                slot2_assigned = True
-                break
 
     if not slot2_assigned:
         for fb in fallback_providers:
             if fb["server"].startswith("https://"):
                 ident = get_identity_key(fb["server"])
-                if ident not in seen_identifiers:
-                    seen_identifiers.add(ident)
-                    chosen_providers[1] = fb
-                    slot2_assigned = True
-                    break
-
-    # --- Slots 3, 4, 5: Mixed Protocols (Strictly NO RAW IPs, IPv4 or IPv6) ---
-    remaining_slots = [2, 3, 4]
-    filtered_remaining = []
-    
-    for p in (pairs_top + pairs_main):
-        srv = p["server"].strip()
-        
-        # Strip protocol schemas cleanly to find the underlying host address
-        clean_host = srv
-        for prefix in ["https://", "tcp:", "quic:", "udp:"]:
-            if clean_host.startswith(prefix):
-                clean_host = clean_host.replace(prefix, "").replace("//", "")
+                seen_identifiers.add(ident)
+                chosen_providers[1] = fb
+                slot2_assigned = True
                 break
-        
-        # Discard trailing paths, options, queries, or custom port endings
-        clean_host = clean_host.replace("[", "").replace("]", "").split(":")[0].split("/")[0].split("?")[0]
-        
-        try:
-            # If the underlying host parses cleanly as a numeric IP address -> Strictly Skip It!
-            ipaddress.ip_address(clean_host)
-        except ValueError:
-            # If it throws a ValueError, it is a valid text-based alpha-domain address -> Safe to Include!
-            filtered_remaining.append(p)
 
-    random.shuffle(filtered_remaining)
+    # Slot 1 (index 0): Pick from DNS-TOP.txt
+    shuffled_top = list(pairs_top)
+    random.shuffle(shuffled_top)
+    slot1_assigned = False
+    for provider in shuffled_top:
+        ident = get_identity_key(provider["server"])
+        if ident not in seen_identifiers:
+            seen_identifiers.add(ident)
+            chosen_providers[0] = provider
+            slot1_assigned = True
+            break
 
-    for provider in filtered_remaining:
+    if not slot1_assigned:
+        for fb in fallback_providers:
+            ident = get_identity_key(fb["server"])
+            if ident not in seen_identifiers:
+                seen_identifiers.add(ident)
+                chosen_providers[0] = fb
+                break
+
+    # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
+    remaining_slots = [2, 3, 4]
+    combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
+    random.shuffle(combined_remaining)
+
+    for provider in combined_remaining:
         if not remaining_slots:
             break
         ident = get_identity_key(provider["server"])
@@ -619,16 +603,15 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback fill using secure encrypted link schema objects if empty
+    # Emergency fallback check for unfilled slots
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
-                if fb["server"].startswith("https://"):
-                    ident = get_identity_key(fb["server"])
-                    if ident not in seen_identifiers:
-                        seen_identifiers.add(ident)
-                        chosen_providers[slot_idx] = fb
-                        break
+                ident = get_identity_key(fb["server"])
+                if ident not in seen_identifiers:
+                    seen_identifiers.add(ident)
+                    chosen_providers[slot_idx] = fb
+                    break
 
     dns_servers_config = []
     inbound_tags = []
@@ -663,42 +646,10 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules (FORCED IPv4)
+    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
     for provider in chosen_providers:
-        target_ip = provider["ip"]
-        is_valid_ipv4 = False
-        
-        # Verify if the string is already a true numeric IPv4 address
-        if target_ip:
-            try:
-                if isinstance(ipaddress.ip_address(target_ip.replace("[", "").replace("]", "")), ipaddress.IPv4Address):
-                    is_valid_ipv4 = True
-            except ValueError:
-                pass
-                
-        # If it's a domain name or an IPv6 string, dynamically map a safe IPv4 placeholder
-        if not is_valid_ipv4:
-            lower_srv = provider["server"].lower()
-            if "quad9" in lower_srv or "9.9.9.9" in lower_srv:
-                target_ip = "9.9.9.9"
-            elif "adguard" in lower_srv:
-                target_ip = "94.140.14.14"
-            elif "google" in lower_srv or "8.8.8.8" in lower_srv:
-                target_ip = "8.8.8.8"
-            elif "cloudflare" in lower_srv or "1.1.1.1" in lower_srv:
-                target_ip = "1.1.1.1"
-            elif "opendns" in lower_srv:
-                target_ip = "208.67.222.222"
-            elif "libredns" in lower_srv:
-                target_ip = "116.202.176.26"
-            elif "controld" in lower_srv:
-                target_ip = "76.76.2.2"
-            else:
-                # Absolute panic-mode generic fallback if no text identifiers hit
-                target_ip = "8.8.4.4"
-
         dns_servers_config.append({
-            "address": target_ip,
+            "address": provider["ip"],
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
@@ -723,12 +674,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                     
     # 3. Dynamic Assignment for specific outbound node direct mappings
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
-    try:
-        if not isinstance(ipaddress.ip_address(primary_dns_ip.replace("[", "").replace("]", "")), ipaddress.IPv4Address):
-            primary_dns_ip = "9.9.9.9"
-    except ValueError:
-        primary_dns_ip = "9.9.9.9"
-
     for domain in extracted_domains:
         dns_servers_config.append({
             "address": primary_dns_ip,
