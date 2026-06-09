@@ -50,8 +50,7 @@ def fetch_remote_dns(url):
             line = line.strip()
             if not line:
                 continue
-            # Do not skip lines starting with # or // here, let parse_dns_source handle them
-            # because the IP might be on the next line or after a comment symbol
+            # We don't skip lines starting with # here, because the IP might be on the next line starting with #
             dns_list.append(line)
         print(f"✅ Successfully loaded {len(dns_list)} DNS lines.")
         return dns_list
@@ -253,58 +252,56 @@ def parse_dns_source(pool_dns_servers):
             i += 1
             continue
 
-        # Remove comment markers to help extract IPs that might be commented out on the same line
-        # Example: "https://dns.google/dns-query # 8.8.8.8" -> "https://dns.google/dns-query 8.8.8.8"
-        clean_item = item.replace("#", " ").replace("//", " ")
-        parts = clean_item.split()
+        # Strip leading # or // for the whole line, but preserve the rest of the URL intact
+        while item.startswith("#") or item.startswith("//"):
+            item = item[1:].strip()
         
-        server_url = None
-        inline_ips = []
-        
-        for part in parts:
-            if part.startswith(("https://", "tcp:", "quic:", "udp:", "tls:")):
-                if server_url is None:
-                    server_url = part
-            elif re.match(r'^\d{1,3}(\.\d{1,3}){3}$', part) or (part.startswith("[") and part.endswith("]")):
-                if server_url is None:
-                    server_url = part # The IP itself is the server URL
-                else:
-                    inline_ips.append(part)
-                    
-        if not server_url:
+        if not item:
             i += 1
             continue
 
+        # Check if there's a comment with an IP at the end of the line
+        # e.g., "https://dns.google/dns-query # 8.8.8.8"
+        comment_parts = item.split("#")
+        main_part = comment_parts[0].strip()
+        comment_ip = comment_parts[1].strip() if len(comment_parts) > 1 else None
+        
+        server_url = main_part
         ip_address = None
         
-        # Check inline IPs first
-        for test_ip in inline_ips:
-            clean_test = test_ip.replace("[", "").replace("]", "").split(':')[0]
-            if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', clean_test):
-                ip_address = clean_test
-                break
-            elif test_ip.startswith("[") and test_ip.endswith("]"):
+        # If there was an IP in the comment
+        if comment_ip:
+            clean_ip = comment_ip.replace("[", "").replace("]", "").split(':')[0]
+            if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', clean_ip):
+                ip_address = clean_ip
+            elif comment_ip.startswith("[") and comment_ip.endswith("]"):
                 try:
-                    ipaddress.ip_address(test_ip[1:-1])
-                    ip_address = test_ip
-                    break
+                    ipaddress.ip_address(comment_ip[1:-1])
+                    ip_address = comment_ip
                 except ValueError:
                     pass
 
-        # Check next line if no inline IP found
+        # If no inline IP, check the next line
         if not ip_address and i + 1 < len(pool_dns_servers):
-            next_item = pool_dns_servers[i + 1].strip().replace("#", " ").replace("//", " ").split()
-            next_ip_candidate = next_item[0] if next_item else ""
-            if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_ip_candidate):
-                ip_address = next_ip_candidate
-                i += 1
-            elif next_ip_candidate.startswith("[") and next_ip_candidate.endswith("]"):
-                try:
-                    ipaddress.ip_address(next_ip_candidate[1:-1])
-                    ip_address = next_ip_candidate
+            next_item = pool_dns_servers[i + 1].strip()
+            # Strip leading # from next line too
+            while next_item.startswith("#") or next_item.startswith("//"):
+                next_item = next_item[1:].strip()
+            
+            if next_item:
+                next_clean = next_item.split("#")[0].strip()
+                clean_test_ip = next_clean.replace("[", "").replace("]", "").split(':')[0]
+                
+                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', clean_test_ip):
+                    ip_address = clean_test_ip
                     i += 1
-                except ValueError:
-                    pass
+                elif next_clean.startswith("[") and next_clean.endswith("]"):
+                    try:
+                        ipaddress.ip_address(next_clean[1:-1])
+                        ip_address = next_clean
+                        i += 1
+                    except ValueError:
+                        pass
             
         if not ip_address:
             lower_url = server_url.lower()
@@ -779,26 +776,26 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         srv_address = provider["server"]
         
         if srv_address.startswith("tcp://") or srv_address.startswith("tcp:"):
-            addr = srv_address.replace("tcp://", "tcp://").replace("tcp:", "tcp://", 1) if not srv_address.startswith("tcp://") else srv_address
+            addr = srv_address.replace("tcp:", "tcp://", 1) if not srv_address.startswith("tcp://") else srv_address
             if ":" not in addr[6:]: 
                 addr += ":853"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
         elif srv_address.startswith("tls://") or srv_address.startswith("tls:"):
-            addr = srv_address.replace("tls://", "tls://").replace("tls:", "tls://", 1) if not srv_address.startswith("tls://") else srv_address
+            addr = srv_address.replace("tls:", "tls://", 1) if not srv_address.startswith("tls://") else srv_address
             if ":" not in addr[6:]:
                 addr += ":853"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
         elif srv_address.startswith("quic://") or srv_address.startswith("quic:"):
-            addr = srv_address.replace("quic://", "quic://").replace("quic:", "quic://", 1) if not srv_address.startswith("quic://") else srv_address
+            addr = srv_address.replace("quic:", "quic://", 1) if not srv_address.startswith("quic://") else srv_address
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
         elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
             
         elif srv_address.startswith("udp://") or srv_address.startswith("udp:"):
-            addr = srv_address.replace("udp://", "udp://").replace("udp:", "udp://", 1) if not srv_address.startswith("udp://") else srv_address
+            addr = srv_address.replace("udp:", "udp://", 1) if not srv_address.startswith("udp://") else srv_address
             if ":" not in addr[6:]:
                 addr += ":53"
             dns_servers_config.append({"address": addr, "tag": tag_name})
