@@ -560,53 +560,54 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    # Filter out only valid DoH configurations from the main pool
-    doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
-
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # Slot 2 (index 1): MUST be a DoH from DNS.txt
-    slot2_assigned = False
-    if doh_only_main:
-        random.shuffle(doh_only_main)
-        for provider in doh_only_main:
-            ident = get_identity_key(provider["server"])
-            seen_identifiers.add(ident)
-            chosen_providers[1] = provider
-            slot2_assigned = True
-            break
-
-    if not slot2_assigned:
-        for fb in fallback_providers:
-            if fb["server"].startswith("https://"):
-                ident = get_identity_key(fb["server"])
-                seen_identifiers.add(ident)
-                chosen_providers[1] = fb
-                slot2_assigned = True
-                break
-
-    # Slot 1 (index 0): Pick from DNS-TOP.txt
+    # Slot 1 (index 0): Pick from DNS-TOP.txt (Usually DoH)
     shuffled_top = list(pairs_top)
     random.shuffle(shuffled_top)
     slot1_assigned = False
     for provider in shuffled_top:
         ident = get_identity_key(provider["server"])
-        if ident not in seen_identifiers:
-            seen_identifiers.add(ident)
-            chosen_providers[0] = provider
-            slot1_assigned = True
-            break
+        seen_identifiers.add(ident)
+        chosen_providers[0] = provider
+        slot1_assigned = True
+        break
 
     if not slot1_assigned:
         for fb in fallback_providers:
             ident = get_identity_key(fb["server"])
+            seen_identifiers.add(ident)
+            chosen_providers[0] = fb
+            break
+
+    # 🛑 CRITICAL FIX FOR SLOT 2: MUST strictly be a clean IPv4 address from DNS.txt or fallback pool
+    # Filter the main parsed list to find a provider that uses a raw IPv4 string address format
+    ipv4_only_main = [p for p in pairs_main if not p["server"].startswith("https://") and not p["server"].startswith("tcp:") and not p["server"].startswith("quic:") and not p["server"].startswith("udp:") and not p["server"].startswith("[")]
+    slot2_assigned = False
+    
+    if ipv4_only_main:
+        random.shuffle(ipv4_only_main)
+        for provider in ipv4_only_main:
+            ident = get_identity_key(provider["server"])
             if ident not in seen_identifiers:
                 seen_identifiers.add(ident)
-                chosen_providers[0] = fb
+                chosen_providers[1] = provider
+                slot2_assigned = True
                 break
 
-    # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
+    if not slot2_assigned:
+        # Emergency backup inside slot 2: Pick a direct numeric fallback entry from fallback pool
+        for fb in fallback_providers:
+            if not fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                if ident not in seen_identifiers:
+                    seen_identifiers.add(ident)
+                    chosen_providers[1] = {"server": fb["ip"], "ip": fb["ip"]}
+                    slot2_assigned = True
+                    break
+
+    # Slots 3, 4, 5: Fill the remaining list using a random mix from both source pools
     remaining_slots = [2, 3, 4]
     combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
@@ -620,7 +621,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback check for unfilled slots
+    # Emergency fallback sanity loop check for unfilled slots
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -832,7 +833,7 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
 
-    # 7. 🍀 7 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
+    # 7. 🍀 7 VMESS - TLS LB 🔥
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
@@ -843,7 +844,7 @@ def main():
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
             
-    # Other Protocols Group (Non-Cloudflare group: keeps original IPs/Domains)
+    # Other Protocols Group
     if groups["other_protocols"]:
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
