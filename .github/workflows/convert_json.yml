@@ -12,7 +12,7 @@ jobs:
   build-json:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # This matches your "Read and write permissions" setting
 
     steps:
       - name: Checkout Repository
@@ -27,39 +27,29 @@ jobs:
 
       - name: Compile Profile Array Layouts
         run: |
-          echo "--- Pre-Run Cleanup ---"
-          # Force removal of the old output to ensure a clean slate
+          # Remove old output to ensure a fresh generation
           rm -f NG-JSON-Configs.txt
           
-          echo "--- Input File Preview ---"
-          head -n 10 Configs.txt
-          
-          echo "--- Running Conversion ---"
+          # Run your conversion script
           python convert_to_json.py
           
-          # Validation
+          # Safety check
           if [ ! -s NG-JSON-Configs.txt ]; then
-            echo "::error::Output file NG-JSON-Configs.txt is empty or missing!"
+            echo "::error::Output file NG-JSON-Configs.txt is empty."
             exit 1
           fi
-          
-          echo "--- Post-Run Check ---"
-          ls -lh NG-JSON-Configs.txt
 
       - name: Commit and Push
         run: |
           git config user.name "JSON Compiler Engine"
           git config user.email "action@github.com"
           
-          # Stage the file
           git add NG-JSON-Configs.txt
           
-          # Check for changes
+          # If file changed, this will trigger the commit/push
           if git diff --cached --quiet; then
-            echo "SUCCESS: The generated JSON matches the existing version."
-            echo "No new changes to commit."
+            echo "No changes detected."
           else
-            echo "CHANGES DETECTED: Committing..."
-            git commit -m "Automated Sync: Update compiled v2rayNG profiles layout block"
+            git commit -m "Automated Sync: Update compiled profiles"
             git push
           fi
