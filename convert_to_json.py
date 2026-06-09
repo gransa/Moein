@@ -522,10 +522,8 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
     }
 
 def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, clean_addresses=None, is_cloudflare=True):
-    # Deep copy the incoming outbound nodes so we safely modify addresses without side effects elsewhere
     modified_outbounds = copy.deepcopy(list(outbound_nodes))
     
-    # Randomly assign a clean Cloudflare IP address to each node's settings configuration if pool is available AND it is a cloudflare group
     if clean_addresses and is_cloudflare:
         for node in modified_outbounds:
             settings = node.get("settings", {})
@@ -534,7 +532,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             elif "servers" in settings and settings["servers"]:
                 settings["servers"][0]["address"] = random.choice(clean_addresses)
 
-    # Clean up the internal helper key '_original_address' so it's excluded from final JSON compilation
     for node in modified_outbounds:
         if "_original_address" in node:
             del node["_original_address"]
@@ -563,7 +560,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # Slot 1 (index 0): Pick from DNS-TOP.txt (Usually DoH)
+    # Slot 1: From DNS-TOP.txt
     shuffled_top = list(pairs_top)
     random.shuffle(shuffled_top)
     slot1_assigned = False
@@ -581,8 +578,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             chosen_providers[0] = fb
             break
 
-    # 🛑 CRITICAL FIX FOR SLOT 2: MUST strictly be a clean IPv4 address from DNS.txt or fallback pool
-    # Filter the main parsed list to find a provider that uses a raw IPv4 string address format
+    # Slot 2: Strictly IPv4
     ipv4_only_main = [p for p in pairs_main if not p["server"].startswith("https://") and not p["server"].startswith("tcp:") and not p["server"].startswith("quic:") and not p["server"].startswith("udp:") and not p["server"].startswith("[")]
     slot2_assigned = False
     
@@ -597,7 +593,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 break
 
     if not slot2_assigned:
-        # Emergency backup inside slot 2: Pick a direct numeric fallback entry from fallback pool
         for fb in fallback_providers:
             if not fb["server"].startswith("https://"):
                 ident = get_identity_key(fb["server"])
@@ -607,7 +602,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     slot2_assigned = True
                     break
 
-    # Slots 3, 4, 5: Fill the remaining list using a random mix from both source pools
+    # Slots 3, 4, 5
     remaining_slots = [2, 3, 4]
     combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
@@ -621,7 +616,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback sanity loop check for unfilled slots
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -664,10 +658,17 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
+    # 2. Dynamic 1-to-1 matching for bypass rules (STRICTLY CLEANED FOR BYPASS ROUTING)
     for provider in chosen_providers:
+        fallback_ip = provider["ip"]
+        # Strip prefixes from fallback ip property just in case
+        for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+            if fallback_ip.startswith(prefix):
+                fallback_ip = fallback_ip.replace(prefix, "").replace("//", "")
+        fallback_ip = fallback_ip.split(":")[0].split("/")[0]
+        
         dns_servers_config.append({
-            "address": provider["ip"],
+            "address": fallback_ip,
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
@@ -692,6 +693,10 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     
     # 3. Dynamic Assignment for specific outbound node direct mappings
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
+    for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+        primary_dns_ip = primary_dns_ip.replace(prefix, "").replace("//", "")
+    primary_dns_ip = primary_dns_ip.split(":")[0].split("/")[0]
+
     for domain in extracted_domains:
         dns_servers_config.append({
             "address": primary_dns_ip,
@@ -850,7 +855,6 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
 
-    # Clean up the internal helper key '_original_address' across all templates before output serialization
     for template in final_output:
         if "outbounds" in template:
             for outbound in template["outbounds"]:
