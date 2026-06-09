@@ -220,15 +220,19 @@ def clean_dns_address(srv_str, prefix):
 def get_identity_key(srv):
     """Extracts base registration domain string or raw host string for uniqueness tracking."""
     try:
-        for prefix in ["tcp:", "udp:", "quic:", "https:", "tls:"]:
-            if srv.startswith(prefix):
-                srv = srv.replace(prefix, "").replace("//", "").strip()
+        proto = ""
+        s = srv.strip()
+        for prefix in ["tcp://", "tcp:", "udp://", "udp:", "quic://", "quic:", "https://", "tls://", "tls:"]:
+            if s.startswith(prefix):
+                proto = prefix.replace("://", "").replace(":", "")
+                s = s.replace(prefix, "", 1).replace("//", "").strip()
+                break
                 
-        domain = srv.replace("[", "").replace("]", "").split(':')[0].split('/')[0]
+        domain = s.replace("[", "").replace("]", "").split(':')[0].split('/')[0]
         
         try:
             ipaddress.ip_address(domain)
-            return domain
+            return f"{proto}://{domain}" # tcp://8.8.8.8 and udp://8.8.8.8 will have different keys
         except ValueError:
             pass
             
@@ -546,7 +550,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
-    # Use domains in fallbacks to guarantee variety and prevent raw IP endpoints for slots 3,4,5
+    # Fallbacks now include tcp://, udp://, and tls:// to guarantee multiprotocol even if source files lack them
     fallback_providers = [
         {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"},
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
@@ -558,7 +562,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         {"server": "quic://dns.nextdns.io", "ip": "45.90.30.0"},
         {"server": "udp://dns.google:53", "ip": "8.8.8.8"},
         {"server": "udp://dns.quad9.net:53", "ip": "9.9.9.9"},
-        # Bare IPs kept at the bottom strictly for fallback geosite/geoip resolution rules
         {"server": "1.1.1.1", "ip": "1.1.1.1"},
         {"server": "1.0.0.1", "ip": "1.0.0.1"},
         {"server": "1.1.1.2", "ip": "1.1.1.2"}
@@ -571,38 +574,33 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     doh_only_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # Robust Helper: checks if the actual host target resolves to an IP address
-    # This blocks "udp://223.6.6.6:53" from sneaking into slots 3,4,5
-    def is_endpoint_ip(server_str):
+    # ONLY rejects bare IPs like 8.8.8.8 or [::1]. 
+    # tcp://8.8.8.8 or udp://1.1.1.1 are NOT raw IPs and pass the filter!
+    def is_raw_ip(server_str):
         s = server_str.strip()
-        host = ""
-        
-        # Extract hostname from standard scheme://host:port
-        if "://" in s:
+        # Any protocol scheme means it's not a "raw" IP in the user's context
+        if re.match(r'^(https?|tcp|udp|tls|quic)://', s, re.IGNORECASE):
+            return False
+        if s.startswith(("tcp:", "udp:", "quic:", "tls:")):
+            return False
+            
+        # Bare bracketed IPv6
+        if s.startswith("[") and s.endswith("]"):
             try:
-                host = urlparse(s).hostname or ""
-            except:
-                host = ""
-        # Extract from tcp:host:port
-        elif s.startswith(("tcp:", "udp:", "quic:", "tls:")):
-            host = s.split(':', 1)[1].replace("//", "").split(':')[0]
-        # Bare host:port or host
-        else:
-            host = s.split(':')[0]
-            
-        # Strip bracket for IPv6
-        if host.startswith("[") and host.endswith("]"):
-            host = host[1:-1]
-            
-        if not host: 
-            return False
-            
-        # Check if host is an IP
-        try:
-            ipaddress.ip_address(host)
-            return True
-        except ValueError:
-            return False
+                ipaddress.ip_address(s[1:-1])
+                return True
+            except ValueError:
+                pass
+                
+        # Bare IPv4 with optional port
+        parts = s.split(":")
+        if len(parts) <= 2:
+            try:
+                ipaddress.ip_address(parts[0])
+                return True
+            except ValueError:
+                pass
+        return False
 
     # Helper: determine DNS type for grouping variety
     def get_dns_type(server_str):
@@ -659,9 +657,9 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     slot2_assigned = True
                     break
 
-    # ── Slots 3, 4, 5 (indices 2, 3, 4): Exactly one of each type (DoH, TCP, UDP, TLS/QUIC) ──
-    # Filter out any server whose host is strictly an IP Address
-    combined_remaining = [p for p in pairs_top + pairs_main if not is_endpoint_ip(p["server"])]
+    # ── Slots 3, 4, 5 (indices 2, 3, 4): Exactly one of each type (TCP, UDP, TLS/QUIC) ──
+    # tcp://8.8.8.8 and udp://1.1.1.1 pass the is_raw_ip filter and are grouped properly
+    combined_remaining = [p for p in pairs_top + pairs_main if not is_raw_ip(p["server"])]
     combined_remaining = [p for p in combined_remaining if get_identity_key(p["server"]) not in seen_identifiers]
     
     # Group by type
@@ -677,8 +675,8 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     slot_345_providers = []
     used_types = set()
 
-    # We want one from distinct types for slots 3, 4, 5
-    available_types = [t for t in ["tcp", "tls", "quic", "udp", "doh", "other"] if type_groups[t]]
+    # We want one from distinct types for slots 3, 4, 5 (Prioritize non-DoH first)
+    available_types = [t for t in ["tcp", "udp", "tls", "quic", "doh", "other"] if type_groups[t]]
     random.shuffle(available_types)
     
     for t in available_types:
@@ -691,7 +689,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         
     # If we still have less than 3, try filling from fallbacks that provide NEW types
     if len(slot_345_providers) < 3:
-        non_ip_fallbacks = [fb for fb in fallback_providers if not is_endpoint_ip(fb["server"])]
+        non_ip_fallbacks = [fb for fb in fallback_providers if not is_raw_ip(fb["server"])]
         random.shuffle(non_ip_fallbacks)
         
         for fb in non_ip_fallbacks:
@@ -736,11 +734,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                         chosen_providers[slot_idx] = fb
                         break
 
-    # Emergency fallback for slots 2, 3, 4 (any except IP endpoint)
+    # Emergency fallback for slots 2, 3, 4 (any except raw IP)
     for slot_idx in [2, 3, 4]:
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
-                if not is_endpoint_ip(fb["server"]):
+                if not is_raw_ip(fb["server"]):
                     ident = get_identity_key(fb["server"])
                     if ident not in seen_identifiers:
                         seen_identifiers.add(ident)
@@ -762,16 +760,17 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         inbound_tags.append(tag_name)
         srv_address = provider["server"]
         
-        # Handle TCP/TLS (usually needs port 853)
+        # Handle TCP (Format as string and append port 853 if missing)
         if srv_address.startswith("tcp://") or srv_address.startswith("tcp:"):
             addr = srv_address.replace("tcp://", "tcp://").replace("tcp:", "tcp://", 1) if not srv_address.startswith("tcp://") else srv_address
-            if ":" not in addr[6:]: # Append port if missing
+            if ":" not in addr[6:]: 
                 addr += ":853"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
+        # Handle TLS (Format as string and append port 853 if missing)
         elif srv_address.startswith("tls://") or srv_address.startswith("tls:"):
             addr = srv_address.replace("tls://", "tls://").replace("tls:", "tls://", 1) if not srv_address.startswith("tls://") else srv_address
-            if ":" not in addr[6:]: # Append port if missing
+            if ":" not in addr[6:]:
                 addr += ":853"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
@@ -784,22 +783,12 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
             
-        # Handle UDP (Format as address and port keys for V2Ray)
+        # Handle UDP (Format as string and append port 53 if missing)
         elif srv_address.startswith("udp://") or srv_address.startswith("udp:"):
-            clean = srv_address.replace("udp://", "").replace("udp:", "").replace("//", "")
-            port = 53
-            host = clean
-            if clean.startswith("[") and "]" in clean:
-                bracket_end = clean.find("]")
-                host = clean[:bracket_end+1]
-                rest = clean[bracket_end+1:]
-                if rest.startswith(":") and rest[1:].isdigit(): port = int(rest[1:])
-            elif ":" in clean:
-                parts = clean.split(":")
-                if len(parts) == 2 and parts[1].isdigit():
-                    host = parts[0]
-                    port = int(parts[1])
-            dns_servers_config.append({"address": host, "port": port, "tag": tag_name})
+            addr = srv_address.replace("udp://", "udp://").replace("udp:", "udp://", 1) if not srv_address.startswith("udp://") else srv_address
+            if ":" not in addr[6:]:
+                addr += ":53"
+            dns_servers_config.append({"address": addr, "tag": tag_name})
             
         # Handle Bare fallbacks (IPs)
         else:
