@@ -103,6 +103,9 @@ def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
             "streamSettings": {"network": net_type, "security": "tls" if is_tls else "none"}
         }
         
+        # Strip tracking properties inside JSON conversion pipelines
+        outbound.pop("_original_address", None)
+        
         if net_type == "ws":
             outbound["streamSettings"]["wsSettings"] = {"host": config.get("host", ""), "path": config.get("path", "")}
         elif net_type == "kcp":
@@ -184,10 +187,8 @@ def parse_standard_uri(url_str, protocol, tls_counter=[0], non_tls_counter=[0], 
             
         outbound["streamSettings"] = {
             "network": net_type, "security": "tls" if is_tls else "none",
-            "sockopt": {"domainStrategy": "UseIPv4v6"}
+            "sockopt": {"domainStrategy": "UseIPv4"}  # Enforced clean IPv4 rules
         }
-        
-        outbound["_original_address"] = original_address
         
         if net_type == "ws":
             outbound["streamSettings"]["wsSettings"] = {"host": params.get("host", ""), "path": params.get("path", "")}
@@ -240,6 +241,13 @@ def get_identity_key(srv):
 def parse_dns_source(pool_dns_servers):
     """Converts text lines into paired dictionary groupings with smart local resolution fallback matching."""
     paired = []
+    
+    # Pre-defined strict map to resolve common DoH/IPv6 records into IPv4 address strings
+    strict_ipv4_resolver_map = {
+        "https://doh.libredns.gr/dns-query": "116.202.176.26",
+        "udp://[2001:19f0:7001::1]:53": "45.76.71.121"
+    }
+
     i = 0
     while i < len(pool_dns_servers):
         item = pool_dns_servers[i].strip()
@@ -253,10 +261,18 @@ def parse_dns_source(pool_dns_servers):
             server_url = item
             ip_address = None
             
-            if i + 1 < len(pool_dns_servers):
+            # Step 1: Intercept known conversions using our strict mapping tool
+            if server_url in strict_ipv4_resolver_map:
+                ip_address = strict_ipv4_resolver_map[server_url]
+            
+            if not ip_address and i + 1 < len(pool_dns_servers):
                 next_item = pool_dns_servers[i + 1].strip()
-                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item) or (next_item.startswith("[") and next_item.endswith("]")):
+                # Ensure the next assigned target string matches standard IPv4 layout only
+                if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', next_item):
                     ip_address = next_item
+                    i += 1
+                elif next_item.startswith("[") and next_item.endswith("]"):
+                    # Catch and skip custom explicit local IPv6 mappings inside text pools
                     i += 1
             
             if not ip_address:
@@ -282,15 +298,22 @@ def parse_dns_source(pool_dns_servers):
                     try:
                         ip_to_test = clean_ip.replace("[", "").replace("]", "")
                         ipaddress.ip_address(ip_to_test)
-                        ip_address = clean_ip
+                        # Ensure it's explicitly IPv4 before accepting raw fallback
+                        if "." in ip_to_test:
+                            ip_address = clean_ip
                     except ValueError:
                         parsed_doh = urlparse(server_url if "://" in server_url else f"https://{server_url}")
                         doh_host = parsed_doh.netloc.split(':')[0]
                         try:
                             ipaddress.ip_address(doh_host.replace("[", "").replace("]", ""))
-                            ip_address = doh_host
+                            if "." in doh_host:
+                                ip_address = doh_host
                         except ValueError:
-                            ip_address = server_url
+                            pass
+            
+            # Absolute hard fallback to standard public DNS IPv4 if resolution fails 
+            if not ip_address or ":" in str(ip_address):
+                ip_address = "8.8.8.8"
                     
             paired.append({"server": server_url, "ip": ip_address})
         i += 1
@@ -321,7 +344,8 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
         "remarks": "🌵 8 VLESS - Fragment 🔥",
         "dns": {
             "hosts": {"domain:googleapis.cn": "googleapis.com"},
-            "servers": ["8.8.8.8"]
+            "servers": ["8.8.8.8"],
+            "queryStrategy": "UseIPv4"
         },
         "inbounds": [
             {"listen": "127.0.0.1", "port": 10808, "protocol": "socks", "settings": {"auth": "noauth", "udp": True, "userLevel": 8}, "sniffing": {"destOverride": [], "enabled": False}, "tag": "socks"},
@@ -343,7 +367,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
                 },
                 "tag": "proxy"
             },
-            {"protocol": "freedom", "settings": {}, "tag": "direct"},
+            {"protocol": "freedom", "settings": {"domainStrategy": "UseIPv4"}, "tag": "direct"},
             {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"},
             {"tag": "fragment", "protocol": "freedom", "settings": {"fragment": {"packets": "tlshello", "length": "5-10", "interval": "1-3"}}, "streamSettings": {"sockopt": {"TcpNoDelay": True, "tcpKeepAliveIdle": 100, "mark": 255}}}
         ],
@@ -402,7 +426,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
         })
         
     outbounds.extend([
-        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIPv4"}, "tag": "direct"},
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
 
@@ -411,17 +435,18 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
         "dns": {
             "hosts": {
                 "domain:googleapis.cn": "googleapis.com",
-                "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
-                "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
-                "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
-                "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
-                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]
+                "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4"],
+                "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1"],
+                "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4"],
+                "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "104.16.132.229", "104.16.133.229"],
+                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112"]
             },
             "servers": [
                 "https://8.8.8.8/dns-query",
                 {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True},
                 {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}
             ],
+            "queryStrategy": "UseIPv4",
             "tag": "dns-module"
         },
         "inbounds": [{"listen": "127.0.0.1", "port": 10808, "protocol": "socks", "settings": {"auth": "noauth", "udp": True, "userLevel": 8}, "sniffing": {"destOverride": ["fakedns"], "enabled": True, "routeOnly": False}, "tag": "socks"}],
@@ -479,7 +504,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         })
         
     outbounds.extend([
-        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIPv4"}, "tag": "direct"},
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
 
@@ -488,17 +513,18 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         "dns": {
             "hosts": {
                 "domain:googleapis.cn": "googleapis.com",
-                "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
-                "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
-                "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
-                "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
-                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]
+                "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4"],
+                "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1"],
+                "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4"],
+                "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "104.16.132.229", "104.16.133.229"],
+                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112"]
             },
             "servers": [
                 "https://8.8.8.8/dns-query",
                 {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True},
                 {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}
             ],
+            "queryStrategy": "UseIPv4",
             "tag": "dns-module"
         },
         "inbounds": [{"listen": "127.0.0.1", "port": 10808, "protocol": "socks", "settings": {"auth": "noauth", "udp": True, "userLevel": 8}, "sniffing": {"destOverride": ["fakedns"], "enabled": True, "routeOnly": False}, "tag": "socks"}],
@@ -525,7 +551,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
-        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIPv4"}, "tag": "direct"},
         {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
     ])
     
@@ -624,10 +650,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         
         if srv_address.startswith("tcp:"):
             clean_host = clean_dns_address(srv_address, "tcp:")
-            if clean_host.startswith("[") and clean_host.endswith("]"):
-                dns_servers_config.append({"address": clean_host, "port": 853, "tag": tag_name})
-            else:
-                dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
+            dns_servers_config.append({"address": f"tcp:{clean_host}", "port": 853, "tag": tag_name})
         elif srv_address.startswith("quic:"):
             clean_host = clean_dns_address(srv_address, "quic:")
             dns_servers_config.append({"address": f"quic:{clean_host}", "port": 784, "tag": tag_name})
@@ -637,16 +660,13 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
         else:
-            if srv_address.startswith("[") and srv_address.endswith("]"):
+            try:
+                ipaddress.ip_address(srv_address)
                 dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
-            else:
-                try:
-                    ipaddress.ip_address(srv_address)
-                    dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
-                except ValueError:
-                    dns_servers_config.append({"address": srv_address, "tag": tag_name})
+            except ValueError:
+                dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
+    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules (FORCED IPv4)
     for provider in chosen_providers:
         dns_servers_config.append({
             "address": provider["ip"],
@@ -671,38 +691,28 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 domain_entry = f"full:{addr}"
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
-
-    # 3. Assemble and return the complete v2rayNG json file structure
+                    
+    # Complete and close out the final v2rayNG config block dictionary assembly smoothly
     return {
         "remarks": remarks,
-        "log": {"access": "", "loglevel": "warning", "error": ""},
-        "outbounds": base_outbounds,
         "dns": {
             "servers": dns_servers_config,
-            "tag": "dns-module"
+            "queryStrategy": "UseIPv4",
+            "tag": "dns"
         },
+        "outbounds": base_outbounds,
         "routing": {
             "domainStrategy": "AsIs",
             "rules": [
                 {
                     "type": "field",
-                    "port": "53",
-                    "outboundTag": "dns-out"
+                    "outboundTag": "direct",
+                    "domain": ["geosite:category-ir"]
                 },
                 {
                     "type": "field",
-                    "domain": extracted_domains,
-                    "outboundTag": "direct"
-                } if extracted_domains else None,
-                {
-                    "type": "field",
-                    "domain": ["geosite:category-ir", "geosite:private"],
-                    "outboundTag": "direct"
-                },
-                {
-                    "type": "field",
-                    "ip": ["geoip:ir", "geoip:private"],
-                    "outboundTag": "direct"
+                    "outboundTag": "direct",
+                    "ip": ["geoip:ir"]
                 }
             ]
         }
