@@ -521,22 +521,8 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
-def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, clean_addresses=None, is_cloudflare=True):
-    modified_outbounds = copy.deepcopy(list(outbound_nodes))
-    
-    if clean_addresses and is_cloudflare:
-        for node in modified_outbounds:
-            settings = node.get("settings", {})
-            if "vnext" in settings and settings["vnext"]:
-                settings["vnext"][0]["address"] = random.choice(clean_addresses)
-            elif "servers" in settings and settings["servers"]:
-                settings["servers"][0]["address"] = random.choice(clean_addresses)
-
-    for node in modified_outbounds:
-        if "_original_address" in node:
-            del node["_original_address"]
-
-    base_outbounds = modified_outbounds
+def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
+    base_outbounds = list(outbound_nodes)
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
         {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
@@ -548,9 +534,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
         {"server": "https://dns.adguard-dns.com/dns-query", "ip": "94.140.14.14"},
         {"server": "https://doh.opendns.com/dns-query", "ip": "208.67.222.222"},
-        {"server": "1.1.1.1", "ip": "1.1.1.1"},
-        {"server": "1.0.0.1", "ip": "1.0.0.1"},
-        {"server": "1.1.1.2", "ip": "1.1.1.2"}
     ]
     random.shuffle(fallback_providers)
 
@@ -560,33 +543,33 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # Slot 1: From DNS-TOP.txt
-    shuffled_top = list(pairs_top)
-    random.shuffle(shuffled_top)
+    # --- Slot 1: ONLY DoH from DNS-TOP.txt ---
+    doh_top = [p for p in pairs_top if p["server"].startswith("https://")]
     slot1_assigned = False
-    for provider in shuffled_top:
-        ident = get_identity_key(provider["server"])
-        seen_identifiers.add(ident)
-        chosen_providers[0] = provider
-        slot1_assigned = True
-        break
-
+    if doh_top:
+        random.shuffle(doh_top)
+        for provider in doh_top:
+            ident = get_identity_key(provider["server"])
+            seen_identifiers.add(ident)
+            chosen_providers[0] = provider
+            slot1_assigned = True
+            break
     if not slot1_assigned:
         for fb in fallback_providers:
-            ident = get_identity_key(fb["server"])
-            seen_identifiers.add(ident)
-            chosen_providers[0] = fb
-            break
+            if fb["server"].startswith("https://"):
+                ident = get_identity_key(fb["server"])
+                seen_identifiers.add(ident)
+                chosen_providers[0] = fb
+                slot1_assigned = True
+                break
 
-    # ================= STRICT SLOT 2 IPV4 FILTERING =================
+    # --- Slot 2: ONLY IPv4 Address from DNS.txt ---
     ipv4_only_main = []
     for p in pairs_main:
         srv_str = p["server"]
-        # Skip string indicators that point to IPv6 or protocols completely
         if any(srv_str.startswith(x) for x in ["https://", "tcp:", "quic:", "udp:", "["]):
             continue
         try:
-            # Enforce native python evaluation to ensure it qualifies strictly as an IPv4 address
             if isinstance(ipaddress.ip_address(srv_str), ipaddress.IPv4Address):
                 ipv4_only_main.append(p)
         except ValueError:
@@ -603,7 +586,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 slot2_assigned = True
                 break
 
-    # Absolute fallback assurance if no custom safe IPv4 exists in the repository
     if not slot2_assigned:
         for fb in fallback_providers:
             try:
@@ -616,14 +598,24 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                         break
             except ValueError:
                 continue
-    # =================================================================
 
-    # Slots 3, 4, 5
+    # --- Slots 3, 4, 5: Mixed Protocols from both addresses (NO RAW IPs) ---
     remaining_slots = [2, 3, 4]
-    combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
-    random.shuffle(combined_remaining)
+    
+    filtered_remaining = []
+    for p in (pairs_top + pairs_main):
+        srv = p["server"].strip()
+        if any(srv.startswith(x) for x in ["https://", "tcp:", "quic:", "udp:"]):
+            filtered_remaining.append(p)
+        else:
+            try:
+                ipaddress.ip_address(srv.replace("[", "").replace("]", ""))
+            except ValueError:
+                filtered_remaining.append(p)
 
-    for provider in combined_remaining:
+    random.shuffle(filtered_remaining)
+
+    for provider in filtered_remaining:
         if not remaining_slots:
             break
         ident = get_identity_key(provider["server"])
@@ -632,6 +624,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
+    # Emergency fallback fill for missing slots using protocol links
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -674,20 +667,10 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for bypass rules
+    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
     for provider in chosen_providers:
-        fallback_ip = provider["ip"]
-        for prefix in ["tcp:", "udp:", "quic:", "https:"]:
-            if fallback_ip.startswith(prefix):
-                fallback_ip = fallback_ip.replace(prefix, "").replace("//", "")
-        
-        if fallback_ip.startswith("[") and "]" in fallback_ip:
-            fallback_ip = fallback_ip.split("]")[0] + "]"
-        else:
-            fallback_ip = fallback_ip.split(":")[0].split("/")[0]
-        
         dns_servers_config.append({
-            "address": fallback_ip,
+            "address": provider["ip"],
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
@@ -712,14 +695,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     
     # 3. Dynamic Assignment for specific outbound node direct mappings
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
-    for prefix in ["tcp:", "udp:", "quic:", "https:"]:
-        primary_dns_ip = primary_dns_ip.replace(prefix, "").replace("//", "")
-        
-    if primary_dns_ip.startswith("[") and "]" in primary_dns_ip:
-        primary_dns_ip = primary_dns_ip.split("]")[0] + "]"
-    else:
-        primary_dns_ip = primary_dns_ip.split(":")[0].split("/")[0]
-
     for domain in extracted_domains:
         dns_servers_config.append({
             "address": primary_dns_ip,
@@ -833,7 +808,7 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns))
             
     # 2. 🌴 2 VLESS - TLS AI 🤖
     if groups["vless_tls"]:
@@ -843,7 +818,7 @@ def main():
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns))
 
     # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
     if groups["vless_n_tls"]:
@@ -853,36 +828,29 @@ def main():
     if groups["trojan_tls"]:
         for idx, item in enumerate(groups["trojan_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns))
 
     # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
     if groups["trojan_n_tls"]:
         for idx, item in enumerate(groups["trojan_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns))
 
     # 7. 🍀 7 VMESS - TLS LB 🔥
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns))
 
     # 8. 🌵 8 VLESS - Fragment 🔥
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
             
-    # Other Protocols Group
     if groups["other_protocols"]:
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
-
-    for template in final_output:
-        if "outbounds" in template:
-            for outbound in template["outbounds"]:
-                if "_original_address" in outbound:
-                    del outbound["_original_address"]
+        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
