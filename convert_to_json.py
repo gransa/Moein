@@ -521,8 +521,20 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
-def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
-    base_outbounds = list(outbound_nodes)
+def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, clean_addresses=None):
+    # Deep copy the incoming outbound nodes so we safely modify addresses without side effects elsewhere
+    modified_outbounds = copy.deepcopy(list(outbound_nodes))
+    
+    # Randomly assign a clean Cloudflare IP address to each node's settings configuration if the pool is available
+    if clean_addresses:
+        for node in modified_outbounds:
+            settings = node.get("settings", {})
+            if "vnext" in settings and settings["vnext"]:
+                settings["vnext"][0]["address"] = random.choice(clean_addresses)
+            elif "servers" in settings and settings["servers"]:
+                settings["servers"][0]["address"] = random.choice(clean_addresses)
+
+    base_outbounds = modified_outbounds
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
         {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
@@ -787,7 +799,7 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, clean_addresses))
             
     # 2. 🌴 2 VLESS - TLS AI 🤖
     if groups["vless_tls"]:
@@ -797,7 +809,7 @@ def main():
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, clean_addresses))
 
     # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
     if groups["vless_n_tls"]:
@@ -807,19 +819,19 @@ def main():
     if groups["trojan_tls"]:
         for idx, item in enumerate(groups["trojan_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, clean_addresses))
 
     # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
     if groups["trojan_n_tls"]:
         for idx, item in enumerate(groups["trojan_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, clean_addresses))
 
     # 7. 🍀 7 VMESS - TLS LB 🔥
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, clean_addresses))
 
     # 8. 🌵 8 VLESS - Fragment 🔥
     if groups["vless_tls"]:
@@ -829,7 +841,7 @@ def main():
     if groups["other_protocols"]:
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses))
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
