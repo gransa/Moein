@@ -543,13 +543,11 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
 
-    # Filter out only valid DoH configurations from the main pool
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
     chosen_providers = [None, None, None, None, None]
     seen_identifiers = set()
 
-    # Slot 2 (index 1): MUST be a DoH from DNS.txt
     slot2_assigned = False
     if doh_only_main:
         random.shuffle(doh_only_main)
@@ -569,7 +567,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 slot2_assigned = True
                 break
 
-    # Slot 1 (index 0): Pick from DNS-TOP.txt
     shuffled_top = list(pairs_top)
     random.shuffle(shuffled_top)
     slot1_assigned = False
@@ -589,7 +586,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 chosen_providers[0] = fb
                 break
 
-    # Slots 3, 4, 5: Fill remaining indices using random mix from both lists
     remaining_slots = [2, 3, 4]
     combined_remaining = [p for p in pairs_top + pairs_main if get_identity_key(p["server"]) not in seen_identifiers]
     random.shuffle(combined_remaining)
@@ -603,7 +599,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
             target_slot = remaining_slots.pop(0)
             chosen_providers[target_slot] = provider
 
-    # Emergency fallback check for unfilled slots
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -648,8 +643,19 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
         
     # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
     for provider in chosen_providers:
+        # Sanitizes raw prefixes and trailing ports from the routing rule blocks
+        clean_ip = provider["ip"]
+        for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+            clean_ip = clean_ip.replace(prefix, "").replace("//", "")
+        
+        # Split trailing port parameters away correctly from bracketed IPv6 and domains/IPv4s
+        if clean_ip.startswith("[") and "]" in clean_ip:
+            clean_ip = clean_ip.split("]")[0] + "]"
+        else:
+            clean_ip = clean_ip.split(":")[0]
+
         dns_servers_config.append({
-            "address": provider["ip"],
+            "address": clean_ip,
             "domains": ["geosite:category-ir"],
             "expectIPs": ["geoip:ir"],
             "skipFallback": False
@@ -674,6 +680,13 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                     
     # 3. Dynamic Assignment for specific outbound node direct mappings
     primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
+    for prefix in ["tcp:", "udp:", "quic:", "https:"]:
+        primary_dns_ip = primary_dns_ip.replace(prefix, "").replace("//", "")
+    if primary_dns_ip.startswith("[") and "]" in primary_dns_ip:
+        primary_dns_ip = primary_dns_ip.split("]")[0] + "]"
+    else:
+        primary_dns_ip = primary_dns_ip.split(":")[0]
+
     for domain in extracted_domains:
         dns_servers_config.append({
             "address": primary_dns_ip,
