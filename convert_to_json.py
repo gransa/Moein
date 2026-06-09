@@ -135,45 +135,21 @@ def fetch_clean_addresses(url):
         print(f"⚠️ Warning: Could not fetch remote clean endpoints ({e}).")
         return []
 
-def assign_smart_ip(outbound, index, total_count, ips_v4, ips_v6, all_ips):
-    """Applies strict IP version allocation based on configuration index rules."""
-    if not is_cloudflare_node(outbound):
-        return
-
-    # Determine targeted version criteria
+def select_smart_ip(index, total_count, ips_v4, ips_v6, all_ips):
+    """Returns an IP selecting the forced version rules cleanly."""
     v6_count = max(1, int(total_count * 0.20))
     v6_start_index = total_count - v6_count
 
     if index == 0 and ips_v4:
-        # Rule 1: Always force IPv4 for prox-1 (index 0)
         selected_ip = random.choice(ips_v4)
     elif index >= v6_start_index and ips_v6:
-        # Rule 2: Force IPv6 for the latest 20% of proxies
         selected_ip = random.choice(ips_v6)
     else:
-        # Fallback: Totally randomized variant selection for everything else
         selected_ip = random.choice(all_ips) if all_ips else "1.1.1.1"
 
     if ":" in selected_ip and not selected_ip.startswith("["):
         selected_ip = f"[{selected_ip}]"
-
-    settings = outbound.get("settings", {})
-    if "vnext" in settings and settings["vnext"]:
-        settings["vnext"][0]["address"] = selected_ip
-    elif "servers" in settings and settings["servers"]:
-        settings["servers"][0]["address"] = selected_ip
-
-def randomize_json_addresses(config_obj, ips_v4, ips_v6, all_ips):
-    """Deeply iterates and provisions target versions to matching proxy arrays."""
-    if not isinstance(config_obj, dict) or not all_ips:
-        return
-    
-    if "outbounds" in config_obj and isinstance(config_obj["outbounds"], list):
-        proxy_nodes = [node for node in config_obj["outbounds"] if node.get("tag", "").startswith("prox-")]
-        total_proxies = len(proxy_nodes)
-        
-        for idx, outbound in enumerate(proxy_nodes):
-            assign_smart_ip(outbound, idx, total_proxies, ips_v4, ips_v6, all_ips)
+    return selected_ip
 
 def fetch_remote_dns(url):
     try:
@@ -388,13 +364,12 @@ def parse_dns_source(pool_dns_servers):
         i += 1
     return paired
 
-def build_bpb_fragment_template(base_vless_tls_node, ips_v4, ips_v6, all_ips):
+def build_bpb_fragment_template(base_vless_tls_node, all_ips):
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
     node_address = vnext_info["address"]
     if is_cloudflare_node(base_vless_tls_node) and all_ips:
-        # Fragment defaults randomly across pool
         node_address = random.choice(all_ips)
 
     if ":" in node_address and not node_address.startswith("["):
@@ -455,8 +430,10 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, ips_v4, ips_v6, all_ips):
         vnext = node["settings"]["vnext"][0]
         stream = node["streamSettings"]
         
-        assign_smart_ip(node, idx, total_count, ips_v4, ips_v6, all_ips)
-        addr = node["settings"]["vnext"][0]["address"]
+        if is_cloudflare_node(node) and all_ips:
+            addr = select_smart_ip(idx, total_count, ips_v4, ips_v6, all_ips)
+        else:
+            addr = vnext["address"]
         
         outbounds.append({
             "mux": {"concurrency": -1, "enabled": False},
@@ -510,8 +487,10 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, ips_v4, ips_v6, all_ips)
     for idx, node in enumerate(shuffled_nodes):
         vnext = node["settings"]["vnext"][0]
         
-        assign_smart_ip(node, idx, total_count, ips_v4, ips_v6, all_ips)
-        addr = node["settings"]["vnext"][0]["address"]
+        if is_cloudflare_node(node) and all_ips:
+            addr = select_smart_ip(idx, total_count, ips_v4, ips_v6, all_ips)
+        else:
+            addr = vnext["address"]
         
         outbounds.append({
             "mux": {"concurrency": -1, "enabled": False},
@@ -545,8 +524,26 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, ips_v4, ips_v6, all_ips)
         }
     }
 
-def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns):
-    base_outbounds = list(outbound_nodes)
+def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, ips_v4, ips_v6, all_ips):
+    # Apply structural IP versioning parameters cleanly inside compilation layout
+    processed_outbounds = []
+    total_count = len(outbound_nodes)
+    
+    for idx, raw_node in enumerate(outbound_nodes):
+        node = copy.deepcopy(raw_node)
+        node["tag"] = f"prox-{idx + 1}"
+        
+        if is_cloudflare_node(node) and all_ips:
+            addr = select_smart_ip(idx, total_count, ips_v4, ips_v6, all_ips)
+            settings = node.get("settings", {})
+            if "vnext" in settings and settings["vnext"]:
+                settings["vnext"][0]["address"] = addr
+            elif "servers" in settings and settings["servers"]:
+                settings["servers"][0]["address"] = addr
+                
+        processed_outbounds.append(node)
+
+    base_outbounds = list(processed_outbounds)
     base_outbounds.extend([
         {"protocol": "dns", "tag": "dns-out"},
         {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
@@ -699,12 +696,12 @@ def main():
     output_file = "NG-JSON-Configs.txt"
     
     if not os.path.exists(input_file):
+        print(f"Source configuration file {input_file} missing.")
         return
 
     fetch_cloudflare_ranges()
     all_ips = fetch_clean_addresses(CLEAN_IPS_URL)
     
-    # Categorize base address allocations versions explicitly
     ips_v4 = []
     ips_v6 = []
     for ip in all_ips:
@@ -747,9 +744,7 @@ def main():
     
     # 1. VLESS TLS LB
     if groups["vless_tls"]:
-        for idx, item in enumerate(groups["vless_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ips_v4, ips_v6, all_ips))
             
     # 2. VLESS TLS AI
     if groups["vless_tls"]:
@@ -757,9 +752,7 @@ def main():
         
     # 3. VLESS Non-TLS LB
     if groups["vless_n_tls"]:
-        for idx, item in enumerate(groups["vless_n_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ips_v4, ips_v6, all_ips))
 
     # 4. VLESS Non-TLS AI
     if groups["vless_n_tls"]:
@@ -767,34 +760,24 @@ def main():
             
     # 5. TROJAN TLS LB
     if groups["trojan_tls"]:
-        for idx, item in enumerate(groups["trojan_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ips_v4, ips_v6, all_ips))
 
     # 6. TROJAN Non-TLS LB
     if groups["trojan_n_tls"]:
-        for idx, item in enumerate(groups["trojan_n_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ips_v4, ips_v6, all_ips))
 
     # 7. VMESS TLS LB
     if groups["vmess_tls"]:
-        for idx, item in enumerate(groups["vmess_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns))
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ips_v4, ips_v6, all_ips))
 
     # 8. VLESS Fragment
     if groups["vless_tls"]:
-        final_output.append(build_bpb_fragment_template(random.choice(groups["vless_tls"]), ips_v4, ips_v6, all_ips))
-
-    # Loop to apply randomized targeted IP assignments cleanly across standard variants
-    for config_profile in final_output:
-        randomize_json_addresses(config_profile, ips_v4, ips_v6, all_ips)
+        final_output.append(build_bpb_fragment_template(random.choice(groups["vless_tls"]), all_ips))
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
         
-    print(f"🎉 Successfully created outbounds with accurate IP distributions in '{output_file}'")
+    print(f"🎉 Successfully created clean configs in destination file: '{output_file}'")
 
 if __name__ == "__main__":
     main()
