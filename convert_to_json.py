@@ -671,39 +671,170 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns)
                 domain_entry = f"full:{addr}"
                 if domain_entry not in extracted_domains:
                     extracted_domains.append(domain_entry)
-
-    # 3. Assemble and return the complete v2rayNG json file structure
+                    
+    # 3. Dynamic Assignment for specific outbound node direct mappings
+    primary_dns_ip = chosen_providers[0]["ip"] if chosen_providers else "9.9.9.9"
+    for domain in extracted_domains:
+        dns_servers_config.append({
+            "address": primary_dns_ip,
+            "domains": [domain],
+            "skipFallback": True
+        })
+                    
     return {
         "remarks": remarks,
-        "log": {"access": "", "loglevel": "warning", "error": ""},
-        "outbounds": base_outbounds,
+        "log": {"loglevel": "warning"},
         "dns": {
             "servers": dns_servers_config,
-            "tag": "dns-module"
+            "queryStrategy": "UseIP",
+            "tag": "dns"
+        },
+        "inbounds": [
+            {"port": 10808, "protocol": "socks", "settings": {"auth": "noauth", "udp": True, "userLevel": 8}, "sniffing": {"destOverride": ["http", "tls"], "enabled": False, "routeOnly": False}, "tag": "socks-in"},
+            {"port": 10853, "protocol": "dokodemo-door", "settings": {"address": "1.1.1.1", "network": "tcp,udp", "port": 53}, "tag": "dns-in"}
+        ],
+        "outbounds": base_outbounds,
+        "policy": {
+            "levels": {"8": {"connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1}},
+            "system": {"statsOutboundUplink": True, "statsOutboundDownlink": True}
         },
         "routing": {
-            "domainStrategy": "AsIs",
+            "domainStrategy": "IPIfNonMatch",
             "rules": [
+                {"inboundTag": ["dns-in"], "outboundTag": "dns-out", "type": "field"},
+                {"inboundTag": ["socks-in"], "port": 53, "outboundTag": "dns-out", "type": "field"},
+                {"inboundTag": inbound_tags, "balancerTag": "all", "type": "field"},
+                {"inboundTag": ["dns"], "outboundTag": "direct", "type": "field"},
+                {"domain": ["geosite:category-ir"], "outboundTag": "direct", "type": "field"},
+                {"ip": ["geoip:ir"], "outboundTag": "direct", "type": "field"},
+                {"network": "udp", "outboundTag": "block", "type": "field"},
+                {"network": "tcp", "balancerTag": "all", "type": "field"}
+            ],
+            "balancers": [
                 {
-                    "type": "field",
-                    "port": "53",
-                    "outboundTag": "dns-out"
-                },
-                {
-                    "type": "field",
-                    "domain": extracted_domains,
-                    "outboundTag": "direct"
-                } if extracted_domains else None,
-                {
-                    "type": "field",
-                    "domain": ["geosite:category-ir", "geosite:private"],
-                    "outboundTag": "direct"
-                },
-                {
-                    "type": "field",
-                    "ip": ["geoip:ir", "geoip:private"],
-                    "outboundTag": "direct"
+                    "tag": "all",
+                    "selector": ["prox"],
+                    "strategy": {"type": "leastPing"},
+                    "fallbackTag": "prox-1" if len(outbound_nodes) > 0 else "direct"
                 }
             ]
+        },
+        "stats": {},
+        "observatory": {
+            "subjectSelector": ["prox"],
+            "probeUrl": "https://www.gstatic.com/generate_204",
+            "probeInterval": "30s",
+            "enableConcurrency": True
         }
     }
+
+def main():
+    input_file = "Configs.txt"
+    output_file = "NG-JSON-Configs.txt"
+    
+    if not os.path.exists(input_file):
+        print(f"Source file {input_file} not found.")
+        return
+
+    clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
+    pool_top_dns = fetch_remote_dns(DNS_TOP_URL)
+    pool_main_dns = fetch_remote_dns(DNS_MAIN_URL)
+
+    tls_counter = [0]
+    non_tls_counter = [0]
+    ip_counter = [0]
+
+    groups = {
+        "vless_tls": [], "vless_n_tls": [], "trojan_tls": [], "trojan_n_tls": [],
+        "vmess_tls": [], "vmess_n_tls": [], "other_protocols": []
+    }
+    
+    with open(input_file, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        
+    random.shuffle(lines)
+    print("🎲 Raw input lines have been successfully randomized.")
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        node_data = None
+        is_tls = False
+        proto_key = None
+        
+        if line.startswith("vmess://"):
+            node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
+            proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
+        elif line.startswith("vless://"):
+            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            proto_key = "vless_tls" if is_tls else "vless_n_tls"
+        elif line.startswith("trojan://"):
+            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
+        elif "://" in line:
+            p_name = line.split("://")[0].lower()
+            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            proto_key = "other_protocols"
+            
+        if node_data and proto_key:
+            groups[proto_key].append(node_data)
+                
+    final_output = []
+    
+    # 1. 🌴 1 VLESS - TLS LB 🔥
+    if groups["vless_tls"]:
+        for idx, item in enumerate(groups["vless_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns))
+            
+    # 2. 🌴 2 VLESS - TLS AI 🤖
+    if groups["vless_tls"]:
+        final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], clean_addresses))
+        
+    # 3. ☘️ 3 VLESS - Non-TLS LB 🔥
+    if groups["vless_n_tls"]:
+        for idx, item in enumerate(groups["vless_n_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns))
+
+    # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
+    if groups["vless_n_tls"]:
+        final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], clean_addresses))
+            
+    # 5. 🌳 5 TROJAN - TLS LB 🔥
+    if groups["trojan_tls"]:
+        for idx, item in enumerate(groups["trojan_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns))
+
+    # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
+    if groups["trojan_n_tls"]:
+        for idx, item in enumerate(groups["trojan_n_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns))
+
+    # 7. 🍀 7 VMESS - TLS LB 🔥
+    if groups["vmess_tls"]:
+        for idx, item in enumerate(groups["vmess_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns))
+
+    # 8. 🌵 8 VLESS - Fragment 🔥
+    if groups["vless_tls"]:
+        random_fragment_node = random.choice(groups["vless_tls"])
+        final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
+            
+    if groups["other_protocols"]:
+        for idx, item in enumerate(groups["other_protocols"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns))
+
+    with open(output_file, "w", encoding="utf-8") as out:
+        json.dump(final_output, out, indent=2, ensure_ascii=False)
+        
+    print(f"🎉 Compiled cleanly with strict sequence order in destination: '{output_file}'")
+
+if __name__ == "__main__":
+    main()
