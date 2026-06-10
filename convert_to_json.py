@@ -17,6 +17,24 @@ DNS_MAIN_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/D
 TLS_PORTS = [443, 2053, 2083, 2087, 2096, 8443]
 NON_TLS_PORTS = [80, 8080, 8880, 2052, 2082, 2086, 2095]
 
+class CleanIPSupplier:
+    """Hands out unique, unrepeated IPs from the pool like a deck of cards."""
+    def __init__(self, ip_list):
+        self.pool = list(ip_list)
+        if not self.pool:
+            self.pool = ["1.1.1.1"]  # Fallback if fetch fails
+        random.shuffle(self.pool)
+        self.index = 0
+        
+    def get_next(self):
+        if self.index >= len(self.pool):
+            # All IPs used once, reshuffle and restart to avoid crashing
+            random.shuffle(self.pool)
+            self.index = 0
+        ip = self.pool[self.index]
+        self.index += 1
+        return ip
+
 def fetch_clean_addresses(url):
     """Fetches clean IPs/Domains from the remote repository."""
     try:
@@ -300,11 +318,11 @@ def parse_dns_source(pool_dns_servers):
         i += 1
     return paired
 
-def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
+def build_bpb_fragment_template(base_vless_tls_node, ip_supplier):
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
-    node_address = random.choice(clean_addresses) if clean_addresses else vnext_info["address"]
+    node_address = ip_supplier.get_next()
     node_port = vnext_info["port"]
     user_id = vnext_info["users"][0]["id"]
     
@@ -366,7 +384,7 @@ def build_bpb_fragment_template(base_vless_tls_node, clean_addresses):
         "stats": {}
     }
 
-def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
+def build_dedicated_tls_ai_template(vless_tls_nodes, ip_supplier):
     outbounds = []
     shuffled_nodes = copy.deepcopy(vless_tls_nodes)
     random.shuffle(shuffled_nodes)
@@ -376,7 +394,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
         stream = node["streamSettings"]
         tls_settings = stream.get("tlsSettings", {})
         ws_settings = stream.get("wsSettings", {})
-        addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
+        addr = ip_supplier.get_next()
         
         outbounds.append({
             "mux": {"concurrency": -1, "enabled": False},
@@ -490,7 +508,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
         "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
-def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
+def build_dedicated_n_tls_ai_template(vless_ntls_nodes, ip_supplier):
     outbounds = []
     shuffled_nodes = copy.deepcopy(vless_ntls_nodes)
     random.shuffle(shuffled_nodes)
@@ -498,7 +516,7 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
     for idx, node in enumerate(shuffled_nodes):
         vnext = node["settings"]["vnext"][0]
         ws_settings = node["streamSettings"].get("wsSettings", {})
-        addr = random.choice(clean_addresses) if clean_addresses else vnext["address"]
+        addr = ip_supplier.get_next()
         
         extracted_host = ws_settings.get("host", "").strip()
         if not extracted_host:
@@ -609,18 +627,18 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
         "observatory": {"subjectSelector": ["prox"], "probeUrl": "https://www.gstatic.com/generate_204", "probeInterval": "30s", "enableConcurrency": True}
     }
 
-def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, clean_addresses=None, is_cloudflare=True):
+def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns, ip_supplier=None, is_cloudflare=True):
     # Deep copy the incoming outbound nodes so we safely modify addresses without side effects elsewhere
     modified_outbounds = copy.deepcopy(list(outbound_nodes))
     
-    # Randomly assign a clean Cloudflare IP address to each node's settings configuration if pool is available AND it is a cloudflare group
-    if clean_addresses and is_cloudflare:
+    # Randomly assign a UNIQUE clean Cloudflare IP address to each node's settings configuration if pool is available AND it is a cloudflare group
+    if ip_supplier and is_cloudflare:
         for node in modified_outbounds:
             settings = node.get("settings", {})
             if "vnext" in settings and settings["vnext"]:
-                settings["vnext"][0]["address"] = random.choice(clean_addresses)
+                settings["vnext"][0]["address"] = ip_supplier.get_next()
             elif "servers" in settings and settings["servers"]:
-                settings["servers"][0]["address"] = random.choice(clean_addresses)
+                settings["servers"][0]["address"] = ip_supplier.get_next()
 
     # Clean up the internal helper key '_original_address' so it's excluded from final JSON compilation
     for node in modified_outbounds:
@@ -865,7 +883,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     # 2. Dynamic Local DNS matching for geosite/geoip local domain bypass rules
     # 3-Tier Fallback: 1. Local ISP -> 2. Iranian Public -> 3. Global Public
     
-    # 1st: Local OS/ISP DNS (Most reliable for local CDN routing)
+    # 1st: Local OS/ISP DNS
     dns_servers_config.append({
         "address": "local",
         "domains": ["geosite:category-ir"],
@@ -989,6 +1007,9 @@ def main():
     clean_addresses = fetch_clean_addresses(CLEAN_IPS_URL)
     pool_top_dns = fetch_remote_dns(DNS_TOP_URL)
     pool_main_dns = fetch_remote_dns(DNS_MAIN_URL)
+    
+    # Initialize the IP Supplier that ensures NO repeated IPs across the entire build
+    ip_supplier = CleanIPSupplier(clean_addresses)
 
     tls_counter = [0]
     non_tls_counter = [0]
@@ -1037,50 +1058,50 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
             
     # 2. 🌴 2 VLESS - TLS AI 🤖
     if groups["vless_tls"]:
-        final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], clean_addresses))
+        final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], ip_supplier))
         
     # 3. ☘️ 3 VLESS - Non-TLS LB 🔥
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
     if groups["vless_n_tls"]:
-        final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], clean_addresses))
+        final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], ip_supplier))
             
     # 5. 🌳 5 TROJAN - TLS LB 🔥
     if groups["trojan_tls"]:
         for idx, item in enumerate(groups["trojan_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
     if groups["trojan_n_tls"]:
         for idx, item in enumerate(groups["trojan_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 7. 🍀 7 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
     # 8. 🌵 8 VLESS - Fragment 🔥
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
-        final_output.append(build_bpb_fragment_template(random_fragment_node, clean_addresses))
+        final_output.append(build_bpb_fragment_template(random_fragment_node, ip_supplier))
             
     # Other Protocols Group (Non-Cloudflare group: keeps original IPs/Domains)
     if groups["other_protocols"]:
         for idx, item in enumerate(groups["other_protocols"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, clean_addresses, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
     # Clean up the internal helper key '_original_address' across all templates before output serialization
     for template in final_output:
