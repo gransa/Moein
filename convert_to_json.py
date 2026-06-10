@@ -7,6 +7,7 @@ import urllib.request
 import random
 import copy
 from urllib.parse import urlparse, unquote, parse_qs
+from datetime import datetime
 
 # Configuration URLs
 CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/Cloudflare-IPs.txt"
@@ -1109,6 +1110,13 @@ def main():
             for outbound in template["outbounds"]:
                 if "_original_address" in outbound:
                     del outbound["_original_address"]
+
+    # Inject a timestamp to force the file to be unique on every build.
+    # This forces GitHub to commit, bypasses CDN caching, and forces V2rayNG to update.
+    final_output.insert(0, {
+        "remarks": f"⏱ Last Updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC",
+        "lastUpdated": datetime.utcnow().isoformat() + "Z"
+    })
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
