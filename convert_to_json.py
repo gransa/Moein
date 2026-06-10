@@ -1111,12 +1111,11 @@ def main():
                 if "_original_address" in outbound:
                     del outbound["_original_address"]
 
-    # Inject a timestamp to force the file to be unique on every build.
-    # This forces GitHub to commit, bypasses CDN caching, and forces V2rayNG to update.
-    final_output.insert(0, {
-        "remarks": f"⏱ Last Updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC",
-        "lastUpdated": datetime.utcnow().isoformat() + "Z"
-    })
+    # Inject a hidden timestamp key into the first configuration object.
+    # V2rayNG/Xray safely ignore unknown JSON keys, but it forces the file content
+    # to change, which guarantees a GitHub commit and busts the CDN cache instantly.
+    if final_output:
+        final_output[0]["_lastUpdated"] = datetime.utcnow().isoformat() + "Z"
 
     with open(output_file, "w", encoding="utf-8") as out:
         json.dump(final_output, out, indent=2, ensure_ascii=False)
