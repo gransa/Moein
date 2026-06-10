@@ -419,7 +419,15 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
                 "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
                 "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
                 "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
-                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]
+                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"],
+                "dns.alidns.com": ["223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1"],
+                "one.one.one.one": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
+                "dns.cloudflare.com": ["104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
+                "cloudflare-dns.com": ["104.16.248.249", "104.16.249.249", "2606:4700::6810:f8f9", "2606:4700::6810:f9f9"],
+                "dot.pub": ["1.12.12.12", "120.53.53.53"],
+                "dns.google": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
+                "dns.quad9.net": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"],
+                "common.dot.dns.yandex.net": ["77.88.8.8", "77.88.8.1", "2a02:6b8::feed:0ff", "2a02:6b8:0:1::feed:0ff"]
             },
             "servers": [
                 "https://8.8.8.8/dns-query",
@@ -440,7 +448,41 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, clean_addresses):
             "rules": [
                 {"inboundTag": ["domestic-dns"], "outboundTag": "direct", "type": "field"},
                 {"inboundTag": ["dns-module"], "balancerTag": "all", "type": "field"},
-                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "outboundTag": "direct"}
+                {
+                    "ip": [
+                        "223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1",
+                        "119.29.29.29", "1.12.12.12", "120.53.53.53",
+                        "2402:4e00::", "2402:4e00:1::",
+                        "180.76.76.76", "2400:da00::6666",
+                        "114.114.114.114", "114.114.115.115",
+                        "114.114.114.119", "114.114.115.119",
+                        "114.114.114.110", "114.114.115.110",
+                        "180.184.1.1", "180.184.2.2",
+                        "101.226.4.6", "218.30.118.6", "123.125.81.6", "140.207.198.6",
+                        "1.2.4.8", "210.2.4.8",
+                        "52.80.66.66", "117.50.22.22",
+                        "2400:7fc0:849e:200::4", "2404:c2c0:85d8:901::4",
+                        "117.50.10.10", "52.80.52.52",
+                        "2400:7fc0:849e:200::8", "2404:c2c0:85d8:901::8",
+                        "117.50.60.30", "52.80.60.30"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                },
+                {
+                    "domain": [
+                        "domain:alidns.com", "domain:doh.pub", "domain:dot.pub",
+                        "domain:360.cn", "domain:onedns.net"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                },
+                {"network": "tcp,udp", "balancerTag": "all", "type": "field"},
+                {
+                    "type": "field",
+                    "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"],
+                    "outboundTag": "direct"
+                }
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
@@ -496,7 +538,15 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
                 "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
                 "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
                 "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
-                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"]
+                "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"],
+                "dns.alidns.com": ["223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1"],
+                "one.one.one.one": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"],
+                "dns.cloudflare.com": ["104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"],
+                "cloudflare-dns.com": ["104.16.248.249", "104.16.249.249", "2606:4700::6810:f8f9", "2606:4700::6810:f9f9"],
+                "dot.pub": ["1.12.12.12", "120.53.53.53"],
+                "dns.google": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"],
+                "dns.quad9.net": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"],
+                "common.dot.dns.yandex.net": ["77.88.8.8", "77.88.8.1", "2a02:6b8::feed:0ff", "2a02:6b8:0:1::feed:0ff"]
             },
             "servers": [
                 "https://8.8.8.8/dns-query",
@@ -517,7 +567,41 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, clean_addresses):
             "rules": [
                 {"inboundTag": ["domestic-dns"], "outboundTag": "direct", "type": "field"},
                 {"inboundTag": ["dns-module"], "balancerTag": "all", "type": "field"},
-                {"type": "field", "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "outboundTag": "direct"}
+                {
+                    "ip": [
+                        "223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1",
+                        "119.29.29.29", "1.12.12.12", "120.53.53.53",
+                        "2402:4e00::", "2402:4e00:1::",
+                        "180.76.76.76", "2400:da00::6666",
+                        "114.114.114.114", "114.114.115.115",
+                        "114.114.114.119", "114.114.115.119",
+                        "114.114.114.110", "114.114.115.110",
+                        "180.184.1.1", "180.184.2.2",
+                        "101.226.4.6", "218.30.118.6", "123.125.81.6", "140.207.198.6",
+                        "1.2.4.8", "210.2.4.8",
+                        "52.80.66.66", "117.50.22.22",
+                        "2400:7fc0:849e:200::4", "2404:c2c0:85d8:901::4",
+                        "117.50.10.10", "52.80.52.52",
+                        "2400:7fc0:849e:200::8", "2404:c2c0:85d8:901::8",
+                        "117.50.60.30", "52.80.60.30"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                },
+                {
+                    "domain": [
+                        "domain:alidns.com", "domain:doh.pub", "domain:dot.pub",
+                        "domain:360.cn", "domain:onedns.net"
+                    ],
+                    "outboundTag": "direct",
+                    "type": "field"
+                },
+                {"network": "tcp,udp", "balancerTag": "all", "type": "field"},
+                {
+                    "type": "field",
+                    "domain": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"],
+                    "outboundTag": "direct"
+                }
             ],
             "balancers": [{"tag": "all", "selector": ["prox"], "strategy": {"type": "leastPing"}, "fallbackTag": "prox-1"}]
         },
