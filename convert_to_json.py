@@ -23,7 +23,7 @@ class CleanIPSupplier:
     def __init__(self, ip_list):
         self.pool = list(ip_list)
         if not self.pool:
-            self.pool = ["1.1.1.1"]  # Fallback if fetch fails
+            self.pool = ["1.1.1.1"]
         random.shuffle(self.pool)
         self.index = 0
         
@@ -343,7 +343,7 @@ def build_bpb_fragment_template(base_vless_tls_node, ip_supplier):
         ],
         "log": {"access": "none", "loglevel": "warning"},
         "outbounds": [
-            {"protocol": "vless", "settings": {"fragment": {"interval": "1-3", "length": "5-10", "packets": "tlshello", "status": "ON for TLS"}, "vnext": [{"address": node_address, "port": node_port, "users": [{"encryption": "none", "flow": "", "id": user_id, "level": 8, "security": "auto"}]}]}, "streamSettings": {"network": network_type, "security": security_type, "tlsSettings": {"allowInsecure": False, "echConfigList": "", "echForceQuery": "", "echServerKeys": "", "fingerprint": fingerprint_val, "pinnedPeerCertSha256": cert_fingerprint, "publicKey": "", "serverName": sni_server_name, "shortId": "", "show": False, "spiderX": ""}, "wsSettings": {"headers": {"Host": ws_host}, "path": ws_path}, "sockopt": {"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "mark": 255}}, "tag": "proxy"},
+            {"protocol": "vless", "settings": {"fragment": {"interval": "1-3", "length": "5-10", "packets": "tlshello", "status": "ON for TLS"}, "vnext": [{"address": node_address, "port": node_port, "users": [{"encryption": "none", "flow": "", "id": user_id, "level": 8, "security": "auto"}]}}, "streamSettings": {"network": network_type, "security": security_type, "tlsSettings": {"allowInsecure": False, "echConfigList": "", "echForceQuery": "", "echServerKeys": "", "fingerprint": fingerprint_val, "pinnedPeerCertSha256": cert_fingerprint, "publicKey": "", "serverName": sni_server_name, "shortId": "", "show": False, "spiderX": ""}, "wsSettings": {"headers": {"Host": ws_host}, "path": ws_path}, "sockopt": {"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "mark": 255}}, "tag": "proxy"},
             {"protocol": "freedom", "settings": {}, "tag": "direct"},
             {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"},
             {"tag": "fragment", "protocol": "freedom", "settings": {"fragment": {"packets": "tlshello", "length": "5-10", "interval": "1-3"}}, "streamSettings": {"sockopt": {"TcpNoDelay": True, "tcpKeepAliveIdle": 100, "mark": 255}}}
@@ -363,8 +363,39 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, ip_supplier):
         tls_settings = stream.get("tlsSettings", {})
         ws_settings = stream.get("wsSettings", {})
         addr = ip_supplier.get_next()
-        outbounds.append({"mux": {"concurrency": -1, "enabled": False}, "protocol": "vless", "settings": {"vnext": [{"address": addr, "port": vnext["port"], "users": [{"encryption": "none", "id": vnext["users"][0]["id"], "level": 8}]}}, "streamSettings": {"network": "ws", "security": "tls", "tlsSettings": {"fingerprint": tls_settings.get("fingerprint", "chrome"), "pinnedPeerCertSha256": tls_settings.get("pinnedPeerCertSha256", ""), "serverName": tls_settings.get("serverName", ""), "show": False}, "wsSettings": {"headers": {"Host": ws_settings.get("headers", {}).get("Host", tls_settings.get("serverName", "")) if isinstance(ws_settings.get("headers"), dict) else tls_settings.get("serverName", "")}, "path": ws_settings.get("path", "/?ed=2560")}}, "tag": f"prox-{idx + 1}"})
-    outbounds.extend([{"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"}, {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}])
+        
+        outbounds.append({
+            "mux": {"concurrency": -1, "enabled": False},
+            "protocol": "vless",
+            "settings": {
+                "vnext": [{
+                    "address": addr,
+                    "port": vnext["port"],
+                    "users": [{"encryption": "none", "id": vnext["users"][0]["id"], "level": 8}]
+                }]
+            },
+            "streamSettings": {
+                "network": "ws",
+                "security": "tls",
+                "tlsSettings": {
+                    "fingerprint": tls_settings.get("fingerprint", "chrome"),
+                    "pinnedPeerCertSha256": tls_settings.get("pinnedPeerCertSha256", ""),
+                    "serverName": tls_settings.get("serverName", ""),
+                    "show": False
+                },
+                "wsSettings": {
+                    "headers": {"Host": ws_settings.get("headers", {}).get("Host", tls_settings.get("serverName", "")) if isinstance(ws_settings.get("headers"), dict) else tls_settings.get("serverName", "")},
+                    "path": ws_settings.get("path", "/?ed=2560")
+                }
+            },
+            "tag": f"prox-{idx + 1}"
+        })
+        
+    outbounds.extend([
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
+    ])
+
     return {
         "remarks": "🌴 2 VLESS - TLS AI 🤖",
         "dns": {"hosts": {"domain:googleapis.cn": "googleapis.com", "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"], "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"], "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"], "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"], "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"], "dns.alidns.com": ["223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1"], "one.one.one.one": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"], "dns.cloudflare.com": ["104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"], "cloudflare-dns.com": ["104.16.248.249", "104.16.249.249", "2606:4700::6810:f8f9", "2606:4700::6810:f9f9"], "dot.pub": ["1.12.12.12", "120.53.53.53"], "dns.google": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"], "dns.quad9.net": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"], "common.dot.dns.yandex.net": ["77.88.8.8", "77.88.8.1", "2a02:6b8::feed:0ff", "2a02:6b8:0:1::feed:0ff"]}, "servers": ["https://8.8.8.8/dns-query", {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}, {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}], "tag": "dns-module"},
@@ -382,10 +413,36 @@ def build_dedicated_n_tls_ai_template(vless_ntls_nodes, ip_supplier):
         vnext = node["settings"]["vnext"][0]
         ws_settings = node["streamSettings"].get("wsSettings", {})
         addr = ip_supplier.get_next()
+        
         extracted_host = ws_settings.get("host", "").strip()
-        if not extracted_host: extracted_host = node.get("_original_address", "")
-        outbounds.append({"mux": {"concurrency": -1, "enabled": False}, "protocol": "vless", "settings": {"vnext": [{"address": addr, "port": vnext["port"], "users": [{"encryption": "none", "flow": "", "id": vnext["users"][0]["id"], "level": 8}]}}, "streamSettings": {"network": "ws", "wsSettings": {"headers": {"Host": extracted_host}, "path": ws_settings.get("path", "/?ed=2560")}}, "tag": f"prox-{idx + 1}"})
-    outbounds.extend([{"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"}, {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}])
+        if not extracted_host:
+            extracted_host = node.get("_original_address", "")
+        
+        outbounds.append({
+            "mux": {"concurrency": -1, "enabled": False},
+            "protocol": "vless",
+            "settings": {
+                "vnext": [{
+                    "address": addr,
+                    "port": vnext["port"],
+                    "users": [{"encryption": "none", "flow": "", "id": vnext["users"][0]["id"], "level": 8}]
+                }]
+            },
+            "streamSettings": {
+                "network": "ws",
+                "wsSettings": {
+                    "headers": {"Host": extracted_host},
+                    "path": ws_settings.get("path", "/?ed=2560")
+                }
+            },
+            "tag": f"prox-{idx + 1}"
+        })
+        
+    outbounds.extend([
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
+    ])
+
     return {
         "remarks": "☘️ 4 VLESS - Non-TLS AI 🤖",
         "dns": {"hosts": {"domain:googleapis.cn": "googleapis.com", "tcp://8.8.8.8": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"], "udp://1.1.1.1": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"], "https://8.8.8.8/dns-query": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"], "https://1.1.1.1/dns-query": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001", "104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"], "https://9.9.9.9/dns-query": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"], "dns.alidns.com": ["223.5.5.5", "223.6.6.6", "2400:3200::1", "2400:3200:baba::1"], "one.one.one.one": ["1.1.1.1", "1.0.0.1", "2606:4700:4700::1111", "2606:4700:4700::1001"], "dns.cloudflare.com": ["104.16.132.229", "104.16.133.229", "2606:4700::6810:84e5", "2606:4700::6810:85e5"], "cloudflare-dns.com": ["104.16.248.249", "104.16.249.249", "2606:4700::6810:f8f9", "2606:4700::6810:f9f9"], "dot.pub": ["1.12.12.12", "120.53.53.53"], "dns.google": ["8.8.8.8", "8.8.4.4", "2001:4860:4860::8888", "2001:4860:4860::8844"], "dns.quad9.net": ["9.9.9.9", "149.112.112.112", "2620:fe::fe", "2620:fe::9"], "common.dot.dns.yandex.net": ["77.88.8.8", "77.88.8.1", "2a02:6b8::feed:0ff", "2a02:6b8:0:1::feed:0ff"]}, "servers": ["https://8.8.8.8/dns-query", {"address": "78.157.42.100", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}, {"address": "78.157.42.101", "domains": ["geosite:openai", "geosite:microsoft", "geosite:oracle", "geosite:docker", "geosite:adobe", "geosite:epicgames", "geosite:intel", "geosite:amd", "geosite:nvidia", "geosite:asus", "hp", "geosite:lenovo"], "skipFallback": True}], "tag": "dns-module"},
@@ -406,8 +463,13 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 settings["servers"][0]["address"] = ip_supplier.get_next()
     for node in modified_outbounds:
         if "_original_address" in node: del node["_original_address"]
+
     base_outbounds = modified_outbounds
-    base_outbounds.extend([{"protocol": "dns", "tag": "dns-out"}, {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"}, {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}])
+    base_outbounds.extend([
+        {"protocol": "dns", "tag": "dns-out"},
+        {"protocol": "freedom", "settings": {"domainStrategy": "UseIP"}, "tag": "direct"},
+        {"protocol": "blackhole", "settings": {"response": {"type": "http"}}, "tag": "block"}
+    ])
     
     fallback_providers = [
         {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"}, {"server": "https://dns.quad9.net/dns-query", "ip": "9.9.9.9"},
@@ -418,6 +480,7 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         {"server": "1.1.1.1", "ip": "1.1.1.1"}, {"server": "1.0.0.1", "ip": "1.0.0.1"}, {"server": "1.1.1.2", "ip": "1.1.1.2"}
     ]
     random.shuffle(fallback_providers)
+
     pairs_top = parse_dns_source(pool_top_dns)
     pairs_main = parse_dns_source(pool_main_dns)
     doh_only_top = [p for p in pairs_top if p["server"].startswith("https://")]
