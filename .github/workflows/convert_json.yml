@@ -12,7 +12,7 @@ jobs:
   build-json:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # This matches your "Read and write permissions" setting
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -46,10 +46,12 @@ jobs:
           
           git add NG-JSON-Configs.txt
           
-          # If file changed, this will trigger the commit/push
-          if git diff --cached --quiet; then
-            echo "No changes detected."
-          else
-            git commit -m "Automated Sync: Update compiled profiles"
-            git push
-          fi
+          # Get current timestamp for the commit message
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          # Commit the changes. The '|| true' prevents the workflow from 
+          # crashing if there are no changes, but the timestamp in the 
+          # Python file guarantees there will be a change.
+          git commit -m "Auto Sync: $TIMESTAMP" || true
+          
+          git push
