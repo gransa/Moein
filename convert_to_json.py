@@ -658,25 +658,18 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     doh_only_top = [p for p in pairs_top if p["server"].startswith("https://")]
     doh_only_main = [p for p in pairs_main if p["server"].startswith("https://")]
 
-    # ONLY rejects bare IPs like 8.8.8.8 or [::1]. 
-    # tcp://8.8.8.8 or udp://1.1.1.1 are NOT raw IPs and pass the filter!
     def is_raw_ip(server_str):
         s = server_str.strip()
-        # Any protocol scheme means it's not a "raw" IP in the user's context
         if re.match(r'^(https?|tcp|udp|tls|quic)://', s, re.IGNORECASE):
             return False
         if s.startswith(("tcp:", "udp:", "quic:", "tls:")):
             return False
-            
-        # Bare bracketed IPv6
         if s.startswith("[") and s.endswith("]"):
             try:
                 ipaddress.ip_address(s[1:-1])
                 return True
             except ValueError:
                 pass
-                
-        # Bare IPv4 with optional port
         parts = s.split(":")
         if len(parts) <= 2:
             try:
@@ -686,7 +679,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 pass
         return False
 
-    # Helper: determine DNS type for grouping variety
     def get_dns_type(server_str):
         s = server_str.strip().lower()
         if s.startswith("https://"): return "doh"
@@ -742,24 +734,20 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                     break
 
     # ── Slots 3, 4, 5 (indices 2, 3, 4): Exactly one of each type (TCP, UDP, TLS/QUIC) ──
-    # tcp://8.8.8.8 and udp://1.1.1.1 pass the is_raw_ip filter and are grouped properly
     combined_remaining = [p for p in pairs_top + pairs_main if not is_raw_ip(p["server"])]
     combined_remaining = [p for p in combined_remaining if get_identity_key(p["server"]) not in seen_identifiers]
     
-    # Group by type
     type_groups = {"doh": [], "tcp": [], "tls": [], "quic": [], "udp": [], "other": []}
     for p in combined_remaining:
         t = get_dns_type(p["server"])
         type_groups[t].append(p)
         
-    # Shuffle within each type group
     for t in type_groups:
         random.shuffle(type_groups[t])
         
     slot_345_providers = []
     used_types = set()
 
-    # We want one from distinct types for slots 3, 4, 5 (Prioritize non-DoH first)
     available_types = [t for t in ["tcp", "udp", "tls", "quic", "doh", "other"] if type_groups[t]]
     random.shuffle(available_types)
     
@@ -771,7 +759,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         seen_identifiers.add(get_identity_key(chosen_p["server"]))
         used_types.add(t)
         
-    # If we still have less than 3, try filling from fallbacks that provide NEW types
     if len(slot_345_providers) < 3:
         non_ip_fallbacks = [fb for fb in fallback_providers if not is_raw_ip(fb["server"])]
         random.shuffle(non_ip_fallbacks)
@@ -787,7 +774,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 used_types.add(t)
                 slot_345_providers.append(fb)
                 
-    # If we STILL have less than 3, fill with whatever is left (repeating types if necessary)
     if len(slot_345_providers) < 3:
         leftovers = []
         for p_list in type_groups.values():
@@ -807,7 +793,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     for i, p in enumerate(slot_345_providers):
         chosen_providers[2 + i] = p
 
-    # Emergency fallback for slots 0, 1 (DoH only)
     for slot_idx in [0, 1]:
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -818,7 +803,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                         chosen_providers[slot_idx] = fb
                         break
 
-    # Emergency fallback for slots 2, 3, 4 (any except raw IP)
     for slot_idx in [2, 3, 4]:
         if chosen_providers[slot_idx] is None:
             for fb in fallback_providers:
@@ -829,7 +813,6 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                         chosen_providers[slot_idx] = fb
                         break
 
-    # Final failsafe: prevent None crashes by duplicating valid entries if all fallbacks ran out
     valid_fallback = chosen_providers[0] or chosen_providers[1] or {"server": "https://dns.google/dns-query", "ip": "8.8.8.8"}
     for slot_idx in range(5):
         if chosen_providers[slot_idx] is None:
@@ -844,37 +827,31 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
         inbound_tags.append(tag_name)
         srv_address = provider["server"]
         
-        # Handle TCP (Format as string and append port 853 if missing)
         if srv_address.startswith("tcp://") or srv_address.startswith("tcp:"):
             addr = srv_address.replace("tcp://", "tcp://").replace("tcp:", "tcp://", 1) if not srv_address.startswith("tcp://") else srv_address
             if ":" not in addr[6:]: 
                 addr += ":853"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
-        # Handle TLS (Format as string and append port 853 if missing)
         elif srv_address.startswith("tls://") or srv_address.startswith("tls:"):
             addr = srv_address.replace("tls://", "tls://").replace("tls:", "tls://", 1) if not srv_address.startswith("tls://") else srv_address
             if ":" not in addr[6:]:
                 addr += ":853"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
-        # Handle QUIC
         elif srv_address.startswith("quic://") or srv_address.startswith("quic:"):
             addr = srv_address.replace("quic://", "quic://").replace("quic:", "quic://", 1) if not srv_address.startswith("quic://") else srv_address
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
-        # Handle HTTPS
         elif srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
             
-        # Handle UDP (Format as string and append port 53 if missing)
         elif srv_address.startswith("udp://") or srv_address.startswith("udp:"):
             addr = srv_address.replace("udp://", "udp://").replace("udp:", "udp://", 1) if not srv_address.startswith("udp://") else srv_address
             if ":" not in addr[6:]:
                 addr += ":53"
             dns_servers_config.append({"address": addr, "tag": tag_name})
             
-        # Handle Bare fallbacks (IPs)
         else:
             if srv_address.startswith("[") and srv_address.endswith("]"):
                 dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
@@ -885,48 +862,48 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
                 except ValueError:
                     dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
-    # 2. Dynamic 1-to-1 matching for geosite/geoip local domain bypass rules
-    # STRICTLY enforce IPv4 for the `address` field in these rules
-    for provider in chosen_providers:
-        target_ip = provider["ip"]
-        is_v4 = False
-        
-        # Check if it's already a valid IPv4
-        try:
-            if isinstance(ipaddress.ip_address(target_ip), ipaddress.IPv4Address):
-                is_v4 = True
-        except ValueError:
-            pass
-            
-        # If not IPv4, try extracting IPv4 from the server string (e.g., tcp://8.8.8.8)
-        if not is_v4:
-            extracted = ""
-            s = provider["server"]
-            if "://" in s:
-                try: extracted = urlparse(s).hostname or ""
-                except: pass
-            elif s.startswith(("tcp:", "udp:", "quic:", "tls:")):
-                extracted = s.split(':', 1)[1].replace("//", "").split(':')[0]
-            else:
-                extracted = s.split(':')[0]
-                
-            try:
-                if isinstance(ipaddress.ip_address(extracted), ipaddress.IPv4Address):
-                    target_ip = extracted
-                    is_v4 = True
-            except ValueError:
-                pass
-                
-        # If still not IPv4 (e.g. it's a domain or IPv6), fallback to standard IPv4
-        if not is_v4:
-            target_ip = "8.8.8.8"
-            
-        dns_servers_config.append({
-            "address": target_ip,
-            "domains": ["geosite:category-ir"],
-            "expectIPs": ["geoip:ir"],
-            "skipFallback": False
-        })
+    # 2. Dynamic Local DNS matching for geosite/geoip local domain bypass rules
+    # 3-Tier Fallback: 1. Local ISP -> 2. Iranian Public -> 3. Global Public
+    
+    # 1st: Local OS/ISP DNS (Most reliable for local CDN routing)
+    dns_servers_config.append({
+        "address": "local",
+        "domains": ["geosite:category-ir"],
+        "expectIPs": ["geoip:ir"],
+        "skipFallback": False
+    })
+    
+    # 2nd: Random Iranian DNS Provider
+    iranian_dns_ips = [
+        "78.157.42.100", "78.157.42.101",       # Electro
+        "178.22.122.100", "178.22.122.101",      # Shecan
+        "10.202.10.202", "10.202.10.102",        # Radar (Shahr)
+        "5.200.200.200", "5.200.200.3",          # Rhm (Raha)
+        "217.218.155.155", "217.218.127.127"     # TCI
+    ]
+    random.shuffle(iranian_dns_ips)
+    dns_servers_config.append({
+        "address": iranian_dns_ips[0],
+        "domains": ["geosite:category-ir"],
+        "expectIPs": ["geoip:ir"],
+        "skipFallback": False
+    })
+    
+    # 3rd: Random Global DNS Provider
+    world_dns_ips = [
+        "8.8.8.8", "8.8.4.4",                   # Google
+        "1.1.1.1", "1.0.0.1",                   # Cloudflare
+        "9.9.9.9", "149.112.112.112",            # Quad9
+        "208.67.222.222", "208.67.220.220",      # OpenDNS
+        "94.140.14.14", "94.140.15.15"           # AdGuard
+    ]
+    random.shuffle(world_dns_ips)
+    dns_servers_config.append({
+        "address": world_dns_ips[0],
+        "domains": ["geosite:category-ir"],
+        "expectIPs": ["geoip:ir"],
+        "skipFallback": False
+    })
         
     extracted_domains = []
     for node in outbound_nodes:
