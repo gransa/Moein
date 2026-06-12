@@ -6,6 +6,7 @@ import re
 import urllib.request
 import random
 import copy
+import datetime  # Added to fetch system time safely without external packages
 from urllib.parse import urlparse, unquote, parse_qs
 
 # Configuration URLs
@@ -34,6 +35,13 @@ class CleanIPSupplier:
         ip = self.pool[self.index]
         self.index += 1
         return ip
+
+def get_tehran_time_str():
+    """Calculates current Tehran time (UTC+3:30) manually without external libraries."""
+    utc_now = datetime.datetime.utcnow()
+    tehran_offset = datetime.timedelta(hours=3, minutes=30)
+    tehran_time = utc_now + tehran_offset
+    return tehran_time.strftime("%H:%M")
 
 def fetch_clean_addresses(url):
     """Fetches clean IPs/Domains from the remote repository."""
@@ -384,7 +392,7 @@ def build_bpb_fragment_template(base_vless_tls_node, ip_supplier):
         "stats": {}
     }
 
-def build_dedicated_tls_ai_template(vless_tls_nodes, ip_supplier):
+def build_dedicated_tls_ai_template(remarks, vless_tls_nodes, ip_supplier):
     outbounds = []
     shuffled_nodes = copy.deepcopy(vless_tls_nodes)
     random.shuffle(shuffled_nodes)
@@ -429,7 +437,7 @@ def build_dedicated_tls_ai_template(vless_tls_nodes, ip_supplier):
     ])
 
     return {
-        "remarks": "🌴 2 VLESS - TLS AI 🤖",
+        "remarks": remarks,
         "dns": {
             "hosts": {
                 "domain:googleapis.cn": "googleapis.com",
@@ -1054,15 +1062,18 @@ def main():
                 
     final_output = []
     
+    # Dynamic computation of Tehran build timestamp (UTC +3:30)
+    tehran_timestamp = get_tehran_time_str()
+    
     # 1. 🌴 1 VLESS - TLS LB 🔥
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template(f"🌴 1 VLESS - TLS LB 🔥 {tehran_timestamp}", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
             
     # 2. 🌴 2 VLESS - TLS AI 🤖
     if groups["vless_tls"]:
-        final_output.append(build_dedicated_tls_ai_template(groups["vless_tls"], ip_supplier))
+        final_output.append(build_dedicated_tls_ai_template(f"🌴 2 VLESS - TLS AI 🤖 {tehran_timestamp}", groups["vless_tls"], ip_supplier))
         
     # 3. ☘️ 3 VLESS - Non-TLS LB 🔥
     if groups["vless_n_tls"]:
