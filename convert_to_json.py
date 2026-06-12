@@ -1069,41 +1069,41 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template(f"🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 2. 🌿 2 VLESS - Non-TLS LB 🔥
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌿 2 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template(f"🌿 2 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 3. 🌵 3 VMESS - TLS LB 🔥
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌵 3 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template(f"🌵 3 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 4. 🌾 4 VMESS - Non-TLS LB 🔥
     if groups["vmess_n_tls"]:
         for idx, item in enumerate(groups["vmess_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌾 4 VMESS - Non-TLS LB 🔥", groups["vmess_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template(f"🌾 4 VMESS - Non-TLS LB 🔥", groups["vmess_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
     # 5. 🪵 5 TROJAN - TLS LB 🔥
     if groups["trojan_tls"]:
         for idx, item in enumerate(groups["trojan_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🪵 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+        final_output.append(build_v2rayng_template(f"🪵 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
     # 6. 🪵 6 TROJAN - Non-TLS LB 🔥
     if groups["trojan_n_tls"]:
         for idx, item in enumerate(groups["trojan_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🪵 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+        final_output.append(build_v2rayng_template(f"🪵 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
-    # 7+. Other protocols separated by specific protocol type
+    # 7+. Separating other protocols individually by their specific protocol name
     if groups["other_protocols"]:
-        # Group other protocols by their actual protocol name
+        # Group nodes by their specific protocol
         other_proto_groups = {}
         for node in groups["other_protocols"]:
             p_name = node.get("protocol", "unknown").lower()
@@ -1119,7 +1119,7 @@ def main():
             for idx, item in enumerate(nodes):
                 item["tag"] = f"prox-{idx + 1}"
                 
-            # Specific naming convention requested
+            # Specific naming convention: 🌲 for Shadowsocks, 🌳 for others
             if p_name.lower() == "shadowsocks":
                 emoji = "🌲"
             else:
