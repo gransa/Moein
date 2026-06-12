@@ -8,6 +8,7 @@ import random
 import copy
 import datetime  # Added to fetch system time safely without external packages
 from urllib.parse import urlparse, unquote, parse_qs
+from collections import defaultdict  # Added to group other protocols separately
 
 # Configuration URLs
 CLEAN_IPS_URL = "https://raw.githubusercontent.com/gransa/Moein/refs/heads/main/Cloudflare-IPs.txt"
@@ -326,7 +327,7 @@ def parse_dns_source(pool_dns_servers):
         i += 1
     return paired
 
-def build_bpb_fragment_template(base_vless_tls_node, ip_supplier, remarks=None):
+def build_bpb_fragment_template(base_vless_tls_node, ip_supplier):
     vnext_info = base_vless_tls_node["settings"]["vnext"][0]
     stream_info = base_vless_tls_node["streamSettings"]
     
@@ -348,7 +349,7 @@ def build_bpb_fragment_template(base_vless_tls_node, ip_supplier, remarks=None):
     ws_path = ws_settings.get("path", "/?ed=2560")
 
     return {
-        "remarks": remarks or "🌵 VLESS - Fragment 🔥",
+        "remarks": "🌵 8 VLESS - Fragment 🔥",
         "dns": {
             "hosts": {"domain:googleapis.cn": "googleapis.com"},
             "servers": ["8.8.8.8"]
@@ -1024,13 +1025,8 @@ def main():
     ip_counter = [0]
 
     groups = {
-        "vless_tls": [],
-        "vless_n_tls": [],
-        "trojan_tls": [],
-        "trojan_n_tls": [],
-        "vmess_tls": [],
-        "vmess_n_tls": [],
-        "other_protocols": {}
+        "vless_tls": [], "vless_n_tls": [], "trojan_tls": [], "trojan_n_tls": [],
+        "vmess_tls": [], "vmess_n_tls": [], "other_protocols": []
     }
     
     with open(input_file, "r", encoding="utf-8") as f:
@@ -1060,16 +1056,10 @@ def main():
         elif "://" in line:
             p_name = line.split("://")[0].lower()
             node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter, clean_addresses, ip_counter)
-            proto_key = ("other_protocols", p_name)
+            proto_key = "other_protocols"
             
         if node_data and proto_key:
-            if isinstance(proto_key, tuple):
-                _, proto_name = proto_key
-                if proto_name not in groups["other_protocols"]:
-                    groups["other_protocols"][proto_name] = []
-                groups["other_protocols"][proto_name].append(node_data)
-            else:
-                groups[proto_key].append(node_data)
+            groups[proto_key].append(node_data)
                 
     final_output = []
     
@@ -1080,101 +1070,69 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template(f"🌴 1 VLESS - TLS LB 🔥 {tehran_timestamp}", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
-            
-    # 2. 🌴 2 VLESS - TLS AI 🤖
-    if groups["vless_tls"]:
-        final_output.append(build_dedicated_tls_ai_template(f"🌴 2 VLESS - TLS AI 🤖 {tehran_timestamp}", groups["vless_tls"], ip_supplier))
-        
-    # 3. ☘️ 3 VLESS - Non-TLS LB 🔥
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+
+    # 2. 🌿 2 VLESS - Non-TLS LB 🔥
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌿 2 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
-    if groups["vless_n_tls"]:
-        final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], ip_supplier))
-            
-    # 5. 🌳 5 TROJAN - TLS LB 🔥
-    if groups["trojan_tls"]:
-        for idx, item in enumerate(groups["trojan_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
-
-    # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
-    if groups["trojan_n_tls"]:
-        for idx, item in enumerate(groups["trojan_n_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
-
-    # 7. 🍀 7 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
+    # 3. 🌵 3 VMESS - TLS LB 🔥
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template(f"🍀 {len(groups['vmess_tls'])} VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🌵 3 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # 8. 🌵 8 VLESS - Fragment 🔥
-    if groups["vless_tls"]:
-        random_fragment_node = random.choice(groups["vless_tls"])
-        final_output.append(build_bpb_fragment_template(random_fragment_node, ip_supplier, f"🌵 {len(groups['vless_tls'])} VLESS - Fragment 🔥"))
-            
-    # Other Protocols Groups (one JSON per protocol)
-    protocol_emojis = {
-        "shadowsocks": "🌲",
-        "ss": "🌲",
-        "tuic": "🍁",
-        "hysteria": "🌿",
-        "hysteria2": "🌿",
-        "hy2": "🌿",
-        "wireguard": "🍀",
-        "socks": "🌴",
-        "http": "🌴"
-    }
-
-    protocol_titles = {
-        "ss": "SHADOWSOCKS",
-        "shadowsocks": "SHADOWSOCKS",
-        "hy2": "HYSTERIA2",
-        "hysteria2": "HYSTERIA2",
-        "hysteria": "HYSTERIA",
-        "tuic": "TUIC",
-        "wireguard": "WIREGUARD",
-        "socks": "SOCKS",
-        "http": "HTTP"
-    }
-
-    for proto_name, proto_nodes in groups["other_protocols"].items():
-        for idx, item in enumerate(proto_nodes):
+    # 4. 🌾 4 VMESS - Non-TLS LB 🔥
+    if groups["vmess_n_tls"]:
+        for idx, item in enumerate(groups["vmess_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌾 4 VMESS - Non-TLS LB 🔥", groups["vmess_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-        display_name = protocol_titles.get(proto_name.lower(), proto_name.upper())
-        emoji = protocol_emojis.get(proto_name.lower(), "🌳")
+    # 5. 🪵 5 TROJAN - TLS LB 🔥
+    if groups["trojan_tls"]:
+        for idx, item in enumerate(groups["trojan_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🪵 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
-        remarks = f"{emoji} {len(proto_nodes)} {display_name} - LB 🔥"
+    # 6. 🪵 6 TROJAN - Non-TLS LB 🔥
+    if groups["trojan_n_tls"]:
+        for idx, item in enumerate(groups["trojan_n_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🪵 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
-        final_output.append(
-            build_v2rayng_template(
-                remarks,
-                proto_nodes,
-                pool_top_dns,
-                pool_main_dns,
-                ip_supplier,
-                is_cloudflare=False
-            )
-        )
+    # 7 and onwards: OTHER PROTOCOLS, dynamically separated by their exact protocol name
+    if groups["other_protocols"]:
+        # Create sub-groups for each individual protocol (e.g., shadowsocks, hysteria2, etc.)
+        other_proto_groups = defaultdict(list)
+        for node in groups["other_protocols"]:
+            p_name = node.get("protocol", "unknown").lower()
+            other_proto_groups[p_name].append(node)
+            
+        protocol_index = 7
+        for p_name, nodes in other_proto_groups.items():
+            if not nodes:
+                continue
+                
+            for idx, item in enumerate(nodes):
+                item["tag"] = f"prox-{idx + 1}"
+                
+            # Use 🌲 for Shadowsocks as requested, and 🌳 for others
+            if p_name.lower() == "shadowsocks":
+                emoji = "🌲"
+            else:
+                emoji = "🌳"
+                
+            remarks = f"{emoji} {protocol_index} {p_name.upper()} - LB 🔥"
+            final_output.append(build_v2rayng_template(remarks, nodes, pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+            protocol_index += 1
 
-    # Clean up the internal helper key '_original_address' across all templates before output serialization
-    for template in final_output:
-        if "outbounds" in template:
-            for outbound in template["outbounds"]:
-                if "_original_address" in outbound:
-                    del outbound["_original_address"]
-
-    with open(output_file, "w", encoding="utf-8") as out:
-        json.dump(final_output, out, indent=2, ensure_ascii=False)
-        
-    print(f"🎉 Compiled cleanly with strict sequence order in destination: '{output_file}'")
+    with open(output_file, "w", encoding="utf-8") as f:
+        for config in final_output:
+            f.write(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+            
+    print(f"✅ Successfully generated {len(final_output)} configurations to {output_file}")
 
 if __name__ == "__main__":
     main()
