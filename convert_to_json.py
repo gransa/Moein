@@ -1069,62 +1069,71 @@ def main():
     if groups["vless_tls"]:
         for idx, item in enumerate(groups["vless_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template(f"🌴 1 VLESS - TLS LB 🔥 {tehran_timestamp}", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
-            
-    # 2. 🌴 2 VLESS - TLS AI 🤖
-    if groups["vless_tls"]:
-        final_output.append(build_dedicated_tls_ai_template(f"🌴 2 VLESS - TLS AI 🤖 {tehran_timestamp}", groups["vless_tls"], ip_supplier))
-        
-    # 3. ☘️ 3 VLESS - Non-TLS LB 🔥
+        final_output.append(build_v2rayng_template("🌴 1 VLESS - TLS LB 🔥", groups["vless_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+
+    # 2. 🌿 2 VLESS - Non-TLS LB 🔥
     if groups["vless_n_tls"]:
         for idx, item in enumerate(groups["vless_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("☘️ 3 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
+        final_output.append(build_v2rayng_template("🌿 2 VLESS - Non-TLS LB 🔥", groups["vless_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # 4. ☘️ 4 VLESS - Non-TLS AI 🤖
-    if groups["vless_n_tls"]:
-        final_output.append(build_dedicated_n_tls_ai_template(groups["vless_n_tls"], ip_supplier))
-            
-    # 5. 🌳 5 TROJAN - TLS LB 🔥
-    if groups["trojan_tls"]:
-        for idx, item in enumerate(groups["trojan_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
-
-    # 6. 🌳 6 TROJAN - Non-TLS LB 🔥
-    if groups["trojan_n_tls"]:
-        for idx, item in enumerate(groups["trojan_n_tls"]):
-            item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
-
-    # 7. 🍀 7 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
+    # 3. 🌵 3 VMESS - TLS LB 🔥
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🌵 3 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # 8. 🌵 8 VLESS - Fragment 🔥
-    if groups["vless_tls"]:
-        random_fragment_node = random.choice(groups["vless_tls"])
-        final_output.append(build_bpb_fragment_template(random_fragment_node, ip_supplier))
-            
-    # Other Protocols Group (Non-Cloudflare group: keeps original IPs/Domains)
-    if groups["other_protocols"]:
-        for idx, item in enumerate(groups["other_protocols"]):
+    # 4. 🌾 4 VMESS - Non-TLS LB 🔥
+    if groups["vmess_n_tls"]:
+        for idx, item in enumerate(groups["vmess_n_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🌳 OTHER PROTOCOLS LB 🔥", groups["other_protocols"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🌾 4 VMESS - Non-TLS LB 🔥", groups["vmess_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # Clean up the internal helper key '_original_address' across all templates before output serialization
-    for template in final_output:
-        if "outbounds" in template:
-            for outbound in template["outbounds"]:
-                if "_original_address" in outbound:
-                    del outbound["_original_address"]
+    # 5. 🪵 5 TROJAN - TLS LB 🔥
+    if groups["trojan_tls"]:
+        for idx, item in enumerate(groups["trojan_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🪵 5 TROJAN - TLS LB 🔥", groups["trojan_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
-    with open(output_file, "w", encoding="utf-8") as out:
-        json.dump(final_output, out, indent=2, ensure_ascii=False)
-        
-    print(f"🎉 Compiled cleanly with strict sequence order in destination: '{output_file}'")
+    # 6. 🪵 6 TROJAN - Non-TLS LB 🔥
+    if groups["trojan_n_tls"]:
+        for idx, item in enumerate(groups["trojan_n_tls"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🪵 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+
+    # 7+. Other protocols separated by specific protocol type
+    if groups["other_protocols"]:
+        # Group other protocols by their actual protocol name
+        other_proto_groups = {}
+        for node in groups["other_protocols"]:
+            p_name = node.get("protocol", "unknown").lower()
+            if p_name not in other_proto_groups:
+                other_proto_groups[p_name] = []
+            other_proto_groups[p_name].append(node)
+            
+        proto_index = 7
+        for p_name, nodes in other_proto_groups.items():
+            if not nodes:
+                continue
+                
+            for idx, item in enumerate(nodes):
+                item["tag"] = f"prox-{idx + 1}"
+                
+            # Specific naming convention requested
+            if p_name.lower() == "shadowsocks":
+                emoji = "🌲"
+            else:
+                emoji = "🌳"
+                
+            remarks = f"{emoji} {proto_index} {p_name.upper()} - LB 🔥"
+            final_output.append(build_v2rayng_template(remarks, nodes, pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+            proto_index += 1
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        for config in final_output:
+            f.write(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+            
+    print(f"✅ Successfully generated {len(final_output)} configurations to {output_file}")
 
 if __name__ == "__main__":
     main()
