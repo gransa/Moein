@@ -20,6 +20,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch Subscription Link (Cache Bypass)
+        env:
+          SUB_URL: ${{ secrets.SUB_URL }}
+        run: |
+          if [ -n "$SUB_URL" ]; then
+            # Add a timestamp parameter to force CDN/Cloudflare to give fresh data
+            TIMESTAMP=$(date +%s)
+            curl -sL "${SUB_URL}?t=${TIMESTAMP}" -o Configs.txt
+            echo "✅ Subscription fetched with cache-busting timestamp."
+          else
+            echo "⚠️ SUB_URL secret is not set. Using existing Configs.txt from repository."
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5.3.0
         with:
@@ -50,8 +63,7 @@ jobs:
           TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           
           # Commit the changes. The '|| true' prevents the workflow from 
-          # crashing if there are no changes, but the timestamp in the 
-          # Python file guarantees there will be a change.
+          # crashing if there are no changes.
           git commit -m "Auto Sync: $TIMESTAMP" || true
           
           git push
