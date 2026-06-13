@@ -89,6 +89,73 @@ def extract_explicit_port(url_str):
         return int(match.group(1))
     return None
 
+def parse_shadowsocks(url_str):
+    """Parses standard SIP002 shadowsocks:// URIs into structural V2Ray outbounds."""
+    try:
+        url_str = url_str.split('#')[0].strip()
+        raw_content = url_str.replace("ss://", "").strip()
+        
+        if "@" in raw_content:
+            parts = raw_content.split("@")
+            b64_userinfo = parts[0]
+            server_part = parts[1]
+        else:
+            b64_userinfo = raw_content
+            server_part = ""
+            
+        b64_userinfo += "=" * ((4 - len(b64_userinfo) % 4) % 4)
+        try:
+            decoded_userinfo = base64.b64decode(b64_userinfo).decode('utf-8')
+            if ":" in decoded_userinfo:
+                method, password = decoded_userinfo.split(":", 1)
+            else:
+                return None
+        except Exception:
+            if "@" in raw_content:
+                return None
+            else:
+                raw_content += "=" * ((4 - len(raw_content) % 4) % 4)
+                try:
+                    decoded_full = base64.b64decode(raw_content).decode('utf-8')
+                    if "@" in decoded_full:
+                        parts = decoded_full.split("@")
+                        method, password = parts[0].split(":", 1)
+                        server_part = parts[1]
+                    else:
+                        return None
+                except Exception:
+                    return None
+
+        server_host = server_part.split(":")[0] if ":" in server_part else server_part
+        explicit_port = extract_explicit_port(url_str)
+        final_port = explicit_port if explicit_port is not None else 8388
+
+        outbound = {
+            "protocol": "shadowsocks",
+            "settings": {
+                "servers": [{
+                    "address": server_host,
+                    "level": 8,
+                    "method": method,
+                    "ota": False,
+                    "password": password,
+                    "port": final_port
+                }]
+            },
+            "streamSettings": {
+                "network": "tcp",
+                "tcpSettings": {
+                    "header": {
+                        "type": "none"
+                    }
+                }
+            }
+        }
+        return outbound
+    except Exception as e:
+        print(f"Error parsing Shadowsocks structural schema configuration: {e}")
+        return None
+
 def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
     try:
         b64_data = url_str.replace("vmess://", "").strip()
@@ -348,7 +415,7 @@ def build_bpb_fragment_template(base_vless_tls_node, ip_supplier):
     ws_path = ws_settings.get("path", "/?ed=2560")
 
     return {
-        "remarks": "🌵 9 VLESS - Fragment 🔥",
+        "remarks": "🌵 8 VLESS - Fragment 🔥",
         "dns": {
             "hosts": {"domain:googleapis.cn": "googleapis.com"},
             "servers": ["8.8.8.8"]
@@ -847,46 +914,43 @@ def build_v2rayng_template(remarks, outbound_nodes, pool_top_dns, pool_main_dns,
     dns_servers_config = []
     inbound_tags = []
     
+    # Optimized map definitions for protocol processing mapping loops
+    prefix_mapping = {
+        "tcp://": ("tcp://", 853), "tcp:": ("tcp://", 853),
+        "tls://": ("tls://", 853), "tls:": ("tls://", 853),
+        "udp://": ("udp://", 53),  "udp:": ("udp://", 53),
+        "quic://": ("quic://", None), "quic:": ("quic://", None)
+    }
+
     # 1. Map Selected DNS Servers with Tags correctly formatted for V2Ray
     for i, provider in enumerate(chosen_providers, 1):
         tag_name = f"remote-dns-{i}"
         inbound_tags.append(tag_name)
         srv_address = provider["server"]
         
-        if srv_address.startswith("tcp://") or srv_address.startswith("tcp:"):
-            addr = srv_address.replace("tcp://", "tcp://").replace("tcp:", "tcp://", 1) if not srv_address.startswith("tcp://") else srv_address
-            if ":" not in addr[6:]: 
-                addr += ":853"
-            dns_servers_config.append({"address": addr, "tag": tag_name})
+        matched_prefix = False
+        for prefix, (replacement, default_port) in prefix_mapping.items():
+            if srv_address.startswith(prefix):
+                addr = srv_address.replace(prefix, replacement, 1)
+                if default_port and ":" not in addr[len(replacement):]:
+                    addr += f":{default_port}"
+                dns_servers_config.append({"address": addr, "tag": tag_name})
+                matched_prefix = True
+                break
+
+        if matched_prefix:
+            continue
             
-        elif srv_address.startswith("tls://") or srv_address.startswith("tls:"):
-            addr = srv_address.replace("tls://", "tls://").replace("tls:", "tls://", 1) if not srv_address.startswith("tls://") else srv_address
-            if ":" not in addr[6:]:
-                addr += ":853"
-            dns_servers_config.append({"address": addr, "tag": tag_name})
-            
-        elif srv_address.startswith("quic://") or srv_address.startswith("quic:"):
-            addr = srv_address.replace("quic://", "quic://").replace("quic:", "quic://", 1) if not srv_address.startswith("quic://") else srv_address
-            dns_servers_config.append({"address": addr, "tag": tag_name})
-            
-        elif srv_address.startswith("https://"):
+        if srv_address.startswith("https://"):
             dns_servers_config.append({"address": srv_address, "tag": tag_name})
-            
-        elif srv_address.startswith("udp://") or srv_address.startswith("udp:"):
-            addr = srv_address.replace("udp://", "udp://").replace("udp:", "udp://", 1) if not srv_address.startswith("udp://") else srv_address
-            if ":" not in addr[6:]:
-                addr += ":53"
-            dns_servers_config.append({"address": addr, "tag": tag_name})
-            
+        elif srv_address.startswith("[") and srv_address.endswith("]"):
+            dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
         else:
-            if srv_address.startswith("[") and srv_address.endswith("]"):
+            try:
+                ipaddress.ip_address(srv_address)
                 dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
-            else:
-                try:
-                    ipaddress.ip_address(srv_address)
-                    dns_servers_config.append({"address": srv_address, "port": 53, "tag": tag_name})
-                except ValueError:
-                    dns_servers_config.append({"address": srv_address, "tag": tag_name})
+            except ValueError:
+                dns_servers_config.append({"address": srv_address, "tag": tag_name})
         
     # 2. Dynamic Local DNS matching for geosite/geoip local domain bypass rules
     # 3-Tier Fallback: 1. Local ISP -> 2. Iranian Public -> 3. Global Public
@@ -1021,11 +1085,10 @@ def main():
 
     tls_counter = [0]
     non_tls_counter = [0]
-    ip_counter = [0]
 
     groups = {
         "vless_tls": [], "vless_n_tls": [], "trojan_tls": [], "trojan_n_tls": [],
-        "vmess_tls": [], "vmess_n_tls": [], "other_protocols": []
+        "vmess_tls": [], "vmess_n_tls": [], "shadowsocks": [], "other_protocols": []
     }
     
     with open(input_file, "r", encoding="utf-8") as f:
@@ -1043,18 +1106,21 @@ def main():
         is_tls = False
         proto_key = None
         
-        if line.startswith("vmess://"):
+        if line.startswith("ss://"):
+            node_data = parse_shadowsocks(line)
+            proto_key = "shadowsocks"
+        elif line.startswith("vmess://"):
             node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
             proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
         elif line.startswith("vless://"):
-            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            node_data, is_tls = parse_standard_uri(line, "vless", tls_counter, non_tls_counter, clean_addresses)
             proto_key = "vless_tls" if is_tls else "vless_n_tls"
         elif line.startswith("trojan://"):
-            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            node_data, is_tls = parse_standard_uri(line, "trojan", tls_counter, non_tls_counter, clean_addresses)
             proto_key = "trojan_tls" if is_tls else "trojan_n_tls"
         elif "://" in line:
             p_name = line.split("://")[0].lower()
-            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter, clean_addresses, ip_counter)
+            node_data, is_tls = parse_standard_uri(line, p_name, tls_counter, non_tls_counter, clean_addresses)
             proto_key = "other_protocols"
             
         if node_data and proto_key:
@@ -1097,13 +1163,19 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # 7. 🍀 8 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
+    # 7. 🌲 7 SHADOWSOCKS - LB 🔥
+    if groups["shadowsocks"]:
+        for idx, item in enumerate(groups["shadowsocks"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌲 7 SHADOWSOCKS - LB 🔥", groups["shadowsocks"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+
+    # 8. 🍀 8 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🍀 8 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
-    # 8. 🌵 9 VLESS - Fragment 🔥
+    # 9. 🌵 9 VLESS - Fragment 🔥
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, ip_supplier))
