@@ -3,10 +3,6 @@ joindns4.eu
 protective
 https://protective.joindns4.eu/dns-query
 protective.joindns4.eu
-86.54.11.1
-86.54.11.201
-2a13:1001::86:54:11:1
-2a13:1001::86:54:11:201
 udp://86.54.11.1
 udp://86.54.11.201
 tcp://86.54.11.1
@@ -18,10 +14,6 @@ quic://protective.joindns4.eu
 noads
 https://noads.joindns4.eu/dns-query
 noads.joindns4.eu
-86.54.11.13
-86.54.11.213
-2a13:1001::86:54:11:13
-2a13:1001::86:54:11:213
 udp://86.54.11.13
 udp://86.54.11.213
 tcp://86.54.11.13
@@ -33,10 +25,6 @@ quic://noads.joindns4.eu
 unfiltered
 https://unfiltered.joindns4.eu/dns-query
 unfiltered.joindns4.eu
-86.54.11.100
-86.54.11.200
-2a13:1001::86:54:11:100
-2a13:1001::86:54:11:200
 udp://86.54.11.100
 udp://86.54.11.200
 tcp://86.54.11.100
@@ -51,10 +39,6 @@ cloudflare-dns.com
 unfiltered (default - no filtering)
 https://cloudflare-dns.com/dns-query
 cloudflare-dns.com
-1.1.1.1
-1.0.0.1
-2606:4700:4700::1111
-2606:4700:4700::1001
 udp://1.1.1.1
 udp://1.0.0.1
 tls://cloudflare-dns.com
@@ -65,10 +49,6 @@ https://security.cloudflare-dns.com/dns-query
 https://1.1.1.2/dns-query
 https://1.0.0.2/dns-query
 security.cloudflare-dns.com
-1.1.1.2
-1.0.0.2
-2606:4700:4700::1112
-2606:4700:4700::1002
 udp://1.1.1.2
 udp://1.0.0.2
 tls://security.cloudflare-dns.com
@@ -77,8 +57,6 @@ quic://security.cloudflare-dns.com
 dns64
 https://dns64.cloudflare-dns.com/dns-query
 dns64.cloudflare-dns.com
-2606:4700:4700::64
-2606:4700:4700::6400
 tls://dns64.cloudflare-dns.com
 quic://dns64.cloudflare-dns.com
 
@@ -91,8 +69,6 @@ https://dns.google/dns-query
 https://8.8.8.8/dns-query
 https://8.8.4.4/dns-query
 dns.google
-8.8.8.8
-8.8.4.4
 2001:4860:4860::8888
 2001:4860:4860::8844
 udp://8.8.8.8
@@ -107,8 +83,6 @@ quic://8.8.4.4
 dns64
 https://dns64.dns.google/dns-query
 dns64.dns.google
-2001:4860:4860::6464
-2001:4860:4860::64
 tls://dns64.dns.google
 quic://dns64.dns.google
 
@@ -121,10 +95,6 @@ https://dns-family.adguard.com/dns-query
 https://94.140.14.15/dns-query
 https://94.140.15.16/dns-query
 dns-family.adguard.com
-94.140.14.15
-94.140.15.16
-2a10:50c0::bad1:ff
-2a10:50c0::bad2:ff
 udp://94.140.14.15
 udp://94.140.15.16
 tcp://94.140.14.15
@@ -139,10 +109,6 @@ https://dns.adguard.com/dns-query
 https://94.140.14.14/dns-query
 https://94.140.15.15/dns-query
 dns.adguard.com
-94.140.14.14
-94.140.15.15
-2a10:50c0::ad1:ff
-2a10:50c0::ad2:ff
 udp://94.140.14.14
 udp://94.140.15.15
 tcp://94.140.14.14
@@ -157,10 +123,6 @@ https://dns-unfiltered.adguard.com/dns-query
 https://94.140.14.140/dns-query
 https://94.140.14.141/dns-query
 dns-unfiltered.adguard.com
-94.140.14.140
-94.140.14.141
-2a10:50c0::1:ff
-2a10:50c0::2:ff
 udp://94.140.14.140
 udp://94.140.14.141
 tcp://94.140.14.140
@@ -177,10 +139,6 @@ dns.quad9.net
 default (malware + phishing blocking)
 https://dns.quad9.net/dns-query
 dns.quad9.net
-9.9.9.9
-149.112.112.112
-2620:fe::fe
-2620:fe::9
 udp://9.9.9.9
 udp://149.112.112.112
 tcp://9.9.9.9
@@ -191,10 +149,6 @@ quic://dns.quad9.net
 secured w/ECS (malware + phishing blocking + ECS)
 https://dns11.quad9.net/dns-query
 dns11.quad9.net
-9.9.9.11
-149.112.112.11
-2620:fe::11
-2620:fe::fe:11
 udp://9.9.9.11
 udp://149.112.112.11
 tcp://9.9.9.11
@@ -205,10 +159,6 @@ quic://dns11.quad9.net
 unsecured (no malware blocking, no DNSSEC)
 https://dns10.quad9.net/dns-query
 dns10.quad9.net
-9.9.9.10
-149.112.112.10
-2620:fe::10
-2620:fe::fe:10
 udp://9.9.9.10
 udp://149.112.112.10
 tcp://9.9.9.10
@@ -223,10 +173,6 @@ controld.com
 free (malware + phishing)
 https://freedns.controld.com/dns-query
 freedns.controld.com
-76.76.2.0
-76.76.2.1
-2606:1a40:1::0
-2606:1a40:1::1
 udp://76.76.2.0
 udp://76.76.2.1
 tcp://76.76.2.0
@@ -243,10 +189,6 @@ https://dns.opendns.com/dns-query
 https://208.67.222.222/dns-query
 https://208.67.220.220/dns-query
 dns.opendns.com
-208.67.222.222
-208.67.220.220
-2620:119:35::35
-2620:119:53::53
 udp://208.67.222.222
 udp://208.67.220.220
 tcp://208.67.222.222
@@ -261,10 +203,6 @@ https://sandbox.opendns.com/dns-query
 https://208.67.220.2/dns-query
 https://208.67.220.3/dns-query
 sandbox.opendns.com
-208.67.220.2
-208.67.220.3
-2620:0:ccc::2
-2620:0:ccd::2
 udp://208.67.220.2
 udp://208.67.220.3
 tcp://208.67.220.2
