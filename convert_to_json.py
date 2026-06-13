@@ -89,6 +89,73 @@ def extract_explicit_port(url_str):
         return int(match.group(1))
     return None
 
+def parse_shadowsocks(url_str):
+    """Parses standard SIP002 shadowsocks:// URIs into structural V2Ray outbounds."""
+    try:
+        url_str = url_str.split('#')[0].strip()
+        raw_content = url_str.replace("ss://", "").strip()
+        
+        if "@" in raw_content:
+            parts = raw_content.split("@")
+            b64_userinfo = parts[0]
+            server_part = parts[1]
+        else:
+            b64_userinfo = raw_content
+            server_part = ""
+            
+        b64_userinfo += "=" * ((4 - len(b64_userinfo) % 4) % 4)
+        try:
+            decoded_userinfo = base64.b64decode(b64_userinfo).decode('utf-8')
+            if ":" in decoded_userinfo:
+                method, password = decoded_userinfo.split(":", 1)
+            else:
+                return None
+        except Exception:
+            if "@" in raw_content:
+                return None
+            else:
+                raw_content += "=" * ((4 - len(raw_content) % 4) % 4)
+                try:
+                    decoded_full = base64.b64decode(raw_content).decode('utf-8')
+                    if "@" in decoded_full:
+                        parts = decoded_full.split("@")
+                        method, password = parts[0].split(":", 1)
+                        server_part = parts[1]
+                    else:
+                        return None
+                except Exception:
+                    return None
+
+        server_host = server_part.split(":")[0] if ":" in server_part else server_part
+        explicit_port = extract_explicit_port(url_str)
+        final_port = explicit_port if explicit_port is not None else 8388
+
+        outbound = {
+            "protocol": "shadowsocks",
+            "settings": {
+                "servers": [{
+                    "address": server_host,
+                    "level": 8,
+                    "method": method,
+                    "ota": False,
+                    "password": password,
+                    "port": final_port
+                }]
+            },
+            "streamSettings": {
+                "network": "tcp",
+                "tcpSettings": {
+                    "header": {
+                        "type": "none"
+                    }
+                }
+            }
+        }
+        return outbound
+    except Exception as e:
+        print(f"Error parsing Shadowsocks structural schema configuration: {e}")
+        return None
+
 def parse_vmess(url_str, tls_counter=[0], non_tls_counter=[0]):
     try:
         b64_data = url_str.replace("vmess://", "").strip()
@@ -1021,7 +1088,7 @@ def main():
 
     groups = {
         "vless_tls": [], "vless_n_tls": [], "trojan_tls": [], "trojan_n_tls": [],
-        "vmess_tls": [], "vmess_n_tls": [], "other_protocols": []
+        "vmess_tls": [], "vmess_n_tls": [], "shadowsocks": [], "other_protocols": []
     }
     
     with open(input_file, "r", encoding="utf-8") as f:
@@ -1039,7 +1106,10 @@ def main():
         is_tls = False
         proto_key = None
         
-        if line.startswith("vmess://"):
+        if line.startswith("ss://"):
+            node_data = parse_shadowsocks(line)
+            proto_key = "shadowsocks"
+        elif line.startswith("vmess://"):
             node_data, is_tls = parse_vmess(line, tls_counter, non_tls_counter)
             proto_key = "vmess_tls" if is_tls else "vmess_n_tls"
         elif line.startswith("vless://"):
@@ -1093,13 +1163,19 @@ def main():
             item["tag"] = f"prox-{idx + 1}"
         final_output.append(build_v2rayng_template("🌳 6 TROJAN - Non-TLS LB 🔥", groups["trojan_n_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=True))
 
-    # 7. 🍀 7 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
+    # 7. 🌲 7 SHADOWSOCKS - LB 🔥
+    if groups["shadowsocks"]:
+        for idx, item in enumerate(groups["shadowsocks"]):
+            item["tag"] = f"prox-{idx + 1}"
+        final_output.append(build_v2rayng_template("🌲 7 SHADOWSOCKS - LB 🔥", groups["shadowsocks"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+
+    # 8. 🍀 8 VMESS - TLS LB 🔥 (Non-Cloudflare group: is_cloudflare=False keeps original IPs/Domains)
     if groups["vmess_tls"]:
         for idx, item in enumerate(groups["vmess_tls"]):
             item["tag"] = f"prox-{idx + 1}"
-        final_output.append(build_v2rayng_template("🍀 7 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
+        final_output.append(build_v2rayng_template("🍀 8 VMESS - TLS LB 🔥", groups["vmess_tls"], pool_top_dns, pool_main_dns, ip_supplier, is_cloudflare=False))
 
-    # 8. 🌵 8 VLESS - Fragment 🔥
+    # 9. 🌵 9 VLESS - Fragment 🔥
     if groups["vless_tls"]:
         random_fragment_node = random.choice(groups["vless_tls"])
         final_output.append(build_bpb_fragment_template(random_fragment_node, ip_supplier))
