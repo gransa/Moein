@@ -415,7 +415,7 @@ def build_bpb_fragment_template(base_vless_tls_node, ip_supplier):
     ws_path = ws_settings.get("path", "/?ed=2560")
 
     return {
-        "remarks": "🌵 8 VLESS - Fragment 🔥",
+        "remarks": "🌵 9 VLESS - Fragment 🔥",
         "dns": {
             "hosts": {"domain:googleapis.cn": "googleapis.com"},
             "servers": ["8.8.8.8"]
