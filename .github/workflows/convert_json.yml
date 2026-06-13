@@ -2,12 +2,9 @@ name: Generate JSON Client Configs
 
 on:
   schedule:
-    - cron: '5 * * * *'
-    - cron: '30 * * * *'
-  push:
-    paths:
-      - 'Configs.txt'
-  workflow_dispatch:
+    # Trigger every 10 minutes starting at minute 5 (5, 15, 25, 35, 45, 55)
+    - cron: '5,15,25,35,45,55 * * * *'
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions dashboard
 
 jobs:
   build-json:
@@ -19,40 +16,54 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Fetches full commit history to properly check previous logs
+
+      - name: Check If This Hour Has A Successful Build
+        id: check_status
+        run: |
+          # Get the timestamp of the last commit that modified the output file
+          LAST_COMMIT_TIME=$(git log -1 --format="%ct" -- NG-JSON-Configs.txt 2>/dev/null || echo 0)
+          
+          # Extract the hour identifier from the last commit and the current system time
+          LAST_COMMIT_HOUR=$(date -d "@$LAST_COMMIT_TIME" +"%Y-%m-%d-%H" 2>/dev/null || echo "none")
+          CURRENT_HOUR=$(date +"%Y-%m-%d-%H")
+          
+          if [ "$LAST_COMMIT_HOUR" = "$CURRENT_HOUR" ]; then
+            echo "✅ Configs already updated successfully in this hour ($CURRENT_HOUR). Skipping rest of the workflow..."
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ No successful build found for this hour ($CURRENT_HOUR). Proceeding to compile profiles..."
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Set up Python
+        if: steps.check_status.outputs.skip_build != 'true'
         uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
 
       - name: Compile Profile Array Layouts
+        if: steps.check_status.outputs.skip_build != 'true'
         run: |
-          # Remove old output to ensure a fresh generation
+          # Remove old output to guarantee a fresh generation
           rm -f NG-JSON-Configs.txt
           
-          # Run your conversion script
+          # Execute the python script
           python convert_to_json.py
           
-          # Safety check
+          # Safety check to ensure the output file is not empty
           if [ ! -s NG-JSON-Configs.txt ]; then
             echo "::error::Output file NG-JSON-Configs.txt is empty."
             exit 1
           fi
 
       - name: Commit and Push
+        if: steps.check_status.outputs.skip_build != 'true'
         run: |
           git config user.name "JSON Compiler Engine"
           git config user.email "action@github.com"
-          
           git add NG-JSON-Configs.txt
           
-          # Get current timestamp for the commit message
           TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          
-          # Commit the changes. The '|| true' prevents the workflow from 
-          # crashing if there are no changes, but the timestamp in the 
-          # Python file guarantees there will be a change.
-          git commit -m "Auto Sync: $TIMESTAMP" || true
-          
-          git push
+          git commit -m "Automated Profile Update: $TIMESTAMP" || true
+          git push origin main || true
