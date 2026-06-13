@@ -2,7 +2,7 @@ name: Generate JSON Client Configs
 
 on:
   schedule:
-    - cron: '23 * * * *'
+    - cron: '0 * * * *'
   push:
     paths:
       - 'Configs.txt'
