@@ -50,7 +50,10 @@ def parse_ssconf_uri(ssconf):
 
 def main():
     default_uri = 'ssconf://s3.amazonaws.com/beedynconprd/zf38bv6oxi1nv3wfkpmxyfl8yj5fargza3foantoalu16vznl0ckxx7bgf1ufx51.json#BeePass'
-    ssconf_input = os.environ.get('SSCONF_URI', default_uri)
+    
+    # FIX: Using .strip() and checking for truthiness ensures empty secrets are ignored
+    secret_uri = os.environ.get('SSCONF_URI', '').strip()
+    ssconf_input = secret_uri if secret_uri else default_uri
 
     try:
         print(f"Processing URI: {ssconf_input}")
