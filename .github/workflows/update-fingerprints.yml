@@ -50,5 +50,9 @@ jobs:
             echo "No certificate fingerprint changes found this hour."
           else
             git commit -m "Update fingerprints - $(date '+%Y-%m-%d %H:%M:%S')"
-            git push
+            
+            # NEW FIX: Pull remote updates to prevent push rejections
+            git pull --rebase origin main
+            
+            git push origin main
           fi
