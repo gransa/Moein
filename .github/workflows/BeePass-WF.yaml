@@ -1,1 +1,38 @@
+name: Generate Shadowsocks Subscription
 
+on:
+  schedule:
+    - cron: '0 */2 * * *' # Runs automatically every 2 hours
+  push:
+    branches:
+      - main          # Runs whenever you push code to main
+  workflow_dispatch:   # Allows manual run from the GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Run generation script
+      env:
+        SSCONF_URI: ${{ secrets.SSCONF_URI }} 
+      run: python BeePass-Gen.py
+
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add BeePass.txt
+        git diff-index --quiet HEAD || git commit -m "Automated 2-hour update of BeePass configs"
+        git push
