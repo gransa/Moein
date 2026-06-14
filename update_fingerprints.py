@@ -7,6 +7,7 @@ import base64
 import hashlib
 import requests
 import urllib.parse
+import time  # Imported time for retry delays
 
 def get_tls_fingerprint(host, port, sni=None):
     """
@@ -147,14 +148,39 @@ def main():
     urls = [u.strip() for u in re.split(r'[\n,]+', sub_urls_env) if u.strip()]
     all_raw_configs = []
     
+    # Configuration values for better reliability
+    REQUEST_TIMEOUT = 30  # Increased from 10 to 30 seconds
+    MAX_RETRIES = 3       # Number of attempts for slow/unstable links
+    RETRY_DELAY = 3       # Seconds to wait between retries
+    
     for url in urls:
-        try:
-            res = requests.get(url, timeout=10)
-            if res.status_code == 200:
-                lines = res.text.splitlines()
-                all_raw_configs.extend([l.strip() for l in lines if l.strip()])
-        except Exception as e:
-            print(f"⚠️ Connection failure logging remote download link array: {e}")
+        success = False
+        print(f"📥 Fetching configs from: {url}")
+        
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                # Added an explicitly higher timeout threshold
+                res = requests.get(url, timeout=REQUEST_TIMEOUT)
+                
+                if res.status_code == 200:
+                    lines = res.text.splitlines()
+                    all_raw_configs.extend([l.strip() for l in lines if l.strip()])
+                    success = True
+                    break  # Break out of retry loop on success
+                else:
+                    print(f"⚠️ Attempt {attempt}/{MAX_RETRIES} failed with status code: {res.status_code}")
+                    
+            except requests.exceptions.Timeout:
+                print(f"⏳ Attempt {attempt}/{MAX_RETRIES} timed out after {REQUEST_TIMEOUT}s.")
+            except Exception as e:
+                print(f"⚠️ Attempt {attempt}/{MAX_RETRIES} failed due to an error: {e}")
+            
+            # Wait a bit before retrying if this wasn't the last attempt
+            if attempt < MAX_RETRIES:
+                time.sleep(RETRY_DELAY)
+                
+        if not success:
+            print(f"❌ Failed to retrieve configurations from {url} after {MAX_RETRIES} attempts.")
 
     updated_configs = []
     for config in all_raw_configs:
