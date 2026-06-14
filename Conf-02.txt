@@ -14,6 +14,6 @@ trojan://krOXKzNRRIROWi@info.github.com:2086?security=&fp=chrome&type=ws&path=/?
 
 vless://d3c25a78-2e2c-4003-8d42-5afbda4b2d08@replit.com:2082?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAn08-IrxfDE-2.kAMRAN-08.woRKers.dev&encryption=none#@Vless-Worker-107%20-%202082
 
-vless://5412ade2-ee5e-48db-800c-5f0cecf6bb17@openai.com:2086?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN09-M5K16t-3.KaMRaN-09.WoRKERS.DEv&encryption=none#@Vless-Worker-108%20-%202086
+vless://454227b1-8d94-4a41-8ac4-22f2e742dba2@openai.com:2086?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMRAN09-XZ9HE1-2.kamRan-09.wORKErs.dEV&encryption=none#@Vless-Worker-108%20-%202086
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@cdnjs.com:80?security=&allowInsecure=1&fp=chrome&type=ws&path=/eyJqdW5rIjoiWEl3T1ZhYlQ5OUxNZmlwIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=sEa.sAhEl.cLoUdNs.cLuB&encryption=none#Vless-Worker-80-AI
