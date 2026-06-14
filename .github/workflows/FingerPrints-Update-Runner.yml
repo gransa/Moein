@@ -10,7 +10,7 @@ env:
 
 jobs:
   update:
-    runs-on: ubuntu-latest
+    runs-runs-on: ubuntu-latest
     # FIX #1: Grants the github-actions[bot] write access to push changes
     permissions:
       contents: write
