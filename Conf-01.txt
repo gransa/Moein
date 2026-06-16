@@ -1,29 +1,29 @@
-vless://a3c51f71-ffb5-4c80-a136-cee4b36d6e85@188.114.97.6:443?security=tls&sni=kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv&encryption=none#@Vless-Worker-01%20-%20443
+vless://a3c51f71-ffb5-4c80-a136-cee4b36d6e85@188.114.97.6:443?security=tls&sni=kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv&fp=chrome&type=ws&path=/?ed=2560&host=kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv&encryption=none#@Vless-Worker-01%20-%20443
 
-vless://8eb92a78-ec8d-4ff6-8a2d-8b801367be87@103.160.204.34:8443?security=tls&sni=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&encryption=none#@Vless-Worker-02%20-%208443
+vless://8eb92a78-ec8d-4ff6-8a2d-8b801367be87@103.160.204.34:8443?security=tls&sni=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&fp=chrome&type=ws&path=/?ed=2560&host=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&encryption=none#@Vless-Worker-02%20-%208443
 
-vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@185.193.30.94:2053?security=tls&sni=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&encryption=none#@Vless-Worker-03%20-%202053
+vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@185.193.30.94:2053?security=tls&sni=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&fp=chrome&type=ws&path=/?ed=2560&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&encryption=none#@Vless-Worker-03%20-%202053
 
-vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@45.8.211.57:2083?security=tls&sni=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&encryption=none#@Vless-Worker-04%20-%202083
+vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@45.8.211.57:2083?security=tls&sni=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&fp=chrome&type=ws&path=/?ed=2560&host=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&encryption=none#@Vless-Worker-04%20-%202083
 
-trojan://GABTmlZTPGtULi@199.181.197.1:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#Trojan-Worker-05%20-%202087
+trojan://GABTmlZTPGtULi@199.181.197.1:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed=2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#Trojan-Worker-05%20-%202087
 
-trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#Trojan-Worker-06%20-%202096
+trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed=2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#Trojan-Worker-06%20-%202096
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@iplocation.net:443?security=tls&sni=vS.Lb-1.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/pyip%3Datena-01.dynamic-dns.net&host=vs.lb-1.dns-dynamic.net&encryption=none#Vless-Worker-LB-1
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@iplocation.net:443?security=tls&sni=vS.Lb-1.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-1.dns-dynamic.net&encryption=none#Vless-Worker-LB-1
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@digitalocean.com:443?security=tls&sni=vS.Lb-2.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/pyip%3Dmaryam-02.dynamic-dns.net&host=vs.lb-2.dns-dynamic.net&encryption=none#Vless-Worker-LB-2
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@digitalocean.com:443?security=tls&sni=vS.Lb-2.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-2.dns-dynamic.net&encryption=none#Vless-Worker-LB-2
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sni=vS.Lb-3.cLoUdNs.pRo&fp=chrome&type=ws&path=/pyip%3Dleila-03.dynamic-dns.net&host=vs.lb-3.cloudns.pro&encryption=none#Vless-Worker-LB-3
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sni=vS.Lb-3.cLoUdNs.pRo&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-3.cloudns.pro&encryption=none#Vless-Worker-LB-3
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@www.speedtest.net:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/pyip%3Datena-01.dynamic-dns.net&host=vs.lb-4.cloudns.club&encryption=none#Vless-Worker-LB-4
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@www.speedtest.net:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-4.cloudns.club&encryption=none#Vless-Worker-LB-4
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@check-host.net:443?security=tls&sni=lB-5-Vs.lB-5.WoRkErS.DeV&fp=chrome&type=ws&path=/pyip%3Dmaryam-02.dynamic-dns.net&host=lb-5-vs.lb-5.workers.dev&encryption=none#Vless-Worker-LB-5
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@check-host.net:443?security=tls&sni=lB-5-Vs.lB-5.WoRkErS.DeV&fp=chrome&type=ws&path=/?ed=2560&host=lb-5-vs.lb-5.workers.dev&encryption=none#Vless-Worker-LB-5
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@fonts.net:443?security=tls&sni=lB-6-Vs.lB-6.WoRkErS.DeV&fp=chrome&type=ws&path=/pyip%3Dleila-03.dynamic-dns.net&host=lb-6-vs.lb-6.workers.dev&encryption=none#Vless-Worker-LB-6
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@fonts.net:443?security=tls&sni=lB-6-Vs.lB-6.WoRkErS.DeV&fp=chrome&type=ws&path=/?ed=2560&host=lb-6-vs.lb-6.workers.dev&encryption=none#Vless-Worker-LB-6
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@ns1.cloudflare.com:443?security=tls&sni=cHaLgHoOz.pArIsA.ClOuDnS.PrO&fp=chrome&type=ws&path=/eyJqdW5rIjoicW5jakVVTFBrdWlQIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=chalghooz.parisa.cloudns.pro&encryption=none#Vless-Worker-CF-1
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@alhilal.com:443?security=tls&sni=tEyLoR.HeDiEh.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/eyJqdW5rIjoiQnV0QmdNRUJaeVJRZSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=teylor.hedieh.dns-dynamic.net&encryption=none#Vless-Worker-CF-2
 
-trojan://ParsaJoonam@chatgpt.com:443?security=tls&sni=lIfE.MaRyAm.dNs-dYnAmIc.nEt&allowInsecure=1&fp=chrome&type=ws&path=/pyip%3Dleila-03.dynamic-dns.net&host=lIfE.MaRyAm.dNs-dYnAmIc.nEt#Trojan-Worker-CF-3
+trojan://ParsaJoonam@chatgpt.com:443?security=tls&sni=lIfE.MaRyAm.dNs-dYnAmIc.nEt&allowInsecure=1&fp=chrome&type=ws&path=/?ed=2560&host=lIfE.MaRyAm.dNs-dYnAmIc.nEt#Trojan-Worker-CF-3
