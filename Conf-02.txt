@@ -12,6 +12,9 @@ trojan://v+3fLF%5DoCjf%5BNNb4@arc.net:2096?security=tls&sni=FlaT-hAll-331D.KAMrA
 
 
 
-trojan://GABTmlZTPGtULi@emails.github.com:2082?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-105%20-%202082
+trojan://GABTmlZTPGtULi@tally.so:80?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-101%20-%2080
 
-trojan://krOXKzNRRIROWi@info.github.com:2086?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#@Trojan-Worker-106%20-%202086
+trojan://krOXKzNRRIROWi@whimsical.com:8080?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#@Trojan-Worker-102%20-%208080
+
+trojan://QH;Inr%7B,L(DNGaAa@npmjs.com:8880?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoidGJ1ODhCbEIiLCJwcm90b2NvbCI6InRyIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119?ed%3D2560&host=suPeR-LImiT-9F60.kAMran-18.WoRKERs.dev#@Trojan-Worker-103%20-%208880
+
