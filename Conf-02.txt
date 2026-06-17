@@ -8,6 +8,8 @@ trojan://Jpe&@patreon.com:2083?security=tls&sni=shInY-PoEtry-Ac23.KaMraN-15.Work
 
 trojan://UY%5EXT%3C&%25ztF5U1%7CM@css-tricks.com:2087?security=tls&sni=olD-River-0316.kAmRan-16.wORkERs.DEV&fp=chrome&type=ws&path=/eyJqdW5rIjoicTVFT0toRHpPIiwicHJvdG9jb2wiOiJ0ciIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=olD-River-0316.kAmRan-16.wORkERs.DEV#@Trojan-Worker-05%20-%202087
 
+trojan://v+3fLF%5DoCjf%5BNNb4@arc.net:2096?security=tls&sni=FlaT-hAll-331D.KAMrAN-17.wORKeRS.DEV&fp=chrome&type=ws&path=/eyJqdW5rIjoiZElwcUxqTUgiLCJwcm90b2NvbCI6InRyIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119?ed%3D2560&host=FlaT-hAll-331D.KAMrAN-17.wORKeRS.DEV#@Trojan-Worker-06%20-%202096
+
 
 
 trojan://GABTmlZTPGtULi@emails.github.com:2082?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-105%20-%202082
