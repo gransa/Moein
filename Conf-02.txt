@@ -1,6 +1,8 @@
-trojan://GABTmlZTPGtULi@199.181.197.1:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed=2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-01%20-%202087
+trojan://GABTmlZTPGtULi@199.181.197.1:443?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-01%20-%20443
 
-trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed=2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#@Trojan-Worker-02%20-%202096
+trojan://krOXKzNRRIROWi@info.github.com:8443?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#@Trojan-Worker-02%20-%208443
+
+trojan://HXIe%5EFo@w3.org:2053?security=tls&sni=aUTUMn-PIne-178B.kaMrAN-14.WorkERs.deV&fp=chrome&type=ws&path=/eyJqdW5rIjoib2RhekN5b1B0cWciLCJwcm90b2NvbCI6InRyIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119?ed%3D2560&host=aUTUMn-PIne-178B.kaMrAN-14.WorkERs.deV#@Trojan-Worker-02%20-%202053
 
 trojan://GABTmlZTPGtULi@emails.github.com:2082?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-105%20-%202082
 
