@@ -18,12 +18,8 @@ vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sn
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@www.speedtest.net:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-4.cloudns.club&encryption=none#Vless-Worker-LB-4
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@check-host.net:443?security=tls&sni=lB-5-Vs.lB-5.WoRkErS.DeV&fp=chrome&type=ws&path=/?ed=2560&host=lb-5-vs.lb-5.workers.dev&encryption=none#Vless-Worker-LB-5
-
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@fonts.net:443?security=tls&sni=lB-6-Vs.lB-6.WoRkErS.DeV&fp=chrome&type=ws&path=/?ed=2560&host=lb-6-vs.lb-6.workers.dev&encryption=none#Vless-Worker-LB-6
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@ns1.cloudflare.com:443?security=tls&sni=cHaLgHoOz.pArIsA.ClOuDnS.PrO&fp=chrome&type=ws&path=/eyJqdW5rIjoicW5jakVVTFBrdWlQIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=chalghooz.parisa.cloudns.pro&encryption=none#Vless-Worker-CF-1
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@alhilal.com:443?security=tls&sni=tEyLoR.HeDiEh.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/eyJqdW5rIjoiQnV0QmdNRUJaeVJRZSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=teylor.hedieh.dns-dynamic.net&encryption=none#Vless-Worker-CF-2
 
-trojan://ParsaJoonam@chatgpt.com:443?security=tls&sni=lIfE.MaRyAm.dNs-dYnAmIc.nEt&allowInsecure=1&fp=chrome&type=ws&path=/?ed=2560&host=lIfE.MaRyAm.dNs-dYnAmIc.nEt#Trojan-Worker-CF-3
