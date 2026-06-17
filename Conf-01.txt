@@ -6,8 +6,6 @@ vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@185.193.30.94:2053?security=tls&sni
 
 vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@45.8.211.57:2083?security=tls&sni=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&fp=chrome&type=ws&path=/?ed=2560&host=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&encryption=none#@Vless-Worker-04%20-%202083
 
-vless://59f8e51e-9abd-477c-9350-5850d2c0a071@chatgpt.com:2087?security=tls&sni=KaMran10-c90QyJ-2.kamRan-10.wORKeRS.deV&fp=chrome&type=ws&path=/?ed%3D2560&host=KaMran10-c90QyJ-2.kamRan-10.wORKeRS.deV&encryption=none#@Vless-Worker-05%20-%202087
-
 trojan://GABTmlZTPGtULi@199.181.197.1:2087?security=tls&sni=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv&fp=chrome&type=ws&path=/?ed=2560&host=KamRAN05-JDuYC1.kAmRan-05.woRKeRS.dEv#@Trojan-Worker-01%20-%202087
 
 trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed=2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#@Trojan-Worker-02%20-%202096
