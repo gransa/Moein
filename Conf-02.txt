@@ -23,3 +23,5 @@ trojan://HV%40dn3o&%7B@neon.tech:2052?security=&fp=chrome&type=ws&path=/eyJqdW5r
 trojan://muS_fTU9i6!WI%7DqM@postmarkapp.com:2082?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoiOEVhZ0tudWpqIiwicHJvdG9jb2wiOiJ0ciIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=ShY-FIELd-3522.kaMRAN-20.WorKerS.dEv#@Trojan-Worker-105%20-%202082
 
 trojan://pgv%5DyReX(%5DoSFp+v@bolt.new:2086?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoiZlc0YVNLa0pyeXhDRHh0ZiIsInByb3RvY29sIjoidHIiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=fLAt-mode-1602.kamRAN-21.wOrKErS.deV#@Trojan-Worker-106%20-%202086
+
+trojan://Kw_(mmv%7BvdtKF+au@you.com:2095?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoicDNncnU5NzVvb256UjcyMiIsInByb3RvY29sIjoidHIiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=DelIcAtE-cEll-4468.kamRAN-22.WORKERs.dEv#@Trojan-Worker-107%20-%202095
