@@ -14,15 +14,15 @@ trojan://GABTmlZTPGtULi@199.181.197.1:2087?security=tls&sni=KamRAN05-JDuYC1.kAmR
 
 trojan://krOXKzNRRIROWi@info.github.com:2096?security=tls&sni=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV&fp=chrome&type=ws&path=/?ed=2560&host=kaMran06-v3QDLI.KAMRaN-06.WOrKErs.dEV#@Trojan-Worker-02%20-%202096
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@iplocation.net:443?security=tls&sni=vS.Lb-1.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-1.dns-dynamic.net&encryption=none#Vless-Worker-LB-1
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@iplocation.net:443?security=tls&sni=vS.Lb-1.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-1.dns-dynamic.net&encryption=none#@Vless-Worker-LB-1
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@digitalocean.com:443?security=tls&sni=vS.Lb-2.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-2.dns-dynamic.net&encryption=none#Vless-Worker-LB-2
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@digitalocean.com:443?security=tls&sni=vS.Lb-2.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-2.dns-dynamic.net&encryption=none#@Vless-Worker-LB-2
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sni=vS.Lb-3.cLoUdNs.pRo&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-3.cloudns.pro&encryption=none#Vless-Worker-LB-3
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sni=vS.Lb-3.cLoUdNs.pRo&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-3.cloudns.pro&encryption=none#@Vless-Worker-LB-3
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@www.speedtest.net:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-4.cloudns.club&encryption=none#Vless-Worker-LB-4
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@www.speedtest.net:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/?ed=2560&host=vs.lb-4.cloudns.club&encryption=none#@Vless-Worker-LB-4
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@ns1.cloudflare.com:443?security=tls&sni=cHaLgHoOz.pArIsA.ClOuDnS.PrO&fp=chrome&type=ws&path=/eyJqdW5rIjoicW5jakVVTFBrdWlQIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=chalghooz.parisa.cloudns.pro&encryption=none#Vless-Worker-CF-1
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@ns1.cloudflare.com:443?security=tls&sni=cHaLgHoOz.pArIsA.ClOuDnS.PrO&fp=chrome&type=ws&path=/eyJqdW5rIjoicW5jakVVTFBrdWlQIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=chalghooz.parisa.cloudns.pro&encryption=none#@Vless-Worker-CF-1
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@alhilal.com:443?security=tls&sni=tEyLoR.HeDiEh.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/eyJqdW5rIjoiQnV0QmdNRUJaeVJRZSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=teylor.hedieh.dns-dynamic.net&encryption=none#Vless-Worker-CF-2
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@alhilal.com:443?security=tls&sni=tEyLoR.HeDiEh.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/eyJqdW5rIjoiQnV0QmdNRUJaeVJRZSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=teylor.hedieh.dns-dynamic.net&encryption=none#@Vless-Worker-CF-2
 
