@@ -18,3 +18,5 @@ trojan://krOXKzNRRIROWi@whimsical.com:8080?security=&fp=chrome&type=ws&path=/?ed
 
 trojan://QH;Inr%7B,L(DNGaAa@npmjs.com:8880?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoidGJ1ODhCbEIiLCJwcm90b2NvbCI6InRyIiwibW9kZSI6InByb3h5aXAiLCJwYW5lbElQcyI6W119?ed%3D2560&host=suPeR-LImiT-9F60.kAMran-18.WoRKERs.dev#@Trojan-Worker-103%20-%208880
 
+trojan://HV%40dn3o&%7B@neon.tech:2052?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoiaEVrVjVCdUN5dFFyZE81MiIsInByb3RvY29sIjoidHIiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=EmPty-SUrf-682d.KamrAN-19.woRkERs.deV#@Trojan-Worker-104%20-%202052
+
