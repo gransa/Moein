@@ -22,3 +22,21 @@ vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@ns1.cloudflare.com:443?security=tls
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@alhilal.com:443?security=tls&sni=tEyLoR.HeDiEh.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/eyJqdW5rIjoiQnV0QmdNRUJaeVJRZSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=teylor.hedieh.dns-dynamic.net&encryption=none#@Vless-Worker-CF-2
 
+
+
+
+vless://a3c51f71-ffb5-4c80-a136-cee4b36d6e85@208.103.161.249:80?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv&encryption=none#@Vless-Worker-101%20-%2080
+
+vless://8eb92a78-ec8d-4ff6-8a2d-8b801367be87@162.159.142.8:8080?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&encryption=none#@Vless-Worker-102%20-%208080
+
+vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@172.64.48.15:8880?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&encryption=none#@Vless-Worker-103%20-%208880
+
+vless://b4cee115-cb5e-4571-99fa-a8f80dc902b1@104.17.2.112:2052?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN04-9Q7IUQ-1.kAMran-04.WorkeRS.DEV&encryption=none#@Vless-Worker-104%20-%202052
+
+vless://28a2d39a-d3b2-49ca-ab6c-d4479d3fef08@188.114.97.6:2095?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmRAN07-L4Xbrq-1.kAmRan-07.WORkers.dEv&encryption=none#@Vless-Worker-01%20-%202095
+
+vless://d3c25a78-2e2c-4003-8d42-5afbda4b2d08@replit.com:2082?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAn08-IrxfDE-2.kAMRAN-08.woRKers.dev&encryption=none#@Vless-Worker-107%20-%202082
+
+vless://454227b1-8d94-4a41-8ac4-22f2e742dba2@openai.com:2086?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMRAN09-XZ9HE1-2.kamRan-09.wORKErs.dEV&encryption=none#@Vless-Worker-108%20-%202086
+
+vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@cdnjs.com:80?security=&allowInsecure=1&fp=chrome&type=ws&path=/eyJqdW5rIjoiWEl3T1ZhYlQ5OUxNZmlwIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=sEa.sAhEl.cLoUdNs.cLuB&encryption=none#@Vless-Worker-80-AI
