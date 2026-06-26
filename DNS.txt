@@ -1,6 +1,9 @@
 https://dns-1.dns-1.workers.dev/dns-query
 https://dns-2.dns-1.workers.dev/dns-query
 https://dns-3.dns-1.workers.dev/dns-query
+https://dns-4.dns-2-a99.workers.dev/dns-query
+https://dns-5.dns-2-a99.workers.dev/dns-query
+https://dns-6.dns-2-a99.workers.dev/dns-query
 
 protective
 https://protective.joindns4.eu/dns-query
