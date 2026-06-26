@@ -21,5 +21,3 @@ https://doh.dns.sb/dns-query
 https://doh.sb/dns-query
 https://dns.alidns.com/dns-query
 https://odvr.nic.cz/dns-query
-https://doh.rethinkdns.com/dns-query
-https://doh.max.rethinkdns.com/dns-query
