@@ -9,69 +9,45 @@ https://dns-8.dns-3.workers.dev/dns-query
 https://dns-9.dns-3.workers.dev/dns-query
 https://dns-10.dns-4.workers.dev/dns-query
 
-
-protective
 https://protective.joindns4.eu/dns-query
-udp://86.54.11.1
-udp://86.54.11.201
 tcp://86.54.11.1
 tcp://86.54.11.201
 tls://protective.joindns4.eu
 quic://protective.joindns4.eu
 
-
-noads
 https://noads.joindns4.eu/dns-query
-udp://86.54.11.13
-udp://86.54.11.213
 tcp://86.54.11.13
 tcp://86.54.11.213
 tls://noads.joindns4.eu
 quic://noads.joindns4.eu
 
-
-unfiltered
 https://unfiltered.joindns4.eu/dns-query
-udp://86.54.11.100
-udp://86.54.11.200
 tcp://86.54.11.100
 tcp://86.54.11.200
 tls://unfiltered.joindns4.eu
 quic://unfiltered.joindns4.eu
 
-------------------------------------------------------------------------------------------------
+-------------------------------
 
-unfiltered (default - no filtering)
 https://cloudflare-dns.com/dns-query
-udp://1.1.1.1
-udp://1.0.0.1
 tls://cloudflare-dns.com
 quic://cloudflare-dns.com
 
-secure (malware/phishing blocking)
 https://security.cloudflare-dns.com/dns-query
 https://1.1.1.2/dns-query
 https://1.0.0.2/dns-query
-udp://1.1.1.2
-udp://1.0.0.2
 tls://security.cloudflare-dns.com
 quic://security.cloudflare-dns.com
 
-dns64
 https://dns64.cloudflare-dns.com/dns-query
 tls://dns64.cloudflare-dns.com
 quic://dns64.cloudflare-dns.com
 
--------------------------------------------------------------------------------------------------------------
+---------------------------------
 
-unfiltered (default - no filtering)
 https://dns.google/dns-query
 https://8.8.8.8/dns-query
 https://8.8.4.4/dns-query
-2001:4860:4860::8888
-2001:4860:4860::8844
-udp://8.8.8.8
-udp://8.8.4.4
 tcp://8.8.8.8
 tcp://8.8.4.4
 tls://dns.google
@@ -79,19 +55,15 @@ quic://dns.google
 quic://8.8.8.8
 quic://8.8.4.4
 
-dns64
 https://dns64.dns.google/dns-query
 tls://dns64.dns.google
 quic://dns64.dns.google
 
--------------------------------------------------------------------------------------------------------------------------------
+----------------------------
 
-family (adblock + malware + adult)
 https://dns-family.adguard.com/dns-query
 https://94.140.14.15/dns-query
 https://94.140.15.16/dns-query
-udp://94.140.14.15
-udp://94.140.15.16
 tcp://94.140.14.15
 tcp://94.140.15.16
 tls://dns-family.adguard.com
@@ -99,12 +71,9 @@ quic://dns-family.adguard.com
 quic://94.140.14.15
 quic://94.140.15.16
 
-default (adblock + malware)
 https://dns.adguard.com/dns-query
 https://94.140.14.14/dns-query
 https://94.140.15.15/dns-query
-udp://94.140.14.14
-udp://94.140.15.15
 tcp://94.140.14.14
 tcp://94.140.15.15
 tls://dns.adguard.com
@@ -112,12 +81,9 @@ quic://dns.adguard.com
 quic://94.140.14.14
 quic://94.140.15.15
 
-unfiltered
 https://dns-unfiltered.adguard.com/dns-query
 https://94.140.14.140/dns-query
 https://94.140.14.141/dns-query
-udp://94.140.14.140
-udp://94.140.14.141
 tcp://94.140.14.140
 tcp://94.140.14.141
 tls://dns-unfiltered.adguard.com
@@ -125,54 +91,38 @@ quic://dns-unfiltered.adguard.com
 quic://94.140.14.140
 quic://94.140.14.141
 
------------------------------------------------------------------------------------------------------------------------------
-
-default (malware + phishing blocking)
+--------------------------------
 https://dns.quad9.net/dns-query
-udp://9.9.9.9
-udp://149.112.112.112
 tcp://9.9.9.9
 tcp://149.112.112.112
 tls://dns.quad9.net
 quic://dns.quad9.net
 
-secured w/ECS (malware + phishing blocking + ECS)
 https://dns11.quad9.net/dns-query
-udp://9.9.9.11
-udp://149.112.112.11
 tcp://9.9.9.11
 tcp://149.112.112.11
 tls://dns11.quad9.net
 quic://dns11.quad9.net
 
-unsecured (no malware blocking, no DNSSEC)
 https://dns10.quad9.net/dns-query
-udp://9.9.9.10
-udp://149.112.112.10
 tcp://9.9.9.10
 tcp://149.112.112.10
 tls://dns10.quad9.net
 quic://dns10.quad9.net
 
--------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------
 
-free (malware + phishing)
 https://freedns.controld.com/dns-query
-udp://76.76.2.0
-udp://76.76.2.1
 tcp://76.76.2.0
 tcp://76.76.2.1
 tls://freedns.controld.com
 quic://freedns.controld.com
 
------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------
 
-default
 https://dns.opendns.com/dns-query
 https://208.67.222.222/dns-query
 https://208.67.220.220/dns-query
-udp://208.67.222.222
-udp://208.67.220.220
 tcp://208.67.222.222
 tcp://208.67.220.220
 tls://dns.opendns.com
@@ -180,40 +130,31 @@ quic://dns.opendns.com
 quic://208.67.222.222
 quic://208.67.220.220
 
-sandbox
 https://sandbox.opendns.com/dns-query
 https://208.67.220.2/dns-query
 https://208.67.220.3/dns-query
-udp://208.67.220.2
-udp://208.67.220.3
 tcp://208.67.220.2
 tcp://208.67.220.3
 tls://sandbox.opendns.com
 quic://sandbox.opendns.com
 
-----------------------------------------------------------------------------------------------------------------------------
+---------------------------------------
 
-security (malware + phishing)
 https://doh.cleanbrowsing.org/doh/security-filter/
 https://185.228.168.9/dns-query
 https://185.228.169.9/dns-query
-udp://185.228.168.9
-udp://185.228.169.9
 tcp://185.228.168.9
 tcp://185.228.169.9
 tls://security-filter-dns.cleanbrowsing.org
 quic://security-filter-dns.cleanbrowsing.org
 
----------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------
 
-default (no filtering)
 https://doh.dns.sb/dns-query
 https://doh.sb/dns-query
 https://dns.sb/dns-query
 https://185.222.222.222/dns-query
 https://45.11.45.11/dns-query
-udp://185.222.222.222
-udp://45.11.45.11
 tcp://185.222.222.222
 tcp://45.11.45.11
 tls://dns.sb
@@ -221,14 +162,10 @@ quic://dns.sb
 quic://185.222.222.222
 quic://45.11.45.11
 
--------------------------------------------------------------------------------------------------------------------------------
-
-default (no filtering)
+----------------------------------------------
 https://dns.alidns.com/dns-query
 https://223.5.5.5/dns-query
 https://223.6.6.6/dns-query
-udp://223.5.5.5
-udp://223.6.6.6
 tcp://223.5.5.5
 tcp://223.6.6.6
 tls://dns.alidns.com
@@ -236,13 +173,10 @@ quic://dns.alidns.com
 quic://223.5.5.5
 quic://223.6.6.6
 
-------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------
 
-default (no filtering)
 https://77.88.8.1/dns-query
 https://77.88.8.8/dns-query
-udp://77.88.8.1
-udp://77.88.8.8
 tcp://77.88.8.1
 tcp://77.88.8.8
 tls://dns.yandex.ru
@@ -250,12 +184,9 @@ quic://dns.yandex.ru
 quic://77.88.8.1
 quic://77.88.8.8
 
------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------
 
-default (no filtering)
 https://odvr.nic.cz/dns-query
-udp://193.17.47.1
-udp://185.43.135.1
 tcp://193.17.47.1
 tcp://185.43.135.1
 tls://odvr.nic.cz
@@ -263,27 +194,21 @@ quic://odvr.nic.cz
 quic://193.17.47.1
 quic://185.43.135.1
 
-----------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------
 
-default (no filtering)
 https://doh.libredns.gr/dns-query
-udp://116.202.176.26
-udp://94.231.140.1
 tls://dot.libredns.gr
 quic://dot.libredns.gr
 quic://116.202.176.26
 quic://94.231.140.1
 
-noads (ads + tracking blocking)
 https://doh.libredns.gr/noads
-udp://116.202.176.26
 tls://noads.libredns.gr
 quic://noads.libredns.gr
 quic://116.202.176.26
 
-----------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------
 
-default (no filtering)
 https://doh.rethinkdns.com/dns-query
 https://doh.max.rethinkdns.com/dns-query
 tls://dot.rethinkdns.com
@@ -291,29 +216,21 @@ quic://dot.rethinkdns.com
 quic://89.187.187.1
 quic://89.187.187.2
 
------------------------------------------------------------------------------------------------------------------------------
-
-default (malware + phishing blocking)
+-----------------------------------------------------
 https://dns.bitdefender.net/dns-query
-udp://185.12.60.1
-udp://185.12.60.2
 tls://dns.bitdefender.net
 quic://dns.bitdefender.net
 quic://185.12.60.1
 quic://185.12.60.2
 
--------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------
 https://dns.nextdns.io/dns-query
-udp://45.90.28.0
-udp://45.90.30.0
 tcp://45.90.28.0
 tcp://45.90.30.0
 tls://dns.nextdns.io
 quic://dns.nextdns.io
 
-----------------------------------------------------------------------------------------------------------------------------------
-udp://156.154.70.1
-udp://156.154.71.1
+-------------------------------------------------------
 tcp://156.154.70.1
 tcp://156.154.71.1
 tls://dns.neustar.io
@@ -321,36 +238,28 @@ quic://dns.neustar.io
 quic://156.154.70.1
 quic://156.154.71.1
 
---------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------
 
-udp://129.250.35.250
-udp://129.250.35.251
 tcp://129.250.35.250
 tcp://129.250.35.251
 quic://129.250.35.250
 quic://129.250.35.251
 
-----------------------------------------------------------------------------------------------------------------------------
-udp://64.6.64.6
-udp://64.6.65.6
+----------------------------------------------------
 tcp://64.6.64.6
 tcp://64.6.65.6
 quic://64.6.64.6
 quic://64.6.65.6
 
---------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------
 https://d.adguard-dns.com/dns-query/8b469a14
 tls://8b469a14.d.adguard-dns.com
 quic://8b469a14.d.adguard-dns.com
 tcp://94.140.14.49
 tcp://94.140.14.59
-udp://94.140.14.49
-udp://94.140.14.59
 
-----------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------
 https://dnsforge.de/dns-query
-udp://176.9.93.198
-udp://176.9.1.117
 tcp://176.9.93.198
 tcp://176.9.1.117
 tls://dnsforge.de
@@ -359,8 +268,6 @@ quic://176.9.93.198
 quic://176.9.1.117
 
 https://clean.dnsforge.de/dns-query
-udp://49.12.223.2
-udp://49.12.43.208
 tcp://49.12.223.2
 tcp://49.12.43.208
 tls://clean.dnsforge.de
@@ -369,8 +276,6 @@ quic://49.12.223.2
 quic://49.12.43.208
 
 https://hard.dnsforge.de/dns-query
-udp://49.12.222.213
-udp://88.198.122.154
 tcp://49.12.222.213
 tcp://88.198.122.154
 tls://hard.dnsforge.de
@@ -379,8 +284,6 @@ quic://49.12.222.213
 quic://88.198.122.154
 
 https://blank.dnsforge.de/dns-query
-udp://138.199.149.249
-udp://78.47.71.194
 tcp://138.199.149.249
 tcp://78.47.71.194
 tls://blank.dnsforge.de
@@ -388,76 +291,58 @@ quic://blank.dnsforge.de
 quic://138.199.149.249
 quic://78.47.71.194
 
-----------------------------------------------------------------------------------------------------------------------------
+----------------------------------------
 
 https://doh-de.blahdns.com/dns-query
-udp://78.46.244.143
 tls://doh-de.blahdns.com
 quic://doh-de.blahdns.com
 quic://78.46.244.143
 
-udp://84.17.46.53
 tls://doh-jp.blahdns.com
 quic://doh-jp.blahdns.com
 quic://84.17.46.53
 
 https://doh-sg.blahdns.com/dns-query
-udp://104.248.139.10
 tls://doh-sg.blahdns.com
 quic://doh-sg.blahdns.com
 quic://104.248.139.10
 
-udp://78.46.244.143
-udp://84.17.46.53
 quic://78.46.244.143
 quic://84.17.46.53
 
------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------
 
-udp://45.148.14.106
-udp://185.108.140.10
 tls://ahadns.com
 quic://ahadns.com
 
-udp://45.148.14.106
-udp://185.108.140.10
 tls://blitz.ahadns.com
 quic://blitz.ahadns.com
 
-udp://45.148.14.106
-udp://185.108.140.10
 tls://malware.ahadns.com
 quic://malware.ahadns.com
 
----------------------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------
 
 https://dnslow.me/dns-query
-udp://52.246.182.50
 tls://dnslow.me
 quic://dnslow.me
 
--------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------
 
 https://doh.applied-privacy.net/query
-
 https://ada.openbld.net/dns-query
 https://ric.openbld.net/dns-query
 
 https://doh.hosterra.tech/dns-query
-udp://51.159.167.154
 https://doh-filtered.hosterra.tech/dns-query
-udp://51.159.179.94
 
 https://dns.surfsharkdns.com/dns-query
 tcp://194.169.169.169
-udp://194.169.169.169
 
 https://dns.aa.net.uk/dns-query
-udp://217.169.20.20
 
 https://doh.dns4all.eu/dns-query
 tcp://194.0.5.3
-udp://194.0.5.3
 tls://dot.dns4all.eu
 quic://doq.dns4all.eu
 
@@ -470,4 +355,3 @@ https://singapore.dnsovertor.cc/dns-query
 
 https://ctif.hagezi.org/dns-query
 tcp://162.55.58.40
-udp://162.55.58.40
