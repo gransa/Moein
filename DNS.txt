@@ -9,6 +9,8 @@ https://dns-8.dns-3.workers.dev/dns-query
 https://dns-9.dns-3.workers.dev/dns-query
 https://dns-10.dns-4.workers.dev/dns-query
 
+https://dns.nextdns.io/a27ca4
+
 https://protective.joindns4.eu/dns-query
 tcp://86.54.11.1
 tcp://86.54.11.201
