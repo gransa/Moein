@@ -21,6 +21,12 @@ https://dns-20.dns-7.workers.dev/dns-query
 https://dns-21.dns-7.workers.dev/dns-query
 https://dns-22.dns-7-3e7.workers.dev/dns-query
 
+https://m-k-1.multi-dns-1.workers.dev/dns-query
+https://m-k-2.multi-dns-1.workers.dev/dns-query
+https://m-k-3.multi-dns-1.workers.dev/dns-query
+https://m-k-4.multi-dns-1.workers.dev/dns-query
+
+
 https://dns.nextdns.io/a27ca4
 
 https://protective.joindns4.eu/dns-query
