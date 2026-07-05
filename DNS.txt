@@ -10,6 +10,16 @@ https://dns-9.dns-3.workers.dev/dns-query
 https://dns-10.dns-4.workers.dev/dns-query
 https://dns-11.dns-4.workers.dev/dns-query
 https://dns-12.dns-4.workers.dev/dns-query
+https://dns-13.dns-5.workers.dev/dns-query
+https://dns-14.dns-5.workers.dev/dns-query
+https://dns-15.dns-5.workers.dev/dns-query
+https://dns-16.dns-6.workers.dev/dns-query
+https://dns-17.dns-6.workers.dev/dns-query
+https://dns-18.dns-6.workers.dev/dns-query
+https://dns-19.dns-7.workers.dev/dns-query
+https://dns-20.dns-7.workers.dev/dns-query
+https://dns-21.dns-7.workers.dev/dns-query
+https://dns-22.dns-7-3e7.workers.dev/dns-query
 
 https://dns.nextdns.io/a27ca4
 
