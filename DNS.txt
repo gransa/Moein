@@ -29,6 +29,10 @@ https://m-k-5.multi-dns-2.workers.dev/dns-query
 https://m-k-6.multi-dns-2.workers.dev/dns-query
 https://m-k-7.multi-dns-2.workers.dev/dns-query
 https://m-k-8.multi-dns-2.workers.dev/dns-query
+https://m-k-9.multi-dns-3.workers.dev/dns-query
+https://m-k-10.multi-dns-3.workers.dev/dns-query
+https://m-k-11.multi-dns-3.workers.dev/dns-query
+https://m-k-12.multi-dns-3.workers.dev/dns-query
 
 https://dns.nextdns.io/a27ca4
 
