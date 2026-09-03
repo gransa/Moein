@@ -43,3 +43,5 @@ vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@attracta.com:80?security=&allowInse
 vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-3Db0.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-3db0.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-VA
 
 vless://478dbfd4-ea6f-4ec8-ab27-37f130601f2f@stanngv2-production-718d.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-718D.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-718d.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-NL-AM
+
+vless://c85c18ad-5344-41a0-bce4-1841752200b4@stanngv2-production-6eff.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-6EfF.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-6eff.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-SG-SG
