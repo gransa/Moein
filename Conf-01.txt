@@ -40,4 +40,4 @@ vless://b656e3c0-60cf-4d02-9ac4-74dc3b994c83@attracta.com:2095?security=&fp=chro
 
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@attracta.com:80?security=&allowInsecure=1&fp=chrome&type=ws&path=/eyJqdW5rIjoiWEl3T1ZhYlQ5OUxNZmlwIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=sEa.sAhEl.cLoUdNs.cLuB&encryption=none#@Vless-Worker-80-AI
 
-vless://d4715e83-bfa4-4f73-8eed-3c047f389eca@stanngv2-production-7ca7.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-7Ca7.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-7ca7.up.railway.app&encryption=none#StanNG-Vless-WS-TLS
+vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-3Db0.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-3db0.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-VA
