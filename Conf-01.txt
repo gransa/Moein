@@ -10,17 +10,7 @@ vless://a4c2ecbc-7388-4890-b193-74a26189e080@tally.so:2087?security=tls&sni=cAlM
 
 vless://01334dc5-015b-40e3-9b49-5f4c2f4e8949@freedom.to:2096?security=tls&sni=ANCIENt-bAND-26Bf.kAmrAN-12.WOrKers.DEv&fp=chrome&type=ws&path=/eyJqdW5rIjoidUJSNEdPeWpZQWwwcyIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=ANCIENt-bAND-26Bf.kAmrAN-12.WOrKers.DEv&encryption=none#@Vless-Worker-06%20-%202096
 
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@iplocation.net:443?security=tls&sni=vS.Lb-1.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed%3D2560&host=vs.lb-1.dns-dynamic.net&encryption=none#@Vless-Worker-LB-1
-
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@digitalocean.com:443?security=tls&sni=vS.Lb-2.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/?ed%3D2560&host=vs.lb-2.dns-dynamic.net&encryption=none#@Vless-Worker-LB-2
-
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@sourceforge.net:443?security=tls&sni=vS.Lb-3.cLoUdNs.pRo&fp=chrome&type=ws&path=/?ed%3D2560&host=vs.lb-3.cloudns.pro&encryption=none#@Vless-Worker-LB-3
-
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@civitai.com:443?security=tls&sni=vS.Lb-4.cLoUdNs.cLuB&fp=chrome&type=ws&path=/?ed%3D2560&host=vs.lb-4.cloudns.club&encryption=none#@Vless-Worker-LB-4
-
 vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@together.ai:443?security=tls&sni=cHaLgHoOz.pArIsA.ClOuDnS.PrO&fp=chrome&type=ws&path=/eyJqdW5rIjoicW5jakVVTFBrdWlQIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=chalghooz.parisa.cloudns.pro&encryption=none#@Vless-Worker-CF-1
-
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@alhilal.com:443?security=tls&sni=tEyLoR.HeDiEh.dNs-dYnAmIc.nEt&fp=chrome&type=ws&path=/eyJqdW5rIjoiQnV0QmdNRUJaeVJRZSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=teylor.hedieh.dns-dynamic.net&encryption=none#@Vless-Worker-CF-2
 
 vless://a3c51f71-ffb5-4c80-a136-cee4b36d6e85@www.speedtest.net:80?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRaN01-aFgmDQ-1.KaMRan-01.wOrkeRs.DEv&encryption=none#@Vless-Worker-101%20-%2080
 
@@ -37,8 +27,6 @@ vless://d3c25a78-2e2c-4003-8d42-5afbda4b2d08@replit.com:2082?security=&fp=chrome
 vless://454227b1-8d94-4a41-8ac4-22f2e742dba2@openai.com:2086?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMRAN09-XZ9HE1-2.kamRan-09.wORKErs.dEV&encryption=none#@Vless-Worker-108%20-%202086
 
 vless://b656e3c0-60cf-4d02-9ac4-74dc3b994c83@attracta.com:2095?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoia05vcEE5U2ROUGNKNSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=ShIny-arT-2054.kaMRan-13.WORkERs.DeV&encryption=none#@Vless-Worker-109%20-%202095
-
-vless://d6a1143b-cdf0-41f8-a646-bd8f11663786@attracta.com:80?security=&allowInsecure=1&fp=chrome&type=ws&path=/eyJqdW5rIjoiWEl3T1ZhYlQ5OUxNZmlwIiwicHJvdG9jb2wiOiJ2bCIsIm1vZGUiOiJwcm94eWlwIiwicGFuZWxJUHMiOltdfQ%3D%3D?ed%3D2560&host=sEa.sAhEl.cLoUdNs.cLuB&encryption=none#@Vless-Worker-80-AI
 
 vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-3Db0.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-3db0.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-VA
 
