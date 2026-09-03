@@ -45,3 +45,5 @@ vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway
 vless://478dbfd4-ea6f-4ec8-ab27-37f130601f2f@stanngv2-production-718d.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-718D.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-718d.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-NL-AM
 
 vless://c85c18ad-5344-41a0-bce4-1841752200b4@stanngv2-production-6eff.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-6EfF.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-6eff.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-SG-SG
+
+vless://db0de8ac-547f-4a40-8a86-fb0e0824b7c0@stanngv2-production-8b50.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-8B50.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-8b50.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-CA
