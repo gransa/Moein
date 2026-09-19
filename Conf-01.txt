@@ -28,7 +28,7 @@ vless://454227b1-8d94-4a41-8ac4-22f2e742dba2@openai.com:2086?security=&fp=chrome
 
 vless://b656e3c0-60cf-4d02-9ac4-74dc3b994c83@attracta.com:2095?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoia05vcEE5U2ROUGNKNSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=ShIny-arT-2054.kaMRan-13.WORkERs.DeV&encryption=none#@Vless-Worker-109%20-%202095
 
-
+vless://67a0bfd7-7a0d-4de5-b783-6eada7c44c9c@linear.app:443?security=tls&sni=QckD2j3WP9OcQi5Z8bdRHDu-OX.KAmrAN-24.wOrKERs.deV&fp=chrome&type=ws&path=/vl/zx3CqiuZnKMdkayTjxq?ed%3D2560&host=QckD2j3WP9OcQi5Z8bdRHDu-OX.KAmrAN-24.wOrKERs.deV&encryption=none#Vless-Worker-01-443-AI
 
 vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-3Db0.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-3db0.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-VA
 
