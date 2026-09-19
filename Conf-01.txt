@@ -32,6 +32,8 @@ vless://67a0bfd7-7a0d-4de5-b783-6eada7c44c9c@linear.app:443?security=tls&sni=Qck
 
 vless://bcf71851-bbd9-4e6b-b2bf-6b6cb404fd16@acm.org:443?security=tls&sni=Xs4wFIh1T8kV6w64DFX1aEEeA-Fx2.kAmran-25.WOrkErS.dev&fp=chrome&type=ws&path=/vl/Kj8JyfMWURXjFWAQilQP4wXCAMy?ed%3D2560&host=Xs4wFIh1T8kV6w64DFX1aEEeA-Fx2.kAmran-25.WOrkErS.dev&encryption=none#Vless-Worker-01-443-AI-AWS-USA-WEST-01
 
+vless://f61f8523-e177-448d-81a5-f43da60c5dcb@whimsical.com:443?security=tls&sni=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&fp=chrome&type=ws&path=/vl/8gTNgG6JeMa7KTeQ?ed%3D2560&host=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&encryption=none#Vless-Worker-01-443-AI-AZURE-USA-EAST-01
+
 vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-3Db0.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-3db0.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-VA
 
 vless://478dbfd4-ea6f-4ec8-ab27-37f130601f2f@stanngv2-production-718d.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-718D.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-718d.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-NL-AM
