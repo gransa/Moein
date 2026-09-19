@@ -34,6 +34,8 @@ vless://bcf71851-bbd9-4e6b-b2bf-6b6cb404fd16@acm.org:443?security=tls&sni=Xs4wFI
 
 vless://f61f8523-e177-448d-81a5-f43da60c5dcb@whimsical.com:443?security=tls&sni=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&fp=chrome&type=ws&path=/vl/8gTNgG6JeMa7KTeQ?ed%3D2560&host=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&encryption=none#Vless-Worker-01-443-AI-AZURE-USA-EAST-01
 
+vless://10b07454-ec30-4387-92c5-9a88af4b45e4@equityapartments.com:443?security=tls&sni=4C7-8Sp4h9J-38uDs8HUwD7V0d5Q7J.KAMraN-27.WORkERs.Dev&fp=chrome&type=ws&path=/vl/MqXmfNHqfWcs7NW3euOGBSlPi?ed%3D2560&host=4C7-8Sp4h9J-38uDs8HUwD7V0d5Q7J.KAMraN-27.WORkERs.Dev&encryption=none#Vless-Worker-01-443-AI-AZURE-USA-WESTCENTRAL
+
 vless://487fe8cd-9a03-4a6a-8ee1-a8f5b84dabfc@stanngv2-production-3db0.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-3Db0.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-3db0.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-USA-VA
 
 vless://478dbfd4-ea6f-4ec8-ab27-37f130601f2f@stanngv2-production-718d.up.railway.app:443?security=tls&sni=sTaNnGv2-PrOdUcTiOn-718D.Up.rAiLwAy.aPp&fp=chrome&type=ws&path=/vl-ws&host=stanngv2-production-718d.up.railway.app&encryption=none#StanNG-Vless-WS-TLS-NL-AM
