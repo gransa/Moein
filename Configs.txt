@@ -57,4 +57,4 @@ trojan://vMHxpPhmxUGE@openai.com:2086?security=&sni=wetFLeagidc-BUuheija-t2.wet-
 trojan://EjBOuETBrR3N@runpod.io:2095?security=&sni=doEq91r6hg-fzSn7cpE-t3.doeQ91r6Hg.WorkErs.dEV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=doEq91r6hg-fzSn7cpE-t3.doeQ91r6Hg.WorkErs.dEV#@Trojan-Worker-117%20-%202095
 trojan://AtfcIAsOBFmQ@neon.tech:80?security=&sni=jaHIpa-s8zltf9c-t2.JAhipa.woRKers.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=jaHIpa-s8zltf9c-t2.JAhipa.woRKers.deV#@Trojan-Worker-121%20-%2080
 trojan://wCxoDFUBrRHL@railway.app:8080?security=&sni=pOisedfInchnLat-AhkyDOp7-t1.poiSed-fInch-nlat.wOrkers.Dev&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=pOisedfInchnLat-AhkyDOp7-t1.poiSed-fInch-nlat.wOrkers.Dev#@Trojan-Worker-122%20-%208080
-ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTprMWRCT21PQjRvcWk3VW1wMzdhMWJR@82.38.31.205:8080#@82.38.31.205-BeePass
+ss://Y2hhY2hhMjAtaWV0Zi1wb2x5MTMwNTprMWRCT21PQjRvcWk3VW1wMzdhMWJR@82.38.31.195:8080#@82.38.31.195-BeePass
