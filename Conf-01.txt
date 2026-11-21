@@ -1,61 +1,61 @@
-vless://fd62968a-2e97-41ea-9aa0-aa61aed78955@postmarkapp.com:443?security=tls&sni=simIlarcaTerpillarPvet-j5H6x4-1.simIlar-caterPillar-pVet.worKers.deV&fp=chrome&type=ws&path=/?ed%3D2560&host=simIlarcaTerpillarPvet-j5H6x4-1.simIlar-caterPillar-pVet.worKers.deV&encryption=none#@Vless-Worker-01%20-%20443
+vless://0a5df297-511f-411f-91a4-b7c86caec831@postmarkapp.com:443?encryption=none&security=tls&sni=1fckUssrNb.2eudh6Nc7l.workErs.deV&fp=chrome&type=ws&host=1fckUssrNb.2eudh6Nc7l.workErs.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-01%20-%20443
 
-vless://8eb92a78-ec8d-4ff6-8a2d-8b801367be87@buydomains.com:8443?security=tls&sni=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&encryption=none#@Vless-Worker-02%20-%208443
+vless://36e63f00-5f34-42e2-8da8-eba5c42c2fb8@buydomains.com:8443?encryption=none&security=tls&sni=0f6js49vMl6wTaiqv.875fp4fNic.wOrkers.deV&fp=chrome&type=ws&host=0f6js49vMl6wTaiqv.875fp4fNic.wOrkers.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-02%20-%208443
 
-vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@workos.com:2053?security=tls&sni=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&encryption=none#@Vless-Worker-03%20-%202053
+vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@workos.com:2053?encryption=none&security=tls&sni=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&fp=chrome&type=ws&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-03%20-%202053
 
-vless://c942414d-8760-45c2-b654-bf09c151560e@crisp.chat:2083?security=tls&sni=kAmRaN04-QmWtLv-2.kAmRaN-04.wOrKeRs.dEv&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRaN04-QmWtLv-2.kAmRaN-04.wOrKeRs.dEv&encryption=none#@Vless-Worker-04%20-%202083
+vless://c942414d-8760-45c2-b654-bf09c151560e@crisp.chat:2083?encryption=none&security=tls&sni=kAmRaN04-QmWtLv-2.kAmRaN-04.wOrKeRs.dEv&fp=chrome&type=ws&host=kAmRaN04-QmWtLv-2.kAmRaN-04.wOrKeRs.dEv&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-04%20-%202083
 
-vless://0201af77-da3f-4aea-95e1-d35c98ec1b21@whimsical.com:2087?security=tls&sni=rayAn03-9wwNe2e6-v1.raYan-03.worKers.dEV&fp=chrome&type=ws&path=/?ed%3D2560&host=rayAn03-9wwNe2e6-v1.raYan-03.worKers.dEV&encryption=none#@Vless-Worker-05%20-%202087
+vless://0201af77-da3f-4aea-95e1-d35c98ec1b21@whimsical.com:2087?encryption=none&security=tls&sni=rayAn03-9wwNe2e6-v1.raYan-03.worKers.dEV&fp=chrome&type=ws&host=rayAn03-9wwNe2e6-v1.raYan-03.worKers.dEV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-05%20-%202087
 
-vless://01334dc5-015b-40e3-9b49-5f4c2f4e8949@freedom.to:2096?security=tls&sni=ANCIENt-bAND-26Bf.kAmrAN-12.WOrKers.DEv&fp=chrome&type=ws&path=/eyJqdW5rIjoidUJSNEdPeWpZQWwwcyIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=ANCIENt-bAND-26Bf.kAmrAN-12.WOrKers.DEv&encryption=none#@Vless-Worker-06%20-%202096
+vless://da252e28-741d-41d5-b6c6-c0a515962173@freedom.to:2096?encryption=none&security=tls&sni=Zyx4stGz71g3Etl.zuGa36JZvs.woRKers.dEV&fp=chrome&type=ws&host=Zyx4stGz71g3Etl.zuGa36JZvs.woRKers.dEV&path=/eyJqdW5rIjoidUJSNEdPeWpZQWwwcyIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-06%20-%202096
 
-vless://7f88d52b-796a-4234-b8cb-71576978c890@www.speedtest.net:80?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=ratAn05-srBey720-v2.raTan-05.woRkeRs.deV&encryption=none#@Vless-Worker-101%20-%2080
+vless://6eb14ced-a81a-4c35-b242-72c18559127f@www.speedtest.net:80?encryption=none&type=ws&host=sPFQBg7QJD4.kamRaN-36.WorkeRS.dev&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-101%20-%2080
 
-vless://8eb92a78-ec8d-4ff6-8a2d-8b801367be87@162.159.142.8:8080?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmraN02-3rpN9m-2.KAMran-02.WORKErS.dEV&encryption=none#@Vless-Worker-102%20-%208080
+vless://396c2936-9c74-4be1-9439-ae292416d32f@162.159.142.8:8080?encryption=none&type=ws&host=isL712gX17.Nfxxf7DVXH.WorKERs.dEv&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-102%20-%208080
 
-vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@www.speedtest.net:8880?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&encryption=none#@Vless-Worker-103%20-%208880
+vless://eb0bc4e6-1e55-443e-9a69-1902c256f04b@www.speedtest.net:8880?encryption=none&type=ws&host=kAmRAN03-A130Yz-3.KAMRAn-03.WoRkers.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-103%20-%208880
 
-vless://c942414d-8760-45c2-b654-bf09c151560e@104.17.2.112:2052?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRaN04-QmWtLv-2.kAmRaN-04.wOrKeRs.dEv&encryption=none#@Vless-Worker-104%20-%202052
+vless://d2f3a573-558c-4a0f-b629-b8a66ac2701c@104.17.2.112:2052?encryption=none&type=ws&host=7M93FrmqJ40.v1mkyKULHt.workERS.DEV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-104%20-%202052
 
-vless://d3c25a78-2e2c-4003-8d42-5afbda4b2d08@replit.com:2082?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kAmRAn08-IrxfDE-2.kAMRAN-08.woRKers.dev&encryption=none#@Vless-Worker-105%20-%202082
+vless://6e3723c2-c36c-49cb-a7de-6c4b681bf27b@replit.com:2082?encryption=none&type=ws&host=ez5KsL5KcOklBO.yFz4BjZRM1.WORKers.dEV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-105%20-%202082
 
-vless://454227b1-8d94-4a41-8ac4-22f2e742dba2@openai.com:2086?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=kaMRAN09-XZ9HE1-2.kamRan-09.wORKErs.dEV&encryption=none#@Vless-Worker-106%20-%202086
+vless://454227b1-8d94-4a41-8ac4-22f2e742dba2@openai.com:2086?encryption=none&type=ws&host=kaMRAN09-XZ9HE1-2.kamRan-09.wORKErs.dEV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-106%20-%202086
 
-vless://28a2d39a-d3b2-49ca-ab6c-d4479d3fef08@188.114.97.6:2095?security=&fp=chrome&type=ws&path=/?ed%3D2560&host=KAmRAN07-L4Xbrq-1.kAmRan-07.WORkers.dEv&encryption=none#@Vless-Worker-107%20-%202095
+vless://28a2d39a-d3b2-49ca-ab6c-d4479d3fef08@188.114.97.6:2095?encryption=none&type=ws&host=KAmRAN07-L4Xbrq-1.kAmRan-07.WORkers.dEv&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-107%20-%202095
 
-vless://b656e3c0-60cf-4d02-9ac4-74dc3b994c83@attracta.com:2095?security=&fp=chrome&type=ws&path=/eyJqdW5rIjoia05vcEE5U2ROUGNKNSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D?ed%3D2560&host=ShIny-arT-2054.kaMRan-13.WORkERs.DeV&encryption=none#@Vless-Worker-108%20-%202095
+vless://fef953ec-b8b1-4e16-92bf-102175b83a77@attracta.com:2095?encryption=none&type=ws&host=ftVuyo4VtRmQHgk.KAmrAn-3.woRKeRS.dEV&path=/eyJqdW5rIjoia05vcEE5U2ROUGNKNSIsInByb3RvY29sIjoidmwiLCJtb2RlIjoicHJveHlpcCIsInBhbmVsSVBzIjpbXX0%3D&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-108%20-%202095
 
-vless://22649b54-4b92-496d-a3cd-4412f44672c8@patreon.com:443?security=tls&sni=RAyan07-DIhd4iyi-v3.raYAn-07.WorkeRs.DeV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=RAyan07-DIhd4iyi-v3.raYAn-07.WorkeRs.DeV&encryption=none#@Vless-Worker-11%20-%20443
+vless://22649b54-4b92-496d-a3cd-4412f44672c8@patreon.com:443?encryption=none&security=tls&sni=RAyan07-DIhd4iyi-v3.raYAn-07.WorkeRs.DeV&fp=chrome&type=ws&host=RAyan07-DIhd4iyi-v3.raYAn-07.WorkeRs.DeV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-11%20-%20443
 
-vless://c992c498-40f8-4a87-9a1c-9e94f9ea1c07@udemy.com:8443?security=tls&sni=rayAn09-KimCm71n-v1.RayAn-09.wORkers.DeV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=rayAn09-KimCm71n-v1.RayAn-09.wORkers.DeV&encryption=none#@Vless-Worker-12%20-%208443
+vless://c992c498-40f8-4a87-9a1c-9e94f9ea1c07@udemy.com:8443?encryption=none&security=tls&sni=rayAn09-KimCm71n-v1.RayAn-09.wORkers.DeV&fp=chrome&type=ws&host=rayAn09-KimCm71n-v1.RayAn-09.wORkers.DeV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-12%20-%208443
 
-vless://aa94bcb0-2c60-4f33-8f28-d884f80d7ea0@researchgate.net:2053?security=tls&sni=raYan13-q7QMnvs8-v2.raYAn-13.woRKers.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=raYan13-q7QMnvs8-v2.raYAn-13.woRKers.deV&encryption=none#@Vless-Worker-13%20-%202053
+vless://aa94bcb0-2c60-4f33-8f28-d884f80d7ea0@researchgate.net:2053?encryption=none&security=tls&sni=raYan13-q7QMnvs8-v2.raYAn-13.woRKers.deV&fp=chrome&type=ws&host=raYan13-q7QMnvs8-v2.raYAn-13.woRKers.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-13%20-%202053
 
-vless://edeb6e83-2de8-4e2c-a44d-656ae2991278@fontawesome.com:2083?security=tls&sni=RayaN15-90e49Yiz-v3.rAYan-15.workeRS.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=RayaN15-90e49Yiz-v3.rAYan-15.workeRS.deV&encryption=none#@Vless-Worker-14%20-%202083
+vless://b398ddde-edd8-4ba9-a218-eebd136913ad@fontawesome.com:2083?encryption=none&security=tls&sni=ZGqHW1lxrVKVdFe0t.17ys7jQ251.woRKeRs.DEV&fp=chrome&type=ws&host=ZGqHW1lxrVKVdFe0t.17ys7jQ251.woRKeRs.DEV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-14%20-%202083
 
-vless://a3ac44ea-b113-4fbf-8e0b-9f041c2862e8@unpkg.com:2087?security=tls&sni=rayAn17-ukA5r5x6-v1.rayAn-17.woRkerS.dEv&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=rayAn17-ukA5r5x6-v1.rayAn-17.woRkerS.dEv&encryption=none#@Vless-Worker-15%20-%202087
+vless://68175d39-eed0-41d1-9d29-92905b21ad39@unpkg.com:2087?encryption=none&security=tls&sni=VYof056Gf.954l4YY332.WoRKERs.DeV&fp=chrome&type=ws&host=VYof056Gf.954l4YY332.WoRKERs.DeV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-15%20-%202087
 
-vless://293733e5-a8ac-4132-ba79-7dcbd0d642b7@w3.org:2096?security=tls&sni=rAyaN19-Nb4nzBlz-v2.raYAn-19.workERs.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=rAyaN19-Nb4nzBlz-v2.raYAn-19.workERs.deV&encryption=none#@Vless-Worker-16%20-%202096
+vless://293733e5-a8ac-4132-ba79-7dcbd0d642b7@w3.org:2096?encryption=none&security=tls&sni=rAyaN19-Nb4nzBlz-v2.raYAn-19.workERs.deV&fp=chrome&type=ws&host=rAyaN19-Nb4nzBlz-v2.raYAn-19.workERs.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-16%20-%202096
 
-vless://ec24cde1-6bd9-4b69-baf7-270e8aabd6dd@acm.org:80?security=&sni=rayAN21-6yU73878-v3.raYAn-21.woRKers.dEV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=rayAN21-6yU73878-v3.raYAn-21.woRKers.dEV&encryption=none#@Vless-Worker-111%20-%2080
+vless://99e61a0b-d723-4465-a6c1-2ab3bb8848a5@acm.org:80?encryption=none&type=ws&host=chw3KA9x.T4TXgwzW8a.WORKERS.dev&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-111%20-%2080
 
-vless://c4940726-7300-46f8-a8ce-925c2b2d6612@buydomains.com:8080?security=&sni=qgJdrswc-8hh1pa.qgjdRswc.woRkers.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=qgJdrswc-8hh1pa.qgjdRswc.woRkers.deV&encryption=none#@Vless-Worker-112%20-%208080
+vless://fdaedfad-8509-4a07-b83c-abe48a8b4bdc@buydomains.com:8080?encryption=none&type=ws&host=O7Y4R2zNu40im1TuS.qbx0BZZ9a2.wOrKeRs.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-112%20-%208080
 
-vless://58689924-f749-48c1-89bd-2dc5a8d887d5@css-tricks.com:8880?security=&sni=beKkodIltu-qc29W2.bekkodilTu.wOrkeRs.Dev&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=beKkodIltu-qc29W2.bekkodilTu.wOrkeRs.Dev&encryption=none#@Vless-Worker-113%20-%208880
+vless://50e52154-b707-4334-9605-054945599dce@css-tricks.com:8880?encryption=none&type=ws&host=dqV0ZrnBIF0AOXeRm.hoxKQ7zTu3.woRkERs.DeV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-113%20-%208880
 
-vless://1658394c-bc07-4db2-ac14-c6e22ee3ad46@hackernoon.com:2052?security=&sni=rayAn69-P9fr6z6w-v3.raYan-69.worKers.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=rayAn69-P9fr6z6w-v3.raYan-69.worKers.deV&encryption=none#@Vless-Worker-114%20-%202052
+vless://b6072e55-1441-4f5e-bed3-48fa9ccf7006@hackernoon.com:2052?encryption=none&type=ws&host=TV6QuQOh9GhB2DE.7BQH4o7Qq0.WOrkeRS.DeV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-114%20-%202052
 
-vless://975955b1-0521-49d9-97ad-eed2e626a30f@tally.so:2082?security=&sni=roOz-ryo1kZgj-v1.rOoz-67c.woRKers.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=roOz-ryo1kZgj-v1.rOoz-67c.woRKers.deV&encryption=none#@Vless-Worker-115%20-%202082
+vless://fe5c00e8-b050-402e-adb6-3ad0a7b8a8e5@tally.so:2082?encryption=none&type=ws&host=z4356YddtS.UhmvMKL5MO.wORkERs.DEv&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-115%20-%202082
 
-vless://3edd13d1-7448-4ff6-9857-414c798b7fde@arc.net:2086?security=&sni=DarYa-e4o6Co27-v2.DarYa-f6c.workErs.deV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=DarYa-e4o6Co27-v2.DarYa-f6c.workErs.deV&encryption=none#@Vless-Worker-116%20-%202086
+vless://3edd13d1-7448-4ff6-9857-414c798b7fde@arc.net:2086?encryption=none&type=ws&host=DarYa-e4o6Co27-v2.DarYa-f6c.workErs.deV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-116%20-%202086
 
-vless://8cacef8e-6975-46c9-94cb-212a3cfaa0bc@postmarkapp.com:2095?security=&sni=io8Fath-xBp15rGk-v3.io8Fath.woRKers.dEV&allowInsecure=1&fp=chrome&type=ws&path=/?ed%3D2560&host=io8Fath-xBp15rGk-v3.io8Fath.woRKers.dEV&encryption=none#@Vless-Worker-117%20-%202095
+vless://41c793b3-d556-4bd2-83c6-68ddcbe469ba@postmarkapp.com:2095?encryption=none&type=ws&host=1W2PcAwE.b9aA872OX8.woRKErs.dEV&path=/&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#@Vless-Worker-117%20-%202095
 
-vless://67a0bfd7-7a0d-4de5-b783-6eada7c44c9c@whimsical.com:443?security=tls&sni=QckD2j3WP9OcQi5Z8bdRHDu-OX.KAmrAN-24.wOrKERs.deV&fp=chrome&type=ws&path=/vl/zx3CqiuZnKMdkayTjxq?ed%3D2560&host=QckD2j3WP9OcQi5Z8bdRHDu-OX.KAmrAN-24.wOrKERs.deV&encryption=none#Vless-Worker-01-443-AI-AWS-USA-EAST-01
+vless://67a0bfd7-7a0d-4de5-b783-6eada7c44c9c@whimsical.com:443?encryption=none&security=tls&sni=QckD2j3WP9OcQi5Z8bdRHDu-OX.KAmrAN-24.wOrKERs.deV&fp=chrome&type=ws&host=QckD2j3WP9OcQi5Z8bdRHDu-OX.KAmrAN-24.wOrKERs.deV&path=/vl/zx3CqiuZnKMdkayTjxq&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#Vless-Worker-01-443-AI-AWS-USA-EAST-01
 
-vless://bcf71851-bbd9-4e6b-b2bf-6b6cb404fd16@kinsta.com:443?security=tls&sni=Xs4wFIh1T8kV6w64DFX1aEEeA-Fx2.kAmran-25.WOrkErS.dev&fp=chrome&type=ws&path=/vl/Kj8JyfMWURXjFWAQilQP4wXCAMy?ed%3D2560&host=Xs4wFIh1T8kV6w64DFX1aEEeA-Fx2.kAmran-25.WOrkErS.dev&encryption=none#Vless-Worker-01-443-AI-AWS-USA-WEST-01
+vless://bcf71851-bbd9-4e6b-b2bf-6b6cb404fd16@kinsta.com:443?encryption=none&security=tls&sni=Xs4wFIh1T8kV6w64DFX1aEEeA-Fx2.kAmran-25.WOrkErS.dev&fp=chrome&type=ws&host=Xs4wFIh1T8kV6w64DFX1aEEeA-Fx2.kAmran-25.WOrkErS.dev&path=/vl/Kj8JyfMWURXjFWAQilQP4wXCAMy&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#Vless-Worker-01-443-AI-AWS-USA-WEST-01
 
-vless://f61f8523-e177-448d-81a5-f43da60c5dcb@openai.com:443?security=tls&sni=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&fp=chrome&type=ws&path=/vl/8gTNgG6JeMa7KTeQ?ed%3D2560&host=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&encryption=none#Vless-Worker-01-443-AI-AZURE-USA-EAST-01
+vless://f61f8523-e177-448d-81a5-f43da60c5dcb@openai.com:443?encryption=none&security=tls&sni=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&fp=chrome&type=ws&host=622G99c-zJ2r5AuM2X.KamRAn-26.WoRKErs.Dev&path=/vl/8gTNgG6JeMa7KTeQ&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#Vless-Worker-01-443-AI-AZURE-USA-EAST-01
 
-vless://10b07454-ec30-4387-92c5-9a88af4b45e4@neon.tech:443?security=tls&sni=4C7-8Sp4h9J-38uDs8HUwD7V0d5Q7J.KAMraN-27.WORkERs.Dev&fp=chrome&type=ws&path=/vl/MqXmfNHqfWcs7NW3euOGBSlPi?ed%3D2560&host=4C7-8Sp4h9J-38uDs8HUwD7V0d5Q7J.KAMraN-27.WORkERs.Dev&encryption=none#Vless-Worker-01-443-AI-AZURE-USA-WESTCENTRAL
+vless://10b07454-ec30-4387-92c5-9a88af4b45e4@neon.tech:443?encryption=none&security=tls&sni=4C7-8Sp4h9J-38uDs8HUwD7V0d5Q7J.KAMraN-27.WORkERs.Dev&fp=chrome&type=ws&host=4C7-8Sp4h9J-38uDs8HUwD7V0d5Q7J.KAMraN-27.WORkERs.Dev&path=/vl/MqXmfNHqfWcs7NW3euOGBSlPi&max_early_data=2560&early_data_header_name=Sec-WebSocket-Protocol&packetEncoding=xudp#Vless-Worker-01-443-AI-AZURE-USA-WESTCENTRAL
